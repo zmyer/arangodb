@@ -29,6 +29,7 @@
 #include "Basics/VelocyPackHelper.h"
 #include "Cluster/ClusterEdgeCursor.h"
 #include "Indexes/Index.h"
+#include "Transaction/Methods.h"
 #include "VocBase/SingleServerTraverser.h"
 
 #include <velocypack/Iterator.h>
@@ -306,6 +307,10 @@ void BaseTraverserOptions::serializeVariables(
     VPackBuilder& builder) const {
   TRI_ASSERT(builder.isOpenArray());
   _ctx->serializeAllVariables(_trx, builder);
+}
+
+arangodb::transaction::Methods* BaseTraverserOptions::trx() const {
+  return _trx;
 }
 
 void BaseTraverserOptions::injectVelocyPackIndexes(VPackBuilder& builder) const {

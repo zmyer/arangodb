@@ -134,6 +134,8 @@ struct BaseTraverserOptions {
 
   void serializeVariables(arangodb::velocypack::Builder&) const;
 
+  transaction::Methods* trx() const;
+
  protected:
 
   // Requires an open Object in the given builder an
@@ -224,6 +226,42 @@ struct TraverserOptions : public BaseTraverserOptions {
                               std::vector<LookupInfo>&) const;
 
   EdgeCursor* nextCursorCoordinator(arangodb::velocypack::Slice, uint64_t) const;
+};
+
+struct ShortestPathOptions : public BaseTraverserOptions {
+
+ private:
+
+  double _defaultWeight;
+  std::string _weightAttribute;
+
+ public:
+
+  explicit ShortestPathOptions(transaction::Methods* trx)
+    : BaseTraverserOptions(trx),
+      _defaultWeight(1),
+      _weightAttribute("") {}
+
+  void setWeightAttribute(std::string const& attr) {
+    _weightAttribute = attr;
+  }
+
+  void setDefaultWeight(double weight) {
+    _defaultWeight = weight;
+  }
+
+  bool usesWeight() {
+    return !_weightAttribute.empty();
+  }
+
+  std::string const weightAttribute() {
+    return _weightAttribute;
+  }
+
+  double defaultWeight() {
+    return _defaultWeight;
+  }
+
 };
 
 }
