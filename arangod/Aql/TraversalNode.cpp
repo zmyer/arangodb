@@ -934,7 +934,7 @@ void TraversalNode::prepareOptions() {
     return;
   }
   TRI_ASSERT(!_optionsBuild);
-  _options->_tmpVar = _tmpObjVariable;
+  _options->setVariable(_tmpObjVariable);
 
   size_t numEdgeColls = _edgeColls.size();
   bool res = false;
@@ -947,67 +947,24 @@ void TraversalNode::prepareOptions() {
   Ast* ast = _plan->getAst();
   auto trx = ast->query()->trx();
 
-  _options->_baseLookupInfos.reserve(numEdgeColls);
+  // FIXME: _options->_baseLookupInfos.reserve(numEdgeColls);
   // Compute Edge Indexes. First default indexes:
   for (size_t i = 0; i < numEdgeColls; ++i) {
-    std::string usedField;
-    auto dir = _directions[i];
-    // TODO we can optimize here. indexCondition and Expression could be
-    // made non-overlapping.
-    traverser::TraverserOptions::LookupInfo info;
-    switch (dir) {
+    switch (_directions[i]) {
       case TRI_EDGE_IN:
-        usedField = StaticStrings::ToString;
-        info.indexCondition =
-            globalEdgeConditionBuilder.getInboundCondition()->clone(ast);
+        _options->addLookupInfo(
+            ast, _edgeColls[i]->getName(), StaticStrings::ToString,
+            globalEdgeConditionBuilder.getInboundCondition()->clone(ast));
         break;
       case TRI_EDGE_OUT:
-        usedField = StaticStrings::FromString;
-        info.indexCondition =
-            globalEdgeConditionBuilder.getOutboundCondition()->clone(ast);
+        _options->addLookupInfo(
+            ast, _edgeColls[i]->getName(), StaticStrings::FromString,
+            globalEdgeConditionBuilder.getOutboundCondition()->clone(ast));
         break;
       case TRI_EDGE_ANY:
         TRI_ASSERT(false);
         break;
     }
-    info.expression = new Expression(ast, info.indexCondition->clone(ast));
-    res = trx->getBestIndexHandleForFilterCondition(
-        _edgeColls[i]->getName(), info.indexCondition, _tmpObjVariable, 1000,
-        info.idxHandles[0]);
-    TRI_ASSERT(res);  // Right now we have an enforced edge index which will
-                      // always fit.
-    if (!res) {
-      THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "expected edge index not found");
-    }
-
-    // We now have to check if we need _from / _to inside the index lookup and which position
-    // it is used in. Such that the traverser can update the respective string value
-    // in-place
-    std::pair<Variable const*, std::vector<basics::AttributeName>> pathCmp;
-    for (size_t i = 0; i < info.indexCondition->numMembers(); ++i) {
-      // We search through the nary-and and look for EQ - _from/_to
-      auto eq = info.indexCondition->getMemberUnchecked(i);
-      if (eq->type != NODE_TYPE_OPERATOR_BINARY_EQ) {
-        // No equality. Skip
-        continue;
-      }
-      TRI_ASSERT(eq->numMembers() == 2);
-      // It is sufficient to only check member one.
-      // We build the condition this way.
-      auto mem = eq->getMemberUnchecked(0);
-      if (mem->isAttributeAccessForVariable(pathCmp)) {
-        if (pathCmp.first != _tmpObjVariable) {
-          continue;
-        }
-        if (pathCmp.second.size() == 1 && pathCmp.second[0].name == usedField) {
-          info.conditionNeedUpdate = true;
-          info.conditionMemberToUpdate = i;
-          break;
-        }
-        continue;
-      }
-    }
-    _options->_baseLookupInfos.emplace_back(std::move(info));
   }
 
   for (auto& it : _edgeConditions) {

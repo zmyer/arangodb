@@ -104,13 +104,16 @@ ShortestPathNode::ShortestPathNode(ExecutionPlan* plan, size_t id,
   auto addEdgeColl = [&](std::string const& n, TRI_edge_direction_e dir) -> void {
     if (dir == TRI_EDGE_ANY) {
       _directions.emplace_back(TRI_EDGE_OUT);
-      _edgeColls.emplace_back(n);
+      _edgeColls.emplace_back(
+          std::make_unique<aql::Collection>(n, _vocbase, AccessMode::Type::READ));
 
       _directions.emplace_back(TRI_EDGE_IN);
-      _edgeColls.emplace_back(std::move(n));
+      _edgeColls.emplace_back(
+          std::make_unique<aql::Collection>(n, _vocbase, AccessMode::Type::READ));
     } else {
       _directions.emplace_back(dir);
-      _edgeColls.emplace_back(std::move(n));
+      _edgeColls.emplace_back(
+          std::make_unique<aql::Collection>(n, _vocbase, AccessMode::Type::READ));
     }
   };
 
@@ -184,7 +187,6 @@ ShortestPathNode::ShortestPathNode(ExecutionPlan* plan, size_t id,
         // collection with direction ANY must be added again
         _graphInfo.add(VPackValue(eColName));
       }
-
     }
     _graphInfo.close();
   } else {
@@ -232,7 +234,7 @@ ShortestPathNode::ShortestPathNode(ExecutionPlan* plan, size_t id,
 
 ShortestPathNode::ShortestPathNode(ExecutionPlan* plan, size_t id,
                                    TRI_vocbase_t* vocbase,
-                                   std::vector<std::string> const& edgeColls,
+                                   std::vector<std::unique_ptr<aql::Collection>> const& edgeColls,
                                    std::vector<TRI_edge_direction_e> const& directions,
                                    Variable const* inStartVariable,
                                    std::string const& startVertexId,
@@ -253,10 +255,16 @@ ShortestPathNode::ShortestPathNode(ExecutionPlan* plan, size_t id,
 
   _graphInfo.openArray();
   for (auto const& it : edgeColls) {
-    _edgeColls.emplace_back(it);
-    _graphInfo.add(VPackValue(it));
+    // Collections cannot be copied. So we need to create new ones to prevent leaks
+    _edgeColls.emplace_back(std::make_unique<aql::Collection>(
+        it->getName(), _vocbase, AccessMode::Type::READ));
+    _graphInfo.add(VPackValue(it->getName()));
   }
+
   _graphInfo.close();
+}
+
+ShortestPathNode::~ShortestPathNode() {
 }
 
 void ShortestPathNode::fillOptions(arangodb::traverser::ShortestPathOptions& opts) const {
@@ -267,6 +275,17 @@ void ShortestPathNode::fillOptions(arangodb::traverser::ShortestPathOptions& opt
   } else {
     opts.useWeight = false;
   }
+}
+
+arangodb::aql::ShortestPathOptions const* ShortestPathNode::options()
+    const {
+  return &_options;
+}
+
+void ShortestPathNode::enhanceEngineInfo(arangodb::velocypack::Builder&) const {
+}
+
+void ShortestPathNode::addEngine(traverser::TraverserEngineID const&, ServerID const&) {
 }
 
 ShortestPathNode::ShortestPathNode(ExecutionPlan* plan,
@@ -346,14 +365,16 @@ ShortestPathNode::ShortestPathNode(ExecutionPlan* plan,
 
       auto const& eColls = _graphObj->edgeCollections();
       for (auto const& it : eColls) {
-        _edgeColls.push_back(it);
+        _edgeColls.emplace_back(
+            std::make_unique<aql::Collection>(it, _vocbase, AccessMode::Type::READ));
         
         // if there are twice as many directions as collections, this means we
         // have a shortest path with direction ANY. we must add each collection
         // twice then
         if (_directions.size() == 2 * eColls.size()) {
           // add collection again
-          _edgeColls.push_back(it);
+          _edgeColls.emplace_back(
+              std::make_unique<aql::Collection>(it, _vocbase, AccessMode::Type::READ));
         }
       }
     } else {
@@ -372,7 +393,9 @@ ShortestPathNode::ShortestPathNode(ExecutionPlan* plan,
         THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_QUERY_BAD_JSON_PLAN,
                                        "graph has to be an array of strings.");
       }
-      _edgeColls.emplace_back(it.copyString());
+      std::string e = arangodb::basics::VelocyPackHelper::getStringValue(it, "");
+      _edgeColls.emplace_back(
+          std::make_unique<aql::Collection>(e, _vocbase, AccessMode::Type::READ));
     }
     if (_edgeColls.empty()) {
       THROW_ARANGO_EXCEPTION_MESSAGE(
@@ -483,19 +506,10 @@ double ShortestPathNode::estimateCost(size_t& nrItems) const {
   size_t incoming = 0;
   double depCost = _dependencies.at(0)->getCost(incoming);
   auto trx = _plan->getAst()->query()->trx();
-  auto collections = _plan->getAst()->query()->collections();
   size_t edgesCount = 0;
   double nodesEstimate = 0;
 
-  TRI_ASSERT(collections != nullptr);
-
-  for (auto const& it : _edgeColls) {
-    auto collection = collections->get(it);
-
-    if (collection == nullptr) {
-      THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL,
-                                     "unexpected pointer for collection");
-    }
+  for (auto const& collection : _edgeColls) {
     size_t edges = collection->count();
 
     auto indexes = trx->indexesForCollection(collection->name);

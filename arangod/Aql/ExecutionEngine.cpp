@@ -824,10 +824,8 @@ struct CoordinatorInstanciator : public WalkerWorker<ExecutionNode> {
 
   /// @brief Build traverser engines on DBServers. Coordinator still uses
   ///        traversal block.
-  void buildTraverserEnginesForNode(TraversalNode* en) {
-    // We have to initialize all options. After this point the node
-    // is not cloneable any more.
-    en->prepareOptions();
+  template<typename Node>
+  void buildTraverserEnginesForNode(Node* en) {
     VPackBuilder optsBuilder;
     auto opts = en->options();
     opts->buildEngineInfo(optsBuilder);
@@ -1121,7 +1119,15 @@ struct CoordinatorInstanciator : public WalkerWorker<ExecutionNode> {
     }
 
     if (nodeType == ExecutionNode::TRAVERSAL) {
-      buildTraverserEnginesForNode(static_cast<TraversalNode*>(en));
+      // We have to initialize all options. After this point the node
+      // is not cloneable any more.
+      // Required prior to creation of engines.
+      auto tmp = static_cast<TraversalNode*>(en);
+      tmp->prepareOptions();
+      // Now build traverser engines.
+      buildTraverserEnginesForNode<TraversalNode>(tmp);
+    } else if (nodeType == ExecutionNode::SHORTEST_PATH) {
+      buildTraverserEnginesForNode<ShortestPathNode>(static_cast<ShortestPathNode*>(en));
     }
 
     return false;
