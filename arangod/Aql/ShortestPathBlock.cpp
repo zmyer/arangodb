@@ -453,8 +453,9 @@ bool ShortestPathBlock::nextPath(AqlItemBlock const* items) {
     // Both are constant, after this computation we are done
     _usedConstant = true;
   }
-  transaction::BuilderLeaser startBuilder(_opts->trx());
-  transaction::BuilderLeaser targetBuilder(_opts->trx());
+
+  _startBuilder.clear();
+  _targetBuilder.clear();
   
   VPackSlice start;
   VPackSlice end;
@@ -467,15 +468,15 @@ bool ShortestPathBlock::nextPath(AqlItemBlock const* items) {
                                            "_id are allowed");
       return false;
     } else {
-      startBuilder->add(VPackValue(_startVertexId));
-      start = startBuilder->slice();
+      _startBuilder.add(VPackValue(_startVertexId));
+      start = _startBuilder.slice();
     }
   } else {
     AqlValue const& in = items->getValueReference(_pos, _startReg);
     if (in.isObject()) {
       try {
-        startBuilder->add(VPackValue(_trx->extractIdString(in.slice())));
-        start = startBuilder->slice();
+        _startBuilder.add(VPackValue(_trx->extractIdString(in.slice())));
+        start = _startBuilder.slice();
       }
       catch (...) {
         // _id or _key not present... ignore this error and fall through
@@ -503,15 +504,15 @@ bool ShortestPathBlock::nextPath(AqlItemBlock const* items) {
                                        "_id are allowed");
       return false;
     } else {
-      targetBuilder->add(VPackValue(_targetVertexId));
-      end = targetBuilder->slice();
+      _targetBuilder.add(VPackValue(_targetVertexId));
+      end = _targetBuilder.slice();
     }
   } else {
     AqlValue const& in = items->getValueReference(_pos, _targetReg);
     if (in.isObject()) {
       try {
-        targetBuilder->add(VPackValue(_trx->extractIdString(in.slice())));
-        end = targetBuilder->slice();
+        _targetBuilder.add(VPackValue(_trx->extractIdString(in.slice())));
+        end = _targetBuilder.slice();
       }
       catch (...) {
         // _id or _key not present... ignore this error and fall through

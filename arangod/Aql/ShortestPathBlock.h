@@ -145,6 +145,12 @@ class ShortestPathBlock : public ExecutionBlock {
   /// @brief Cache for edges send over the network
   std::vector<std::shared_ptr<VPackBuffer<uint8_t>>> _coordinatorCache;
 
+  /// @brief Builder to make sure that source velocypack does not get out of scope
+  arangodb::velocypack::Builder _startBuilder;
+
+  /// @brief Builder to make sure that target velocypack does not get out of scope
+  arangodb::velocypack::Builder _targetBuilder;
+
 };
 
 } // namespace arangodb::aql
