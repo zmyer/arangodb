@@ -24,23 +24,19 @@
 #ifndef ARANGOD_AQL_TRAVERSAL_NODE_H
 #define ARANGOD_AQL_TRAVERSAL_NODE_H 1
 
-#include "Aql/ExecutionNode.h"
-#include "Aql/Collection.h"
+#include "Aql/GraphNode.h"
 #include "Aql/Condition.h"
-#include "Aql/Graphs.h"
 #include "Cluster/ServerState.h"
-#include "Cluster/TraverserEngineRegistry.h"
-#include "VocBase/LogicalCollection.h"
 #include "VocBase/TraverserOptions.h"
 
 namespace arangodb {
 namespace aql {
 
 /// @brief class TraversalNode
-class TraversalNode : public ExecutionNode {
+class TraversalNode : public GraphNode {
+
   class TraversalEdgeConditionBuilder final : public EdgeConditionBuilder {
    private:
-    /// @brief reference to the outer traversal node
     TraversalNode const* _tn;
 
    protected:
@@ -73,7 +69,7 @@ class TraversalNode : public ExecutionNode {
   TraversalNode(ExecutionPlan* plan, size_t id, TRI_vocbase_t* vocbase,
                 AstNode const* direction, AstNode const* start,
                 AstNode const* graph,
-                std::unique_ptr<traverser::TraverserOptions>& options);
+                traverser::TraverserOptions* options);
 
   TraversalNode(ExecutionPlan* plan, arangodb::velocypack::Slice const& base);
 
@@ -86,7 +82,7 @@ class TraversalNode : public ExecutionNode {
                 std::vector<std::unique_ptr<aql::Collection>> const& vertexColls,
                 Variable const* inVariable, std::string const& vertexId,
                 std::vector<TRI_edge_direction_e> const& directions,
-                std::unique_ptr<traverser::TraverserOptions>& options);
+                traverser::TraverserOptions* options);
 
  public:
   /// @brief return the type of the node
@@ -264,15 +260,6 @@ class TraversalNode : public ExecutionNode {
 
  private:
 
-  /// @brief the database
-  TRI_vocbase_t* _vocbase;
-
-  /// @brief vertex output variable
-  Variable const* _vertexOutVariable;
-
-  /// @brief vertex output variable
-  Variable const* _edgeOutVariable;
-
   /// @brief vertex output variable
   Variable const* _pathOutVariable;
 
@@ -282,44 +269,11 @@ class TraversalNode : public ExecutionNode {
   /// @brief input vertexId only used if _inVariable is unused
   std::string _vertexId;
 
-  /// @brief input graphInfo only used for serialization & info
-  arangodb::velocypack::Builder _graphInfo;
-
-  /// @brief The directions edges are followed
-  std::vector<TRI_edge_direction_e> _directions;
-
-  /// @brief the edge collections
-  std::vector<std::unique_ptr<aql::Collection>> _edgeColls;
-
-  /// @brief the vertex collection names
-  std::vector<std::unique_ptr<aql::Collection>> _vertexColls;
-
-  /// @brief our graph
-  Graph const* _graphObj;
-
   /// @brief early abort traversal conditions:
   Condition* _condition;
 
   /// @brief variables that are inside of the condition
   std::unordered_set<Variable const*> _conditionVariables;
-
-  /// @brief Options for traversals
-  std::unique_ptr<traverser::TraverserOptions> _options;
-
-  /// @brief Temporary pseudo variable for the currently traversed object.
-  Variable const* _tmpObjVariable;
-
-  /// @brief Reference to the pseudo variable
-  AstNode* _tmpObjVarNode;
-
-  /// @brief Pseudo string value node to hold the last visted vertex id.
-  AstNode* _tmpIdNode;
-
-  /// @brief The hard coded condition on _from
-  AstNode* _fromCondition;
-
-  /// @brief The hard coded condition on _to
-  AstNode* _toCondition;
 
   /// @brief The global edge condition. Does not contain
   ///        _from and _to checks
@@ -335,16 +289,6 @@ class TraversalNode : public ExecutionNode {
   /// @brief List of all depth specific conditions for vertices
   std::unordered_map<uint64_t, AstNode*> _vertexConditions;
 
-  /// @brief Flag if options are already prepared. After
-  ///        this flag was set the node cannot be cloned
-  ///        any more.
-  bool _optionsBuild;
-
-  /// @brief The list of traverser engines grouped by server.
-  std::unordered_map<ServerID, traverser::TraverserEngineID> _engines;
-
-  /// @brief flag, if traversal is smart (enterprise edition only!)
-  bool _isSmart;
 };
 
 }  // namespace arangodb::aql

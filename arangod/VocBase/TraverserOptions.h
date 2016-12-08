@@ -115,10 +115,6 @@ struct BaseTraverserOptions {
 
   virtual ~BaseTraverserOptions();
 
-  // Creates a complete Object containing all index information
-  // in the given builder.
-  virtual void toVelocyPackIndexes(arangodb::velocypack::Builder&) const;
-
   // Creates a complete Object containing all EngineInfo
   // in the given builder.
   virtual void buildEngineInfo(arangodb::velocypack::Builder&) const;
@@ -135,6 +131,13 @@ struct BaseTraverserOptions {
   void serializeVariables(arangodb::velocypack::Builder&) const;
 
   transaction::Methods* trx() const;
+
+  /// @brief Build a velocypack for cloning in the plan.
+  virtual void toVelocyPack(arangodb::velocypack::Builder&) const = 0;
+
+  // Creates a complete Object containing all index information
+  // in the given builder.
+  virtual void toVelocyPackIndexes(arangodb::velocypack::Builder&) const;
 
  protected:
 
@@ -199,14 +202,14 @@ struct TraverserOptions : public BaseTraverserOptions {
   virtual ~TraverserOptions();
 
   /// @brief Build a velocypack for cloning in the plan.
-  void toVelocyPack(arangodb::velocypack::Builder&) const;
+  void toVelocyPack(arangodb::velocypack::Builder&) const override;
   
   /// @brief Build a velocypack for indexes
-  void toVelocyPackIndexes(arangodb::velocypack::Builder&) const;
+  void toVelocyPackIndexes(arangodb::velocypack::Builder&) const override;
 
   /// @brief Build a velocypack containing all relevant information
   ///        for DBServer traverser engines.
-  void buildEngineInfo(arangodb::velocypack::Builder&) const;
+  void buildEngineInfo(arangodb::velocypack::Builder&) const override;
 
   bool vertexHasFilter(uint64_t) const;
 
@@ -262,6 +265,8 @@ struct ShortestPathOptions : public BaseTraverserOptions {
     return _defaultWeight;
   }
 
+  /// @brief Build a velocypack for cloning in the plan.
+  void toVelocyPack(arangodb::velocypack::Builder&) const override {}
 };
 
 }
