@@ -37,6 +37,7 @@
 
 using VPackHelper = arangodb::basics::VelocyPackHelper;
 using TraverserOptions = arangodb::traverser::TraverserOptions;
+using ShortestPathOptions = arangodb::traverser::ShortestPathOptions;
 using BaseTraverserOptions = arangodb::traverser::BaseTraverserOptions;
 
 BaseTraverserOptions::LookupInfo::LookupInfo()
@@ -783,3 +784,12 @@ void TraverserOptions::linkTraverser(
     arangodb::traverser::ClusterTraverser* trav) {
   _traverser = trav;
 }
+
+
+ShortestPathOptions::ShortestPathOptions(
+    arangodb::aql::Query* query, VPackSlice info, VPackSlice collections)
+    : BaseTraverserOptions(query, info, collections),
+    _defaultWeight(1),
+    _weightAttribute("") {
+      // FIXME
+    }

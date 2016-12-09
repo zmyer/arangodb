@@ -49,7 +49,7 @@ class Builder;
 class Slice;
 }
 namespace traverser {
-struct TraverserOptions;
+struct BaseTraverserOptions;
 
 class BaseTraverserEngine {
   friend class TraverserEngineRegistry;
@@ -88,7 +88,7 @@ class BaseTraverserEngine {
    std::shared_ptr<transaction::Context> context() const;
 
   protected:
-    std::unique_ptr<TraverserOptions> _opts;
+    std::unique_ptr<BaseTraverserOptions> _opts;
     arangodb::aql::Query* _query;
     transaction::Methods* _trx;
     arangodb::aql::Collections _collections;

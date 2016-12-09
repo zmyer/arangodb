@@ -139,6 +139,8 @@ struct BaseTraverserOptions {
   // in the given builder.
   virtual void toVelocyPackIndexes(arangodb::velocypack::Builder&) const;
 
+  EdgeCursor* nextCursor(ManagedDocumentResult*, arangodb::velocypack::Slice) const;
+
  protected:
 
   // Requires an open Object in the given builder an
@@ -244,6 +246,9 @@ struct ShortestPathOptions : public BaseTraverserOptions {
     : BaseTraverserOptions(trx),
       _defaultWeight(1),
       _weightAttribute("") {}
+
+  ShortestPathOptions(arangodb::aql::Query*, arangodb::velocypack::Slice,
+                      arangodb::velocypack::Slice);
 
   void setWeightAttribute(std::string const& attr) {
     _weightAttribute = attr;
