@@ -291,6 +291,7 @@ GraphNode::GraphNode(ExecutionPlan* plan,
       _fromCondition(nullptr),
       _toCondition(nullptr),
       _optionsBuild(false),
+      _isSmart(false),
       _options(nullptr) {
   // NOTE: options have to be created by subclass. They differ
   // Directions
@@ -388,6 +389,7 @@ GraphNode::GraphNode(ExecutionPlan* plan,
 
   TRI_ASSERT(base.hasKey("toCondition"));
   _toCondition = new AstNode(plan->getAst(), base.get("toCondition"));
+  _isSmart = VelocyPackHelper::getBooleanValue(base, "isSmart", false);
 }
 
 GraphNode::GraphNode(
@@ -408,6 +410,7 @@ GraphNode::GraphNode(
       _fromCondition(nullptr),
       _toCondition(nullptr),
       _optionsBuild(false),
+      _isSmart(false),
       _options(options) {
   _graphInfo.openArray();
   for (auto const& it : edgeColls) {
