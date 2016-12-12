@@ -271,7 +271,11 @@ struct ShortestPathOptions : public BaseTraverserOptions {
   }
 
   /// @brief Build a velocypack for cloning in the plan.
-  void toVelocyPack(arangodb::velocypack::Builder&) const override {}
+  void toVelocyPack(arangodb::velocypack::Builder&) const override;
+
+  /// @brief Build a velocypack containing all relevant information
+  ///        for DBServer traverser engines.
+  void buildEngineInfo(arangodb::velocypack::Builder&) const override;
 };
 
 }
