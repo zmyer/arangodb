@@ -470,7 +470,7 @@ int ShortestPathBlock::shutdown(int errorCode) {
         if (res->errorMessage.length() > 0) {
           message += std::string(" : ") + res->errorMessage;
         }
-        LOG(ERR) << message;
+        LOG_TOPIC(ERR, arangodb::Logger::FIXME) << message;
       }
     }
   }
