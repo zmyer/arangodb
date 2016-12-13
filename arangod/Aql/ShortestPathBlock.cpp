@@ -382,7 +382,9 @@ ShortestPathBlock::ShortestPathBlock(ExecutionEngine* engine,
     } else {
 #ifdef USE_ENTERPRISE
       if (ep->isSmart()) {
-        _finder.reset(new SmartGraphConstDistanceFinder());
+        _finder.reset(new SmartGraphConstDistanceFinder(
+            static_cast<traverser::SmartGraphShortestPathOptions*>(_opts), _engines,
+            engine->getQuery()->trx()->resolver()));
       } else {
 #endif
         _finder.reset(new ArangoDBConstDistancePathFinder(
