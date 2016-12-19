@@ -157,6 +157,10 @@ struct BaseTraverserOptions {
 
   bool evaluateExpression(aql::Expression*, arangodb::velocypack::Slice varValue) const;
 
+  void injectLookupInfoInList(std::vector<LookupInfo>&, aql::Ast* ast,
+                              std::string const& collectionName,
+                              std::string const& attributeName,
+                              aql::AstNode* condition);
 };
 
 struct TraverserOptions : public BaseTraverserOptions {
@@ -239,6 +243,7 @@ struct ShortestPathOptions : public BaseTraverserOptions {
 
   double _defaultWeight;
   std::string _weightAttribute;
+  std::vector<LookupInfo> _reverseLookupInfos;
 
  public:
 
@@ -276,6 +281,11 @@ struct ShortestPathOptions : public BaseTraverserOptions {
   /// @brief Build a velocypack containing all relevant information
   ///        for DBServer traverser engines.
   void buildEngineInfo(arangodb::velocypack::Builder&) const override;
+
+  /// @brief Add a lookup info for reverse direction
+  void addReverseLookupInfo(aql::Ast* ast, std::string const& collectionName,
+                            std::string const& attributeName,
+                            aql::AstNode* condition);
 };
 
 }
