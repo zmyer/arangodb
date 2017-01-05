@@ -1,6 +1,10 @@
 devel
 -----
 
+* made shortest_path computation aware of SmartGraph features (Enterprise
+  Only) which will give a good performance boost on computing single-pair
+  shortest-paths in a sharded SmartGraph.
+
 * make arangod start with less V8 JavaScript contexts
 
   This speeds up the server start (a little bit) and makes it use less memory.
