@@ -52,10 +52,6 @@ typedef arangodb::basics::ConstDistanceFinder<
     arangodb::traverser::ShortestPath>
     ArangoDBConstDistancePathFinder;
 
-#ifdef USE_ENTERPRISE
-using SmartGraphConstDistanceFinder = arangodb::traverser::SmartGraphConstDistanceFinder;
-#endif
-
 using namespace arangodb::aql;
 
 /// @brief Local class to expand edges.
@@ -379,7 +375,7 @@ ShortestPathBlock::ShortestPathBlock(ExecutionEngine* engine,
 
 #ifdef USE_ENTERPRISE
     if (ep->isSmart()) {
-      _finder.reset(new SmartGraphConstDistanceFinder(
+      _finder.reset(new arangodb::traverser::SmartGraphConstDistanceFinder(
           _opts, _engines, engine->getQuery()->trx()->resolver()));
     } else {
 #endif
