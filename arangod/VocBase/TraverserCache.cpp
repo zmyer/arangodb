@@ -22,8 +22,17 @@
 
 #include "TraverserCache.h"
 
-#include "Cache/CacheManagerFeature.h"
+#include "Basics/StringRef.h"
+#include "Basics/VelocyPackHelper.h"
+
 #include "Cache/Common.h"
+#include "Cache/Cache.h"
+#include "Cache/CacheManagerFeature.h"
+#include "Cache/Finding.h"
+
+#include "Logger/Logger.h"
+#include "Transaction/Methods.h"
+#include "VocBase/ManagedDocumentResult.h"
 
 #include <velocypack/Builder.h>
 #include <velocypack/Slice.h>
@@ -32,8 +41,8 @@
 using namespace arangodb;
 using namespace arangodb::traverser;
 
-TraverserCache::TraverserCache(transction::Methods* trx)
-    : _cache(nullptr), _trx(trx) {
+TraverserCache::TraverserCache(transaction::Methods* trx)
+    : _cache(nullptr), _mmdr({}), _trx(trx) {
   auto cacheManager = CacheManagerFeature::MANAGER;
   TRI_ASSERT(cacheManager != nullptr);
   _cache = cacheManager->createCache(cache::CacheType::Plain);
@@ -55,20 +64,22 @@ cache::Finding TraverserCache::lookup(VPackSlice const& idString) {
   TRI_ASSERT(idString.isString());
   void const* key = idString.begin();
   uint32_t keySize = static_cast<uint32_t>(idString.length());
-  return _cache.find(key, keySize);
+  return _cache->find(key, keySize);
 }
 
-TraverserCache::lookupInCollection(arangodb::velocypack::Slice const& idString) {
+VPackSlice TraverserCache::lookupInCollection(arangodb::velocypack::Slice const& idString) {
   TRI_ASSERT(idString.isString());
   StringRef id(idString);
   size_t pos = id.find('/');
   if (pos == std::string::npos) {
+    // Invalid input. If we get here somehow we managed to store invalid _from/_to
+    // values or the traverser did a let an illegal start through
     TRI_ASSERT(false);
-    return TRI_ERROR_INTERNAL;
+    return basics::VelocyPackHelper::NullValue();
   }
 
   int res = _trx->documentFastPathLocal(id.substr(0, pos).toString(),
-                                        id.substr(pos + 1).toString(), _mmdr);
+                                        id.substr(pos + 1).toString(), *(_mmdr.get()));
 
   if (res != TRI_ERROR_NO_ERROR && res != TRI_ERROR_ARANGO_DOCUMENT_NOT_FOUND) {
     // ok we are in a rather bad state. Better throw and abort.
@@ -80,20 +91,32 @@ TraverserCache::lookupInCollection(arangodb::velocypack::Slice const& idString) 
     // This is expected, we may have dangling edges. Interpret as NULL
     result = basics::VelocyPackHelper::NullValue();
   } else {
-    result = VPackSlice(_mmdr.vpack());
+    result = VPackSlice(_mmdr->vpack());
   }
 
-  // TODO Insert result into the cache.
-  
-  return res;
+  void const* key = idString.begin();
+  uint32_t keySize = static_cast<uint32_t>(idString.length());
+
+  void const* resVal = result.begin();
+  uint64_t resValSize = static_cast<uint64_t>(result.length());
+  std::unique_ptr<cache::CachedValue> value(
+      cache::CachedValue::construct(key, keySize, resVal, resValSize));
+
+  if (value != nullptr) {
+    _cache->insert(value.get());
+    // Cache is responsible.
+    // If this failed, well we do not store it and read it again next time.
+    value.release();
+  }
+  return result;
 }
 
 void TraverserCache::insertIntoResult(VPackSlice const& idString,
                                       VPackBuilder& builder) {
-  auto finding = lookup(token);
+  auto finding = lookup(idString);
   if (finding.found()) {
     auto val = finding.value();
-    VPackSlice slice(val.value());
+    VPackSlice slice(val->value());
     // finding makes sure that slice contant stays valid.
     builder.add(slice);
   } else {
@@ -103,12 +126,13 @@ void TraverserCache::insertIntoResult(VPackSlice const& idString,
   }
 }
 
-bool validateFilter(VPackSlice const& idString,
-                    std::function<bool(VPackSlice const&)> filterFunc) {
-  auto finding = lookup(token);
+bool TraverserCache::validateFilter(
+    VPackSlice const& idString,
+    std::function<bool(VPackSlice const&)> filterFunc) {
+  auto finding = lookup(idString);
   if (finding.found()) {
     auto val = finding.value();
-    VPackSlice slice(val.value());
+    VPackSlice slice(val->value());
     // finding makes sure that slice contant stays valid.
     return filterFunc(slice);
   }

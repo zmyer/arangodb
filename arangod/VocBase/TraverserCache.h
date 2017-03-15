@@ -26,10 +26,15 @@
 #include "Basics/Common.h"
 
 namespace arangodb {
+class ManagedDocumentResult;
 
 namespace cache {
 class Cache;
 class Finding;
+}
+
+namespace transaction {
+class Methods;
 }
 
 namespace velocypack {
@@ -41,7 +46,7 @@ namespace traverser {
 class TraverserCache {
 
   public:
-   TraverserCache(transaction::Methods trx);
+   TraverserCache(transaction::Methods* trx);
 
    ~TraverserCache();
 
@@ -96,7 +101,7 @@ class TraverserCache {
    /// @brief Reusable ManagedDocumentResult that temporarily takes
    ///        responsibility for one document.
    //////////////////////////////////////////////////////////////////////////////
-   ManagedDocumentResult _mmdr;
+   std::shared_ptr<arangodb::ManagedDocumentResult> _mmdr;
 
    //////////////////////////////////////////////////////////////////////////////
    /// @brief Transaction to access data, This class is NOT responsible for it.
