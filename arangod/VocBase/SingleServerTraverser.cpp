@@ -26,6 +26,8 @@
 #include "Transaction/Methods.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ManagedDocumentResult.h"
+#include "VocBase/TraverserCache.h"
+#include "Aql/AqlValue.h"
 
 using namespace arangodb;
 using namespace arangodb::traverser;
@@ -36,7 +38,7 @@ using namespace arangodb::traverser;
 ///        with a OperationResult.failed() == true.
 ///        On all other cases this function throws.
 ////////////////////////////////////////////////////////////////////////////////
-
+/*
 static int FetchDocumentById(transaction::Methods* trx,
                              StringRef const& id,
                              ManagedDocumentResult& result) {
@@ -53,7 +55,7 @@ static int FetchDocumentById(transaction::Methods* trx,
     THROW_ARANGO_EXCEPTION(res);
   }
   return res;
-}
+}*/
 
 SingleServerEdgeCursor::SingleServerEdgeCursor(ManagedDocumentResult* mmdr,
     transaction::Methods* trx,
@@ -174,14 +176,16 @@ bool SingleServerEdgeCursor::readAll(std::unordered_set<VPackSlice>& result,
 SingleServerTraverser::SingleServerTraverser(TraverserOptions* opts,
                                              transaction::Methods* trx,
                                              ManagedDocumentResult* mmdr)
-    : Traverser(opts, trx, mmdr) {}
+  : Traverser(opts, trx, mmdr), _cache(new TraverserCache(trx, mmdr)) {}
 
 SingleServerTraverser::~SingleServerTraverser() {}
 
 aql::AqlValue SingleServerTraverser::fetchVertexData(VPackSlice id) {
   TRI_ASSERT(id.isString());
-  auto it = _vertices.find(id);
-
+  //usleep(10000);
+  return _cache->fetchAqlResult(id);
+  
+  /*auto it = _vertices.find(id);
   if (it == _vertices.end()) {
     StringRef ref(id);
     int res = FetchDocumentById(_trx, ref, *_mmdr);
@@ -195,7 +199,7 @@ aql::AqlValue SingleServerTraverser::fetchVertexData(VPackSlice id) {
     return aql::AqlValue(p, aql::AqlValueFromManagedDocument());
   }
 
-  return aql::AqlValue((*it).second, aql::AqlValueFromManagedDocument());
+  return aql::AqlValue((*it).second, aql::AqlValueFromManagedDocument());*/
 }
 
 aql::AqlValue SingleServerTraverser::fetchEdgeData(VPackSlice edge) {
@@ -205,7 +209,8 @@ aql::AqlValue SingleServerTraverser::fetchEdgeData(VPackSlice edge) {
 void SingleServerTraverser::addVertexToVelocyPack(VPackSlice id,
                                                   VPackBuilder& result) {
   TRI_ASSERT(id.isString());
-  auto it = _vertices.find(id);
+  _cache->insertIntoResult(id, result);
+  /*auto it = _vertices.find(id);
 
   if (it == _vertices.end()) {
     StringRef ref(id);
@@ -220,7 +225,7 @@ void SingleServerTraverser::addVertexToVelocyPack(VPackSlice id,
     }
   } else {
     result.addExternal((*it).second);
-  }
+  }*/
 }
 
 void SingleServerTraverser::addEdgeToVelocyPack(VPackSlice edge,
@@ -251,6 +256,10 @@ void SingleServerTraverser::setStartVertex(std::string const& v) {
     _enumerator.reset(new DepthFirstEnumerator(this, idSlice, _opts));
   }
   _done = false;
+}
+
+size_t SingleServerTraverser::getAndResetReadDocuments() {
+  return _cache->getAndResetReadDocuments();
 }
 
 bool SingleServerTraverser::getVertex(VPackSlice edge,

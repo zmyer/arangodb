@@ -314,7 +314,7 @@ class Traverser {
   /// @brief Get the number of documents loaded
   //////////////////////////////////////////////////////////////////////////////
 
-  size_t getAndResetReadDocuments() {
+  virtual size_t getAndResetReadDocuments() {
     size_t tmp = _readDocuments;
     _readDocuments = 0;
     return tmp;
@@ -338,7 +338,7 @@ class Traverser {
   bool vertexMatchesConditions(arangodb::velocypack::Slice, uint64_t);
 
   void allowOptimizedNeighbors();
-
+  
  protected:
 
   /// @brief Outer top level transaction

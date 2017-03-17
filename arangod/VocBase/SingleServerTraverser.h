@@ -38,7 +38,8 @@ class ManagedDocumentResult;
 namespace traverser {
 
 class PathEnumerator;
-
+class TraverserCache;
+  
 class SingleServerEdgeCursor : public EdgeCursor {
  private:
   transaction::Methods* _trx;
@@ -82,6 +83,8 @@ class SingleServerTraverser final : public Traverser {
   //////////////////////////////////////////////////////////////////////////////
 
   void setStartVertex(std::string const& v) override;
+  
+  size_t getAndResetReadDocuments() override;
 
  protected:
   /// @brief Function to load the other sides vertex of an edge
@@ -124,20 +127,22 @@ class SingleServerTraverser final : public Traverser {
                            arangodb::velocypack::Builder&) override;
 
  private:
+  
+  std::unique_ptr<TraverserCache> _cache;
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Cache for vertex documents, points from _id to start of 
   /// document VPack value (in datafiles)
   //////////////////////////////////////////////////////////////////////////////
 
-  std::unordered_map<arangodb::velocypack::Slice, uint8_t const*> _vertices;
+  //std::unordered_map<arangodb::velocypack::Slice, uint8_t const*> _vertices;
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Cache for edge documents, points from _id to start of edge
   /// VPack value (in datafiles)
   //////////////////////////////////////////////////////////////////////////////
 
-  std::unordered_map<std::string, uint8_t const*> _edges;
+  //std::unordered_map<std::string, uint8_t const*> _edges;
 
 };
 } // namespace traverser

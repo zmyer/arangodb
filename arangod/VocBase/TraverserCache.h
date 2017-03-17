@@ -42,11 +42,15 @@ class Builder;
 class Slice;
 }
 
+namespace aql {
+  struct AqlValue;
+}
+  
 namespace traverser {
 class TraverserCache {
 
   public:
-   TraverserCache(transaction::Methods* trx);
+   TraverserCache(transaction::Methods* trx, ManagedDocumentResult* mmdr);
 
    ~TraverserCache();
 
@@ -59,6 +63,8 @@ class TraverserCache {
 
    void insertIntoResult(arangodb::velocypack::Slice const& idString,
                          arangodb::velocypack::Builder& builder);
+  
+   aql::AqlValue fetchAqlResult(arangodb::velocypack::Slice const& idString);
 
    //////////////////////////////////////////////////////////////////////////////
    /// @brief Throws the document referenced by the token into the filter
@@ -70,6 +76,12 @@ class TraverserCache {
    bool validateFilter(
        arangodb::velocypack::Slice const& idString,
        std::function<bool(arangodb::velocypack::Slice const&)> filterFunc);
+  
+  size_t getAndResetReadDocuments() {
+    size_t tmp = _readDocuments;
+    _readDocuments = 0;
+    return tmp;
+  }
 
   private:
 
@@ -101,12 +113,15 @@ class TraverserCache {
    /// @brief Reusable ManagedDocumentResult that temporarily takes
    ///        responsibility for one document.
    //////////////////////////////////////////////////////////////////////////////
-   std::shared_ptr<arangodb::ManagedDocumentResult> _mmdr;
+   ManagedDocumentResult *_mmdr;
 
    //////////////////////////////////////////////////////////////////////////////
    /// @brief Transaction to access data, This class is NOT responsible for it.
    //////////////////////////////////////////////////////////////////////////////
    arangodb::transaction::Methods* _trx;
+  
+   size_t _readDocuments;
+  std::set<std::string> _found;
 };
 
 }
