@@ -34,6 +34,7 @@
 #include "ApplicationFeatures/LanguageFeature.h"
 #include "ApplicationFeatures/NonceFeature.h"
 #include "ApplicationFeatures/PageSizeFeature.h"
+#include "Pregel/PregelFeature.h"
 #include "ApplicationFeatures/PrivilegeFeature.h"
 #include "ApplicationFeatures/ShutdownFeature.h"
 #include "ApplicationFeatures/SupervisorFeature.h"
@@ -71,6 +72,7 @@
 #include "RestServer/TraverserEngineRegistryFeature.h"
 #include "RestServer/UnitTestsFeature.h"
 #include "RestServer/UpgradeFeature.h"
+#include "RestServer/ViewTypesFeature.h"
 #include "RestServer/WorkMonitorFeature.h"
 #include "Scheduler/SchedulerFeature.h"
 #include "Ssl/SslFeature.h"
@@ -152,6 +154,7 @@ static int runServer(int argc, char** argv) {
     server.addFeature(new LoggerFeature(&server, true));
     server.addFeature(new NonceFeature(&server));
     server.addFeature(new PageSizeFeature(&server));
+    server.addFeature(new pregel::PregelFeature(&server));
     server.addFeature(new PrivilegeFeature(&server));
     server.addFeature(new RandomFeature(&server));
     server.addFeature(new QueryRegistryFeature(&server));
@@ -170,6 +173,7 @@ static int runServer(int argc, char** argv) {
     server.addFeature(new V8DealerFeature(&server));
     server.addFeature(new V8PlatformFeature(&server));
     server.addFeature(new VersionFeature(&server));
+    server.addFeature(new ViewTypesFeature(&server));
     server.addFeature(new WorkMonitorFeature(&server));
 
 #ifdef ARANGODB_HAVE_FORK

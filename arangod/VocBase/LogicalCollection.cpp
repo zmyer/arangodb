@@ -36,7 +36,6 @@
 #include "Basics/VelocyPackHelper.h"
 #include "Basics/WriteLocker.h"
 #include "Basics/encoding.h"
-#include "Basics/process-utils.h"
 #include "Cluster/ClusterInfo.h"
 #include "Cluster/ClusterMethods.h"
 #include "Cluster/FollowerInfo.h"
@@ -54,7 +53,6 @@
 #include "Utils/OperationOptions.h"
 #include "Utils/SingleCollectionTransaction.h"
 #include "Transaction/StandaloneContext.h"
-#include "VocBase/DatafileStatisticsContainer.h"
 #include "VocBase/KeyGenerator.h"
 #include "VocBase/ManagedDocumentResult.h"
 #include "VocBase/PhysicalCollection.h"
@@ -461,6 +459,10 @@ std::string LogicalCollection::cid_as_string() const {
 }
 
 TRI_voc_cid_t LogicalCollection::planId() const { return _planId; }
+
+std::string LogicalCollection::planId_as_string() const {
+  return basics::StringUtils::itoa(_planId);
+}
 
 TRI_col_type_e LogicalCollection::type() const { return _type; }
 

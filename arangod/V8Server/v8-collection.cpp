@@ -48,6 +48,7 @@
 #include "V8/v8-conv.h"
 #include "V8/v8-utils.h"
 #include "V8/v8-vpack.h"
+#include "V8Server/v8-externals.h"
 #include "V8Server/v8-vocbase.h"
 #include "V8Server/v8-vocbaseprivate.h"
 #include "V8Server/v8-vocindex.h"
@@ -55,6 +56,10 @@
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/PhysicalCollection.h"
 #include "VocBase/modes.h"
+#include "Pregel/Conductor.h"
+#include "Pregel/PregelFeature.h"
+#include "Pregel/AggregatorHandler.h"
+#include "Pregel/Worker.h"
 
 #include <velocypack/Builder.h>
 #include <velocypack/HexDump.h>
@@ -88,18 +93,6 @@ static inline bool ExtractWaitForSync(
   TRI_ASSERT(index > 0);
 
   return (args.Length() >= index && TRI_ObjectToBoolean(args[index - 1]));
-}
-
-////////////////////////////////////////////////////////////////////////////////
-/// @brief create a v8 collection id value from the internal collection id
-////////////////////////////////////////////////////////////////////////////////
-
-static inline v8::Handle<v8::Value> V8CollectionId(v8::Isolate* isolate,
-                                                   TRI_voc_cid_t cid) {
-  char buffer[21];
-  size_t len = TRI_StringUInt64InPlace((uint64_t)cid, (char*)&buffer);
-
-  return TRI_V8_PAIR_STRING((char const*)buffer, (int)len);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1238,10 +1231,10 @@ static void JS_PlanIdVocbaseCol(
   }
 
   if (ServerState::instance()->isCoordinator()) {
-    TRI_V8_RETURN(V8CollectionId(isolate, collection->cid()));
+    TRI_V8_RETURN(TRI_V8UInt64String<TRI_voc_cid_t>(isolate, collection->cid()));
   }
 
-  TRI_V8_RETURN(V8CollectionId(isolate, collection->planId()));
+  TRI_V8_RETURN(TRI_V8UInt64String<TRI_voc_cid_t>(isolate, collection->planId()));
   TRI_V8_TRY_CATCH_END
 }
 
@@ -1865,6 +1858,229 @@ static void JS_ReplaceVocbase(v8::FunctionCallbackInfo<v8::Value> const& args) {
 static void JS_UpdateVocbase(v8::FunctionCallbackInfo<v8::Value> const& args) {
   TRI_V8_TRY_CATCH_BEGIN(isolate);
   ModifyVocbase(TRI_VOC_DOCUMENT_OPERATION_UPDATE, args);
+  TRI_V8_TRY_CATCH_END
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief Pregel Stuff
+////////////////////////////////////////////////////////////////////////////////
+
+static void JS_PregelStart(v8::FunctionCallbackInfo<v8::Value> const& args) {
+  TRI_V8_TRY_CATCH_BEGIN(isolate);
+  v8::HandleScope scope(isolate);
+  ServerState *ss = ServerState::instance();
+  if (ss->isRunningInCluster() && !ss->isCoordinator()) {
+    TRI_V8_THROW_EXCEPTION_USAGE("Only call on coordinator or in single server mode");
+  }
+  
+  // check the arguments
+  uint32_t const argLength = args.Length();
+  if (argLength < 3 || !args[0]->IsString()) {
+      // TODO extend this for named graphs, use the Graph class
+      TRI_V8_THROW_EXCEPTION_USAGE(
+                                   "_pregelStart(<algorithm>, <vertexCollections>,"
+                                   "<edgeCollections>[, {maxGSS:100, ...}]");
+  }
+  auto parse = [](v8::Local<v8::Value> const& value, std::vector<std::string> &out) {
+    v8::Handle<v8::Array> array = v8::Handle<v8::Array>::Cast(value);
+    uint32_t const n = array->Length();
+    for (uint32_t i = 0; i < n; ++i) {
+      v8::Handle<v8::Value> obj = array->Get(i);
+      if (obj->IsString()) {
+        out.push_back(TRI_ObjectToString(obj));
+      }
+    }
+  };
+  
+  std::string algorithm = TRI_ObjectToString(args[0]);
+  std::vector<std::string> paramVertices, paramEdges;
+  if (args[1]->IsArray()) {
+    parse(args[1], paramVertices);
+  } else if (args[1]->IsString()) {
+      paramVertices.push_back(TRI_ObjectToString(args[1]));
+  } else {
+      TRI_V8_THROW_EXCEPTION_USAGE("Specify an array of vertex collections (or a string)");
+  }
+  if (paramVertices.size() == 0) {
+    TRI_V8_THROW_EXCEPTION_USAGE("Specify at least one vertex collection");
+  }
+  if (args[2]->IsArray()) {
+    parse(args[2], paramEdges);
+  } else if (args[2]->IsString()) {
+    paramEdges.push_back(TRI_ObjectToString(args[2]));
+  } else {
+    TRI_V8_THROW_EXCEPTION_USAGE("Specify an array of edge collections (or a string)");
+  }
+  if (paramEdges.size() == 0) {
+    TRI_V8_THROW_EXCEPTION_USAGE("Specify at least one edge collection");
+  }
+  VPackBuilder paramBuilder;
+  if (argLength >= 4 && args[3]->IsObject()) {
+      int res = TRI_V8ToVPack(isolate, paramBuilder, args[3], false);
+      if (res != TRI_ERROR_NO_ERROR) {
+          TRI_V8_THROW_EXCEPTION(res);
+      }
+  }
+  
+  TRI_vocbase_t* vocbase = GetContextVocBase(isolate);
+  for (std::string const& name : paramVertices) {
+    if (ss->isCoordinator()) {
+      try {
+        auto coll =
+        ClusterInfo::instance()->getCollection(vocbase->name(), name);
+        if (coll->isSystem()) {
+          TRI_V8_THROW_EXCEPTION_USAGE(
+                                       "Cannot use pregel on system collection");
+        }
+        //if (!coll->usesDefaultShardKeys()) {
+        //  TRI_V8_THROW_EXCEPTION_USAGE(
+        //                               "Vertex collection needs to be shared after '_key'");
+        //}
+        if (coll->deleted()) {
+          TRI_V8_THROW_EXCEPTION_MESSAGE(TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND, name);
+        }
+      } catch (...) {
+        TRI_V8_THROW_EXCEPTION_MESSAGE(TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND, name);
+      }
+    } else  if (ss->getRole() == ServerState::ROLE_SINGLE) {
+      LogicalCollection *coll = vocbase->lookupCollection(name);
+      if (coll == nullptr || coll->deleted()) {
+        TRI_V8_THROW_EXCEPTION_MESSAGE(TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND, name);
+      }
+    } else {
+        THROW_ARANGO_EXCEPTION(TRI_ERROR_INTERNAL);
+    }
+  }
+  
+  std::vector<CollectionID> edgeColls;
+  // load edge collection
+  for (std::string const& name : paramEdges) {
+    if (ss->isCoordinator()) {
+      try {
+        auto coll =
+        ClusterInfo::instance()->getCollection(vocbase->name(), name);
+        if (coll->isSystem()) {
+          TRI_V8_THROW_EXCEPTION_USAGE(
+                                       "Cannot use pregel on system collection");
+        }
+        if (!coll->isSmart()) {
+          std::vector<std::string> eKeys = coll->shardKeys();
+          if ( eKeys.size() != 1 || eKeys[0] != "vertex") {
+            TRI_V8_THROW_EXCEPTION_USAGE(
+                                         "Edge collection needs to be sharded after 'vertex', or use "
+                                         "smart graphs");
+          }
+        }
+        if (coll->deleted()) {
+          TRI_V8_THROW_EXCEPTION_MESSAGE(TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND, name);
+        }
+        // smart edge collections contain multiple actual collections
+        std::vector<std::string> actual = coll->realNamesForRead();
+        edgeColls.insert(edgeColls.end(), actual.begin(), actual.end());
+      } catch (...) {
+        TRI_V8_THROW_EXCEPTION_MESSAGE(TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND, name);
+      }
+    } else if (ss->getRole() == ServerState::ROLE_SINGLE) {
+      LogicalCollection *coll = vocbase->lookupCollection(name);
+      if (coll == nullptr || coll->deleted()) {
+        TRI_V8_THROW_EXCEPTION_MESSAGE(TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND, name);
+      }
+      std::vector<std::string> actual = coll->realNamesForRead();
+      edgeColls.insert(edgeColls.end(), actual.begin(), actual.end());
+    } else {
+        THROW_ARANGO_EXCEPTION(TRI_ERROR_INTERNAL);
+    }
+  }
+  
+  uint64_t en = pregel::PregelFeature::instance()->createExecutionNumber();
+  auto c = std::make_unique<pregel::Conductor>(en, vocbase, paramVertices, edgeColls,
+                                               algorithm, paramBuilder.slice());
+  pregel::PregelFeature::instance()->addConductor(c.get(), en);
+  c->start();
+  c.release();
+  
+  TRI_V8_RETURN(v8::Number::New(isolate, en));
+  TRI_V8_TRY_CATCH_END
+}
+
+static void JS_PregelStatus(v8::FunctionCallbackInfo<v8::Value> const& args) {
+  TRI_V8_TRY_CATCH_BEGIN(isolate);
+  v8::HandleScope scope(isolate);
+  
+  // check the arguments
+  uint32_t const argLength = args.Length();
+  if (argLength != 1 || (!args[0]->IsNumber() && !args[0]->IsString())) {
+    // TODO extend this for named graphs, use the Graph class
+    TRI_V8_THROW_EXCEPTION_USAGE("_pregelStatus(<executionNum>]");
+  }
+  uint64_t executionNum = TRI_ObjectToUInt64(args[0], true);
+  pregel::Conductor *c = pregel::PregelFeature::instance()->conductor(executionNum);
+  if (!c) {
+    TRI_V8_THROW_EXCEPTION_USAGE("Execution number is invalid");
+  }
+  
+  VPackBuilder result;
+  result.openObject();
+  result.add("state", VPackValue(pregel::ExecutionStateNames[c->getState()]));
+  result.add("gss", VPackValue(c->globalSuperstep()));
+  result.add("totalRuntime", VPackValue(c->totalRuntimeSecs()));
+  c->aggregators()->serializeValues(result);
+  c->workerStats().serializeValues(result);
+  result.close();
+  TRI_V8_RETURN(TRI_VPackToV8(isolate, result.slice()));
+  TRI_V8_TRY_CATCH_END
+}
+
+static void JS_PregelCancel(v8::FunctionCallbackInfo<v8::Value> const& args) {
+  TRI_V8_TRY_CATCH_BEGIN(isolate);
+  v8::HandleScope scope(isolate);
+  
+  // check the arguments
+  uint32_t const argLength = args.Length();
+  if (argLength != 1 || !(args[0]->IsNumber() || args[0]->IsString())) {
+    // TODO extend this for named graphs, use the Graph class
+    TRI_V8_THROW_EXCEPTION_USAGE("_pregelStatus(<executionNum>]");
+  }
+  uint64_t executionNum = TRI_ObjectToUInt64(args[0], true);
+  pregel::Conductor *c = pregel::PregelFeature::instance()->conductor(executionNum);
+  if (!c) {
+    TRI_V8_THROW_EXCEPTION_USAGE("Execution number is invalid");
+  }
+  c->cancel();
+  pregel::PregelFeature::instance()->cleanupConductor(executionNum);
+  
+  TRI_V8_RETURN_UNDEFINED();
+  TRI_V8_TRY_CATCH_END
+}
+
+static void JS_PregelAQLResult(v8::FunctionCallbackInfo<v8::Value> const& args) {
+  TRI_V8_TRY_CATCH_BEGIN(isolate);
+  v8::HandleScope scope(isolate);
+  
+  // check the arguments
+  uint32_t const argLength = args.Length();
+  if (argLength != 1 || !(args[0]->IsNumber() || args[0]->IsString())) {
+    // TODO extend this for named graphs, use the Graph class
+    TRI_V8_THROW_EXCEPTION_USAGE("_pregelStatus(<executionNum>]");
+  }
+  
+  uint64_t executionNum = TRI_ObjectToUInt64(args[0], true);
+  if (ServerState::instance()->isCoordinator()) {
+    pregel::Conductor *c = pregel::PregelFeature::instance()->conductor(executionNum);
+    if (!c) {
+      TRI_V8_THROW_EXCEPTION_USAGE("Execution number is invalid");
+    }
+    
+    VPackBuilder docs = c->collectAQLResults();
+    TRI_ASSERT(docs.slice().isArray());
+    VPackOptions resultOptions = VPackOptions::Defaults;
+    auto documents = TRI_VPackToV8(isolate, docs.slice(), &resultOptions);
+    TRI_V8_RETURN(documents);
+  } else {
+    TRI_V8_THROW_EXCEPTION_USAGE("Only valid on the conductor");
+  }
+  
+  TRI_V8_RETURN_UNDEFINED();
   TRI_V8_TRY_CATCH_END
 }
 
@@ -2643,10 +2859,12 @@ static void JS_CompletionsVocbase(
   result->Set(j++, TRI_V8_ASCII_STRING("_createDatabase()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_createDocumentCollection()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_createEdgeCollection()"));
+  result->Set(j++, TRI_V8_ASCII_STRING("_createView()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_createStatement()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_document()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_drop()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_dropDatabase()"));
+  result->Set(j++, TRI_V8_ASCII_STRING("_dropView()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_executeTransaction()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_exists()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_id"));
@@ -2654,12 +2872,17 @@ static void JS_CompletionsVocbase(
   result->Set(j++, TRI_V8_ASCII_STRING("_databases()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_name()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_path()"));
+  result->Set(j++, TRI_V8_ASCII_STRING("_pregelStart()"));
+  result->Set(j++, TRI_V8_ASCII_STRING("_pregelStatus()"));
+  result->Set(j++, TRI_V8_ASCII_STRING("_pregelStop()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_query()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_remove()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_replace()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_update()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_useDatabase()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_version()"));
+  result->Set(j++, TRI_V8_ASCII_STRING("_view()"));
+  result->Set(j++, TRI_V8_ASCII_STRING("_views()"));
 
   TRI_V8_RETURN(result);
   TRI_V8_TRY_CATCH_END
@@ -2764,10 +2987,10 @@ static void JS_CountVocbaseCol(
 // generate the arangodb::LogicalCollection template
 // .............................................................................
 
-void TRI_InitV8Collection(v8::Handle<v8::Context> context,
-                          TRI_vocbase_t* vocbase, size_t const threadNumber,
-                          TRI_v8_global_t* v8g, v8::Isolate* isolate,
-                          v8::Handle<v8::ObjectTemplate> ArangoDBNS) {
+void TRI_InitV8Collections(v8::Handle<v8::Context> context,
+                           TRI_vocbase_t* vocbase,
+                           TRI_v8_global_t* v8g, v8::Isolate* isolate,
+                           v8::Handle<v8::ObjectTemplate> ArangoDBNS) {
   TRI_AddMethodVocbase(isolate, ArangoDBNS, TRI_V8_ASCII_STRING("_changeMode"),
                        JS_ChangeOperationModeVocbase);
   TRI_AddMethodVocbase(isolate, ArangoDBNS, TRI_V8_ASCII_STRING("_collection"),
@@ -2786,6 +3009,14 @@ void TRI_InitV8Collection(v8::Handle<v8::Context> context,
                        JS_ReplaceVocbase);
   TRI_AddMethodVocbase(isolate, ArangoDBNS, TRI_V8_ASCII_STRING("_update"),
                        JS_UpdateVocbase);
+  TRI_AddMethodVocbase(isolate, ArangoDBNS, TRI_V8_ASCII_STRING("_pregelStart"),
+                       JS_PregelStart);
+  TRI_AddMethodVocbase(isolate, ArangoDBNS, TRI_V8_ASCII_STRING("_pregelStatus"),
+                       JS_PregelStatus);
+  TRI_AddMethodVocbase(isolate, ArangoDBNS, TRI_V8_ASCII_STRING("_pregelCancel"),
+                       JS_PregelCancel);
+  TRI_AddMethodVocbase(isolate, ArangoDBNS, TRI_V8_ASCII_STRING("_pregelAqlResult"),
+                       JS_PregelAQLResult);
 
   // an internal API used for storing a document without wrapping a V8
   // collection object
