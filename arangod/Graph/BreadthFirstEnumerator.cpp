@@ -80,8 +80,6 @@ bool BreadthFirstEnumerator::next() {
       // This depth is done. GoTo next
       if (_nextDepth.empty()) {
         // That's it. we are done.
-        _enumeratedPath.edges.clear();
-        _enumeratedPath.vertices.clear();
         return false;
       }
       // Save copies:
@@ -164,18 +162,20 @@ bool BreadthFirstEnumerator::next() {
   return true;
 }
 
-// TODO Optimize this. Remove enumeratedPath
-// All can be read from schreier vector directly
 arangodb::aql::AqlValue BreadthFirstEnumerator::lastVertexToAqlValue() {
-  return _traverser->fetchVertexData(
-      _enumeratedPath.vertices.back());
+  TRI_ASSERT(_lastReturned < _schreier.size());
+  PathStep const& current = _schreier[_lastReturned];
+  return _traverser->fetchVertexData(current.vertex);
 }
 
 arangodb::aql::AqlValue BreadthFirstEnumerator::lastEdgeToAqlValue() {
-  if (_enumeratedPath.edges.empty()) {
+  TRI_ASSERT(_lastReturned < _schreier.size());
+  if (_lastReturned == 0) {
+    // This is the first Vertex. No Edge Pointing to it
     return arangodb::aql::AqlValue(arangodb::basics::VelocyPackHelper::NullValue());
   }
-  return _traverser->fetchEdgeData(_enumeratedPath.edges.back());
+  PathStep const& current = _schreier[_lastReturned];
+  return _traverser->fetchEdgeData(current.edge);
 }
 
 arangodb::aql::AqlValue BreadthFirstEnumerator::pathToAqlValue(
