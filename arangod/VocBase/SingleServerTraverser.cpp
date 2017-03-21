@@ -178,10 +178,41 @@ bool SingleServerEdgeCursor::readAll(std::unordered_set<VPackSlice>& result,
   return true;
 }
 
+void SingleServerEdgeCursor::readAll(std::function<void(std::string const&, arangodb::velocypack::Slice, size_t&)> callback) {
+  size_t cursorId = 0;
+  for (size_t currentCursor = 0; currentCursor < _cursors.size(); ++currentCursor) {
+    if (_internalCursorMapping != nullptr) {
+      TRI_ASSERT(_currentCursor < _internalCursorMapping->size());
+      cursorId = _internalCursorMapping->at(_currentCursor);
+    } else {
+      cursorId = _currentCursor;
+    }
+    auto& cursorSet = _cursors[currentCursor];
+    for (auto& cursor : cursorSet) {
+      LogicalCollection* collection = cursor->collection(); 
+      auto cb = [&] (DocumentIdentifierToken const& token) {
+        if (collection->readDocument(_trx, token, *_mmdr)) {
+          
+          VPackSlice doc(_mmdr->vpack());
+          callback(_trx->extractIdString(doc), doc, cursorId);
+        }
+      };
+      while (cursor->getMore(cb, 1000)) {
+      }
+    }
+  }
+}
+
 SingleServerTraverser::SingleServerTraverser(TraverserOptions* opts,
                                              transaction::Methods* trx,
                                              ManagedDocumentResult* mmdr)
-  : Traverser(opts, trx, mmdr) {}
+  : Traverser(opts, trx, mmdr) {
+    usleep(1000000);
+    usleep(1000000);
+    usleep(1000000);
+    usleep(1000000);
+    usleep(1000000);
+  }
 
 SingleServerTraverser::~SingleServerTraverser() {}
 

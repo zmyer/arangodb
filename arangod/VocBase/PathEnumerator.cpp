@@ -67,12 +67,12 @@ bool DepthFirstEnumerator::next() {
       bool exitInnerLoop = false;
       bool notEmpty
       = cursor->next([this, &foundPath, &exitInnerLoop] (std::string const& documentId, VPackSlice const& edgeDoc, size_t cursorId) {
-        //++_traverser->_readDocuments;
+        ++_traverser->_readDocuments;
+        _enumeratedPath.edges.push_back(documentId);
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::GLOBAL) {
           if (_returnedEdges.find(documentId) ==
               _returnedEdges.end()) {
             // Edge not yet visited. Mark and continue.
-            _enumeratedPath.edges.push_back(documentId);
             _returnedEdges.emplace(documentId);
           } else {
             _traverser->_filteredPaths++;
@@ -81,7 +81,6 @@ bool DepthFirstEnumerator::next() {
             return;
           }
         }
-        ;
         if (!_traverser->edgeMatchesConditions(edgeDoc,
                                                StringRef(_enumeratedPath.vertices.back()),
                                                _enumeratedPath.edges.size() - 1,
@@ -164,14 +163,14 @@ bool DepthFirstEnumerator::next() {
           _enumeratedPath.vertices.pop_back();
         }
       }
-    }
+    }// while (!_edgeCursors.empty())
     if (_edgeCursors.empty()) {
       // If we get here all cursors are exhausted.
       _enumeratedPath.edges.clear();
       _enumeratedPath.vertices.clear();
       return false;
     }
-  }
+  }// while (true)
 }
 
 arangodb::aql::AqlValue DepthFirstEnumerator::lastVertexToAqlValue() {

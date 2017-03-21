@@ -104,43 +104,43 @@ bool BreadthFirstEnumerator::next() {
 
     std::unique_ptr<arangodb::traverser::EdgeCursor> cursor(_opts->nextCursor(_traverser->mmdr(), nvid, _currentDepth));
     if (cursor != nullptr) {
-      size_t cursorIdx;
       bool shouldReturnPath = _currentDepth + 1 >= _opts->minDepth;
       bool didInsert = false;
-      while (cursor->readAll(_tmpEdges, cursorIdx)) {
-        if (!_tmpEdges.empty()) {
-          _traverser->_readDocuments += _tmpEdges.size();
-          VPackSlice v;
-          for (auto const& e : _tmpEdges) {
-            if (_opts->uniqueEdges ==
-                TraverserOptions::UniquenessLevel::GLOBAL) {
-              std::string eid = e.copyString();
-              if (_returnedEdges.find(eid) == _returnedEdges.end()) {
-                // Edge not yet visited. Mark and continue.
-                _returnedEdges.emplace(eid);
-              } else {
-                _traverser->_filteredPaths++;
-                continue;
-              }
-            }
 
-            if (!_traverser->edgeMatchesConditions(e, nvid,
-                                                   _currentDepth,
-                                                   cursorIdx)) {
-              continue;
-            }
-            if (_traverser->getSingleVertex(e, nextVertex, _currentDepth, v)) {
-              _schreier.emplace_back(nextIdx, e, v);
-              if (_currentDepth < _opts->maxDepth - 1) {
-                _nextDepth.emplace_back(NextStep(_schreierIndex));
-              }
-              _schreierIndex++;
-              didInsert = true;
-            }
+      auto callback = [&] (std::string const& eid, VPackSlice e, size_t cursorIdx) -> void {
+        VPackSlice v;
+        if (_opts->uniqueEdges ==
+            TraverserOptions::UniquenessLevel::GLOBAL) {
+          if (_returnedEdges.find(eid) == _returnedEdges.end()) {
+            // Edge not yet visited. Mark and continue.
+            // TODO FIXME the edge will run out of scope
+            _returnedEdges.emplace(eid);
+          } else {
+            // Edge filtered due to unique_constraint
+            _traverser->_filteredPaths++;
+            return;
           }
-          _tmpEdges.clear();
         }
-      }
+
+        if (!_traverser->edgeMatchesConditions(e, nvid,
+                                               _currentDepth,
+                                               cursorIdx)) {
+          return;
+        }
+
+        if (_traverser->getSingleVertex(e, nextVertex, _currentDepth, v)) {
+          // TODO FIXME Schreier needs to copy the data ;(
+          _schreier.emplace_back(nextIdx, e, v);
+          if (_currentDepth < _opts->maxDepth - 1) {
+            _nextDepth.emplace_back(NextStep(_schreierIndex));
+          }
+          _schreierIndex++;
+          didInsert = true;
+        }
+      };
+
+      cursor->readAll(callback);
+
       if (!shouldReturnPath) {
         _lastReturned = _schreierIndex;
         didInsert = false;

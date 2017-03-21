@@ -67,6 +67,10 @@ class EdgeCursor {
   }
   virtual bool readAll(std::unordered_set<arangodb::velocypack::Slice>&,
                        size_t&) = 0;
+
+  // TODO Temporary to silence the cluster
+  virtual void readAll(std::function<void(std::string const&, arangodb::velocypack::Slice, size_t&)>) {};
+
 };
 
 
