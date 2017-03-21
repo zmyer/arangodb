@@ -75,18 +75,16 @@ void arangodb::traverser::ShortestPath::vertexToVelocyPack(transaction::Methods*
   }
 }
 
-bool Traverser::VertexGetter::getVertex(
-    VPackSlice edge, std::vector<VPackSlice>& result) {
-  VPackSlice cmp = result.back();
+bool Traverser::VertexGetter::getVertex(VPackSlice edge, std::vector<std::string>& result) {
   VPackSlice res = transaction::helpers::extractFromFromDocument(edge);
-  if (cmp == res) {
+  if (res.compareString(result.back().c_str(), result.back().length()) == 0) {
     res = transaction::helpers::extractToFromDocument(edge);
   }
 
   if (!_traverser->vertexMatchesConditions(res, result.size())) {
     return false;
   }
-  result.emplace_back(res);
+  result.emplace_back(res.copyString());
   return true;
 }
 

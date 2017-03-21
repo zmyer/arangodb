@@ -187,7 +187,7 @@ class Traverser {
     virtual ~VertexGetter() = default;
 
     virtual bool getVertex(arangodb::velocypack::Slice,
-                           std::vector<arangodb::velocypack::Slice>&);
+                           std::vector<std::string>&);
 
     virtual bool getSingleVertex(arangodb::velocypack::Slice,
                                  arangodb::velocypack::Slice, uint64_t,
@@ -211,7 +211,7 @@ class Traverser {
     ~UniqueVertexGetter() = default;
 
     bool getVertex(arangodb::velocypack::Slice,
-                   std::vector<arangodb::velocypack::Slice>&) override;
+                   std::vector<std::string>&) override;
 
     bool getSingleVertex(arangodb::velocypack::Slice,
                          arangodb::velocypack::Slice, uint64_t,
@@ -270,7 +270,7 @@ class Traverser {
   ///        Returns true if the vertex passes filtering conditions
   ///        Also appends the _id value of the vertex in the given vector
   virtual bool getVertex(arangodb::velocypack::Slice,
-                         std::vector<arangodb::velocypack::Slice>&) = 0;
+                         std::vector<std::string>&) = 0;
 
   /// @brief Function to load the other sides vertex of an edge
   ///        Returns true if the vertex passes filtering conditions

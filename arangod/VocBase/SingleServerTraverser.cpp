@@ -266,8 +266,8 @@ size_t SingleServerTraverser::getAndResetReadDocuments() {
   return this->_cache->getAndResetInsertedDocuments();
 }
 
-bool SingleServerTraverser::getVertex(StringRef eid,
-                                      std::vector<VPackSlice>& result) {
+bool SingleServerTraverser::getVertex(VPackSlice edge,
+                                      std::vector<std::string>& result) {
   return _vertexGetter->getVertex(edge, result);
 }
 

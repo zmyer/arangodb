@@ -66,6 +66,7 @@ bool DepthFirstEnumerator::next() {
       TRI_ASSERT(_edgeCursors.size() == _enumeratedPath.edges.size() + 1);
       auto& cursor = _edgeCursors.top();
 
+      bool foundPath = false;
       cursor->next([this] (std::string const& documentId, VPackSlice const& edgeDoc, size_t cursorId) {
         //++_traverser->_readDocuments;
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::GLOBAL) {
@@ -114,8 +115,8 @@ bool DepthFirstEnumerator::next() {
         }
         
         // We have to check if edge and vertex is valid
-        if (_traverser->getVertex(_enumeratedPath.edges.back(),
-                                  _enumeratedPath.vertices)) {
+        
+        if (_traverser->getVertex(edgeDoc, _enumeratedPath.vertices)) {
           // case both are valid.
           if (_opts->uniqueVertices == TraverserOptions::UniquenessLevel::PATH) {
             auto& e = _enumeratedPath.vertices.back();
@@ -149,7 +150,6 @@ bool DepthFirstEnumerator::next() {
         // Vertex Invalid. Revoke edge
         TRI_ASSERT(!_enumeratedPath.edges.empty());
         _enumeratedPath.edges.pop_back();
-        continue;
       });
 
       if (cursor->next(_enumeratedPath.edges, cursorId)) {
