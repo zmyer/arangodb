@@ -374,7 +374,8 @@ ShortestPathBlock::ShortestPathBlock(ExecutionEngine* engine,
     _engines = ep->engines();
 
 #ifdef USE_ENTERPRISE
-    if (ep->isSmart()) {
+    // TODO This feature is NOT imlpemented for weighted graphs
+    if (ep->isSmart() && !_opts->usesWeight()) {
       _finder.reset(new arangodb::traverser::SmartGraphConstDistanceFinder(
           _opts, _engines, engine->getQuery()->trx()->resolver()));
     } else {

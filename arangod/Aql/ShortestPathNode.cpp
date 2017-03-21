@@ -118,11 +118,10 @@ ShortestPathNode::ShortestPathNode(
       _startVertexId(startVertexId),
       _inTargetVariable(inTargetVariable),
       _targetVertexId(targetVertexId) {
-  for (auto const& it : edgeColls) {
+  for (auto const& it : reverseEdgeColls) {
     // Collections cannot be copied. So we need to create new ones to prevent leaks
-    _edgeColls.emplace_back(std::make_unique<aql::Collection>(
+    _reverseEdgeColls.emplace_back(std::make_unique<aql::Collection>(
         it->getName(), _vocbase, AccessMode::Type::READ));
-    _graphInfo.add(VPackValue(it->getName()));
   }
 }
 

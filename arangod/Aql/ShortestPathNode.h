@@ -137,10 +137,11 @@ class ShortestPathNode : public GraphNode {
   ///        of blocks.
   void prepareOptions() override;
 
- private:
-
   /// @brief Helper function to parse all collection names / directions
+#ifdef USE_ENTERPRISE
   void addEdgeColl(std::string const& name, TRI_edge_direction_e dir) override;
+#endif
+ private:
 
   /// @brief input variable only used if _vertexId is unused
   Variable const* _inStartVariable;

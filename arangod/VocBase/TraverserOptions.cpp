@@ -24,6 +24,7 @@
 #include "TraverserOptions.h"
 
 #include "Aql/Ast.h"
+#include "Aql/AstNode.h"
 #include "Aql/Expression.h"
 #include "Aql/Query.h"
 #include "Basics/VelocyPackHelper.h"
@@ -275,34 +276,33 @@ void BaseTraverserOptions::injectLookupInfoInList(
   // We now have to check if we need _from / _to inside the index lookup and
   // which position
   // it is used in. Such that the traverser can update the respective string
-  // value
-  // in-place
-  // TODO This place can be optimized.
-#warning FIXME
-  /*
-  if (info.idxHandles[0].isEdgeIndex()) {
-    // Special case for edge index....
-    // It serves two attributes, but can only be asked for one of them...
-    info.conditionNeedUpdate = true;
-    info.conditionMemberToUpdate = 0;
-  } else {
-    std::vector<std::vector<std::string>> fieldNames =
-        info.idxHandles[0].fieldNames();
-    size_t max = info.indexCondition->numMembers();
-    TRI_ASSERT(max <= fieldNames.size());
-    for (size_t i = 0; i < max; ++i) {
-      auto const& f = fieldNames[i];
-      if (f.size() == 1 && f[0] == attributeName) {
-        // we only work for _from and _to not _from.foo which would be null
-        // anyways...
+  // value in-place
+
+  std::pair<arangodb::aql::Variable const*, std::vector<basics::AttributeName>> pathCmp;
+  for (size_t i = 0; i < info.indexCondition->numMembers(); ++i) {
+    // We search through the nary-and and look for EQ - _from/_to
+    auto eq = info.indexCondition->getMemberUnchecked(i);
+    if (eq->type != arangodb::aql::AstNodeType::NODE_TYPE_OPERATOR_BINARY_EQ) {
+      // No equality. Skip
+      continue;
+    }
+    TRI_ASSERT(eq->numMembers() == 2);
+    // It is sufficient to only check member one.
+    // We build the condition this way.
+    auto mem = eq->getMemberUnchecked(0);
+    if (mem->isAttributeAccessForVariable(pathCmp)) {
+      if (pathCmp.first != _tmpVar) {
+        continue;
+      }
+      if (pathCmp.second.size() == 1 && pathCmp.second[0].name == attributeName) {
         info.conditionNeedUpdate = true;
         info.conditionMemberToUpdate = i;
         break;
       }
+      continue;
     }
   }
-  */
-  _baseLookupInfos.emplace_back(std::move(info));
+  list.emplace_back(std::move(info));
 }
 
 void BaseTraverserOptions::clearVariableValues() {
