@@ -43,7 +43,7 @@ using namespace arangodb;
 using namespace arangodb::traverser;
 
 TraverserCache::TraverserCache(transaction::Methods* trx, ManagedDocumentResult *mmdr)
-    : _cache(nullptr), _mmdr(mmdr), _trx(trx), _readDocuments(0) {
+    : _cache(nullptr), _mmdr(mmdr), _trx(trx), _insertedDocuments(0) {
   auto cacheManager = CacheManagerFeature::MANAGER;
   TRI_ASSERT(cacheManager != nullptr);
   _cache = cacheManager->createCache(cache::CacheType::Plain);
@@ -63,8 +63,9 @@ TraverserCache::~TraverserCache() {
 // DO NOT give it to a caller.
 cache::Finding TraverserCache::lookup(VPackSlice const& idString) {
   TRI_ASSERT(idString.isString());
-  void const* key = idString.begin();
-  uint32_t keySize = static_cast<uint32_t>(idString.byteSize());
+  VPackValueLength keySize;
+  void const* key = idString.getString(keySize);
+  //uint32_t keySize = static_cast<uint32_t>(idString.byteSize());
   return _cache->find(key, keySize);
 }
 
@@ -95,15 +96,15 @@ VPackSlice TraverserCache::lookupInCollection(arangodb::velocypack::Slice const&
     result = VPackSlice(_mmdr->vpack());
   }
 
-  void const* key = idString.begin();
-  uint32_t keySize = static_cast<uint32_t>(idString.byteSize());
+  VPackValueLength keySize;
+  void const* key = idString.getString(keySize);
 
   void const* resVal = result.begin();
   uint64_t resValSize = static_cast<uint64_t>(result.byteSize());
   std::unique_ptr<cache::CachedValue> value(
       cache::CachedValue::construct(key, keySize, resVal, resValSize));
 
-  if (value != nullptr) {
+  if (value) {
     bool success = _cache->insert(value.get());
     if (!success) {
       LOG_TOPIC(ERR, Logger::GRAPHS) << "Insert failed";
@@ -112,7 +113,7 @@ VPackSlice TraverserCache::lookupInCollection(arangodb::velocypack::Slice const&
     // If this failed, well we do not store it and read it again next time.
     value.release();
   }
-  ++_readDocuments;
+  ++_insertedDocuments;
   return result;
 }
 
@@ -141,6 +142,28 @@ aql::AqlValue TraverserCache::fetchAqlResult(arangodb::velocypack::Slice const& 
     return aql::AqlValue(lookupInCollection(idString));
   }
 }
+
+ void TraverserCache::insertDocument(std::string const& idString,
+ arangodb::velocypack::Slice const& document) {
+  VPackValueLength keySize = idString.length();
+  void const* key = idString.c_str();
+
+  void const* resVal = document.begin();
+  uint64_t resValSize = static_cast<uint64_t>(document.byteSize());
+  std::unique_ptr<cache::CachedValue> value(
+      cache::CachedValue::construct(key, keySize, resVal, resValSize));
+
+  if (value) {
+    bool success = _cache->insert(value.get());
+    if (!success) {
+      LOG_TOPIC(ERR, Logger::GRAPHS) << "Insert failed";
+    }
+    // Cache is responsible.
+    // If this failed, well we do not store it and read it again next time.
+    value.release();
+  }
+  ++_insertedDocuments;
+ }
 
 bool TraverserCache::validateFilter(
     VPackSlice const& idString,

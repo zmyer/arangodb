@@ -174,7 +174,8 @@ Traverser::Traverser(arangodb::traverser::TraverserOptions* opts, transaction::M
       _pruneNext(false),
       _done(true),
       _opts(opts),
-      _canUseOptimizedNeighbors(false) {
+      _canUseOptimizedNeighbors(false),
+      _cache(new TraverserCache(trx, mmdr)) {
   if (opts->uniqueVertices == TraverserOptions::UniquenessLevel::GLOBAL) {
     _vertexGetter = std::make_unique<UniqueVertexGetter>(this);
   } else {
@@ -183,7 +184,7 @@ Traverser::Traverser(arangodb::traverser::TraverserOptions* opts, transaction::M
 }
 
 bool arangodb::traverser::Traverser::edgeMatchesConditions(VPackSlice e,
-                                                           VPackSlice vid,
+                                                           StringRef vid,
                                                            uint64_t depth,
                                                            size_t cursorId) {
   if (!_opts->evaluateEdgeExpression(e, vid, depth, cursorId)) {
@@ -193,7 +194,7 @@ bool arangodb::traverser::Traverser::edgeMatchesConditions(VPackSlice e,
   return true;
 }
 
-bool arangodb::traverser::Traverser::vertexMatchesConditions(VPackSlice v, uint64_t depth) {
+bool arangodb::traverser::Traverser::vertexMatchesConditions(StringRef v, uint64_t depth) {
   TRI_ASSERT(v.isString());
   if (_opts->vertexHasFilter(depth)) {
     aql::AqlValue vertex = fetchVertexData(v);

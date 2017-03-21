@@ -1484,7 +1484,7 @@ int getDocumentOnCoordinator(
 int fetchEdgesFromEngines(
     std::string const& dbname,
     std::unordered_map<ServerID, traverser::TraverserEngineID> const* engines,
-    VPackSlice const vertexId,
+    StringRef vertexId,
     size_t depth,
     std::unordered_map<VPackSlice, VPackSlice>& cache,
     std::vector<VPackSlice>& result,

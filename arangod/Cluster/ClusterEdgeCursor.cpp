@@ -32,11 +32,11 @@
 
 using ClusterEdgeCursor = arangodb::traverser::ClusterEdgeCursor;
 
-ClusterEdgeCursor::ClusterEdgeCursor(VPackSlice v, uint64_t depth,
+ClusterEdgeCursor::ClusterEdgeCursor(StringRef vertexId, uint64_t depth,
                                      arangodb::traverser::ClusterTraverser* traverser)
     : _position(0) {
       transaction::BuilderLeaser leased(traverser->_trx);
-      fetchEdgesFromEngines(traverser->_dbname, traverser->_engines, v, depth,
+      fetchEdgesFromEngines(traverser->_dbname, traverser->_engines, vertexId, depth,
                             traverser->_edges, _edgeList, traverser->_datalake,
                             *(leased.get()), traverser->_filteredPaths,
                             traverser->_readDocuments);

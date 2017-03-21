@@ -69,11 +69,11 @@ void ClusterTraverser::setStartVertex(std::string const& id) {
 
   _vertexGetter->reset(idSlice);
   if (_opts->useBreadthFirst) {
-    _enumerator.reset(
-        new arangodb::traverser::BreadthFirstEnumerator(this, idSlice, _opts));
+//    _enumerator.reset(
+//        new arangodb::graph::BreadthFirstEnumerator(this, id, _opts));
   } else {
     _enumerator.reset(
-        new arangodb::traverser::DepthFirstEnumerator(this, idSlice, _opts));
+        new arangodb::traverser::DepthFirstEnumerator(this, id, _opts));
   }
   _done = false;
 }
@@ -111,7 +111,7 @@ void ClusterTraverser::fetchVertices() {
   _verticesToFetch.clear();
 }
 
-aql::AqlValue ClusterTraverser::fetchVertexData(VPackSlice idString) {
+aql::AqlValue ClusterTraverser::fetchVertexData(StringRef idString) {
   TRI_ASSERT(idString.isString());
   auto cached = _vertices.find(idString);
   if (cached == _vertices.end()) {

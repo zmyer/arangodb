@@ -27,6 +27,7 @@
 #include "Basics/Common.h"
 #include "Basics/hashes.h"
 #include "Basics/ShortestPathFinder.h"
+#include "Basics/StringRef.h"
 #include "Basics/VelocyPackHelper.h"
 #include "Aql/AqlValue.h"
 #include "Aql/AstNode.h"
@@ -55,6 +56,7 @@ class Query;
 namespace traverser {
 
 struct TraverserOptions;
+class TraverserCache;
 
 class ShortestPath {
   friend class arangodb::basics::DynamicDistanceFinder<
@@ -260,11 +262,13 @@ class Traverser {
   /// @brief Get the next possible path in the graph.
   bool next();
 
+  TraverserCache* traverserCache(); 
+
+ protected:
+
   /// @brief Function to load the other sides vertex of an edge
   ///        Returns true if the vertex passes filtering conditions
   ///        Also appends the _id value of the vertex in the given vector
-
- protected:
   virtual bool getVertex(arangodb::velocypack::Slice,
                          std::vector<arangodb::velocypack::Slice>&) = 0;
 
@@ -324,6 +328,8 @@ class Traverser {
   
   ManagedDocumentResult* mmdr() const { return _mmdr; }
 
+  std::unique_ptr<TraverserCache> _cache;
+
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Simple check if there are potentially more paths.
   ///        It might return true although there are no more paths available.
@@ -332,8 +338,8 @@ class Traverser {
 
   bool hasMore() { return !_done; }
 
-  bool edgeMatchesConditions(arangodb::velocypack::Slice,
-                             arangodb::velocypack::Slice, uint64_t, size_t);
+  bool edgeMatchesConditions(arangodb::velocypack::Slice edge, StringRef vid,
+                             uint64_t depth, size_t cursorId);
 
   bool vertexMatchesConditions(arangodb::velocypack::Slice, uint64_t);
 

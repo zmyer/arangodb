@@ -38,7 +38,6 @@ class ManagedDocumentResult;
 namespace traverser {
 
 class PathEnumerator;
-class TraverserCache;
   
 class SingleServerEdgeCursor : public EdgeCursor {
  private:
@@ -62,7 +61,7 @@ class SingleServerEdgeCursor : public EdgeCursor {
     }
   }
 
-  bool next(std::vector<arangodb::velocypack::Slice>&, size_t&) override;
+  bool next(std::function<void(std::string const&, VPackSlice, size_t)> callback) override;
 
   bool readAll(std::unordered_set<arangodb::velocypack::Slice>&, size_t&) override;
 
@@ -128,8 +127,6 @@ class SingleServerTraverser final : public Traverser {
 
  private:
   
-  std::unique_ptr<TraverserCache> _cache;
-
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Cache for vertex documents, points from _id to start of 
   /// document VPack value (in datafiles)

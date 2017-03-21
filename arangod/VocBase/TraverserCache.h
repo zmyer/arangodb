@@ -63,8 +63,20 @@ class TraverserCache {
 
    void insertIntoResult(arangodb::velocypack::Slice const& idString,
                          arangodb::velocypack::Builder& builder);
+
+   //////////////////////////////////////////////////////////////////////////////
+   /// @brief Return AQL value containing the result
+   ///        The document will be taken from the hash-cache.
+   ///        If it is not cached it will be looked up in the StorageEngine
+   //////////////////////////////////////////////////////////////////////////////
   
    aql::AqlValue fetchAqlResult(arangodb::velocypack::Slice const& idString);
+
+   //////////////////////////////////////////////////////////////////////////////
+   /// @brief Insert value into store
+   //////////////////////////////////////////////////////////////////////////////
+   void insertDocument(std::string const& idString,
+                       arangodb::velocypack::Slice const& document);
 
    //////////////////////////////////////////////////////////////////////////////
    /// @brief Throws the document referenced by the token into the filter
@@ -77,9 +89,9 @@ class TraverserCache {
        arangodb::velocypack::Slice const& idString,
        std::function<bool(arangodb::velocypack::Slice const&)> filterFunc);
   
-  size_t getAndResetReadDocuments() {
-    size_t tmp = _readDocuments;
-    _readDocuments = 0;
+  size_t getAndResetInsertedDocuments() {
+    size_t tmp = _insertedDocuments;
+    _insertedDocuments = 0;
     return tmp;
   }
 
@@ -102,8 +114,6 @@ class TraverserCache {
    arangodb::velocypack::Slice lookupInCollection(
        arangodb::velocypack::Slice const& idString);
 
-  private:
-
    //////////////////////////////////////////////////////////////////////////////
    /// @brief The hash-cache that saves documents found in the Database
    //////////////////////////////////////////////////////////////////////////////
@@ -120,8 +130,7 @@ class TraverserCache {
    //////////////////////////////////////////////////////////////////////////////
    arangodb::transaction::Methods* _trx;
   
-   size_t _readDocuments;
-  std::set<std::string> _found;
+   size_t _insertedDocuments;
 };
 
 }
