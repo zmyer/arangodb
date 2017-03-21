@@ -143,56 +143,6 @@ class DepthFirstEnumerator final : public PathEnumerator {
 
 };
 
-// @brief Enumerator optimized for neighbors. Does not allow edge access
-
-class NeighborsEnumerator final : public PathEnumerator {
-  std::unordered_set<arangodb::basics::VPackHashedSlice,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringHash,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringEqual>
-      _allFound;
-
-  std::unordered_set<arangodb::basics::VPackHashedSlice,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringHash,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringEqual>
-      _currentDepth;
-
-  std::unordered_set<arangodb::basics::VPackHashedSlice,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringHash,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringEqual>
-      _lastDepth;
-
-  std::unordered_set<arangodb::basics::VPackHashedSlice, arangodb::basics::VelocyPackHelper::VPackHashedStringHash, arangodb::basics::VelocyPackHelper::VPackHashedStringEqual>::iterator _iterator;
-  uint64_t _searchDepth;
- 
-  //////////////////////////////////////////////////////////////////////////////
-  /// @brief Vector storing the position at current search depth
-  //////////////////////////////////////////////////////////////////////////////
-
-   std::unordered_set<arangodb::velocypack::Slice> _tmpEdges;
-
-
- public:
-   NeighborsEnumerator(Traverser* traverser,
-                       arangodb::velocypack::Slice startVertex,
-                       TraverserOptions const* opts);
-
-   ~NeighborsEnumerator() {
-   }
-
-  //////////////////////////////////////////////////////////////////////////////
-  /// @brief Get the next Path element from the traversal.
-  //////////////////////////////////////////////////////////////////////////////
-
-  bool next() override;
-
-  aql::AqlValue lastVertexToAqlValue() override;
-
-  aql::AqlValue lastEdgeToAqlValue() override;
-
-  aql::AqlValue pathToAqlValue(arangodb::velocypack::Builder& result) override;
-
-};
-
 
 } // namespace traverser
 } // namespace arangodb

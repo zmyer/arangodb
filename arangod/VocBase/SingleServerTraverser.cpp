@@ -26,6 +26,7 @@
 
 #include "Aql/AqlValue.h"
 #include "Graph/BreadthFirstEnumerator.h"
+#include "Graph/NeighborsEnumerator.h"
 #include "Transaction/Methods.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ManagedDocumentResult.h"
