@@ -51,7 +51,7 @@ void ClusterTraverser::setStartVertex(std::string const& id) {
   _startIdBuilder->add(VPackValue(id));
   VPackSlice idSlice = _startIdBuilder->slice();
 
-  auto it = _vertices.find(idSlice);
+  auto it = _vertices.find(StringRef(id));
   if (it == _vertices.end()) {
     size_t firstSlash = id.find("/");
     if (firstSlash == std::string::npos ||
@@ -84,7 +84,7 @@ bool ClusterTraverser::getVertex(VPackSlice edge,
                                  std::vector<std::string>& result) {
   bool res = _vertexGetter->getVertex(edge, result);
   if (res) {
-    VPackSlice other = result.back();
+    StringRef other(result.back());
     if (_vertices.find(other) == _vertices.end()) {
       // Vertex not yet cached. Prepare it.
       _verticesToFetch.emplace(other);
@@ -97,7 +97,8 @@ bool ClusterTraverser::getSingleVertex(VPackSlice edge, VPackSlice comp,
                                        uint64_t depth, VPackSlice& result) {
   bool res = _vertexGetter->getSingleVertex(edge, comp, depth, result);
   if (res) {
-    if (_vertices.find(result) == _vertices.end()) {
+    TRI_ASSERT(result.isString());
+    if (_vertices.find(StringRef(result)) == _vertices.end()) {
       // Vertex not yet cached. Prepare it.
       _verticesToFetch.emplace(result);
     }
@@ -128,7 +129,7 @@ aql::AqlValue ClusterTraverser::fetchVertexData(StringRef idString) {
 }
 
 aql::AqlValue ClusterTraverser::fetchEdgeData(StringRef eid) {
-  return this->_cache->fetchAqlResult(edge);
+  return aql::AqlValue(_edges[eid]);//this->_cache->fetchAqlResult(edge);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -137,13 +138,13 @@ aql::AqlValue ClusterTraverser::fetchEdgeData(StringRef eid) {
 
 void ClusterTraverser::addVertexToVelocyPack(StringRef vid,
                                              VPackBuilder& result) {
-  TRI_ASSERT(id.isString());
-  auto cached = _vertices.find(id);
+  //TRI_ASSERT(id.isString());
+  auto cached = _vertices.find(vid);
   if (cached == _vertices.end()) {
     // Vertex not yet cached. Prepare for load.
-    _verticesToFetch.emplace(id);
+    _verticesToFetch.emplace(vid);
     fetchVertices();
-    cached = _vertices.find(id);
+    cached = _vertices.find(vid);
   }
   // Now all vertices are cached!!
   TRI_ASSERT(cached != _vertices.end());
@@ -156,5 +157,5 @@ void ClusterTraverser::addVertexToVelocyPack(StringRef vid,
 
 void ClusterTraverser::addEdgeToVelocyPack(StringRef eid,
                          arangodb::velocypack::Builder& result) {
-  this->_cache->insertIntoResult(eid, result);
+  result.add(_edges[eid]);
 }

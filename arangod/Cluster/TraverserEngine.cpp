@@ -134,7 +134,6 @@ void BaseTraverserEngine::getEdges(VPackSlice vertex, size_t depth, VPackBuilder
   // We just hope someone has locked the shards properly. We have no clue... Thanks locking
 
   TRI_ASSERT(vertex.isString() || vertex.isArray());
-  size_t cursorId = 0;
   size_t read = 0;
   size_t filtered = 0;
   ManagedDocumentResult mmdr;

@@ -33,7 +33,7 @@ namespace traverser {
 class ClusterEdgeCursor : public EdgeCursor {
 
  public:
-  ClusterEdgeCursor(CollectionNameResolver *resolver, StringRef vid, uint64_t, ClusterTraverser*);
+  ClusterEdgeCursor(StringRef vid, uint64_t, ClusterTraverser*);
 
   ~ClusterEdgeCursor() {
   }
@@ -47,7 +47,7 @@ class ClusterEdgeCursor : public EdgeCursor {
   std::vector<arangodb::velocypack::Slice> _edgeList;
 
   size_t _position;
-  CollectionNameResolver *_resolver;
+  CollectionNameResolver const*_resolver;
 };
 }
 }

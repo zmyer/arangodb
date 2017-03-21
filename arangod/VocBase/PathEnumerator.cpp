@@ -191,13 +191,13 @@ arangodb::aql::AqlValue DepthFirstEnumerator::pathToAqlValue(arangodb::velocypac
   result.add(VPackValue("edges"));
   result.openArray();
   for (auto const& it : _enumeratedPath.edges) {
-    _traverser->addEdgeToVelocyPack(it, result);
+    _traverser->addEdgeToVelocyPack(StringRef(it), result);
   }
   result.close();
   result.add(VPackValue("vertices"));
   result.openArray();
   for (auto const& it : _enumeratedPath.vertices) {
-    _traverser->addVertexToVelocyPack(it, result);
+    _traverser->addVertexToVelocyPack(StringRef(it), result);
   }
   result.close();
   result.close();
@@ -209,8 +209,9 @@ NeighborsEnumerator::NeighborsEnumerator(Traverser* traverser,
                                          TraverserOptions const* opts)
     : PathEnumerator(traverser, startVertex, opts),
       _searchDepth(0) {
-  _allFound.insert(arangodb::basics::VPackHashedSlice(VPstartVertex));
-  _currentDepth.insert(arangodb::basics::VPackHashedSlice(startVertex));
+        VPackSlice start(startVertex.c_str());
+  _allFound.insert(arangodb::basics::VPackHashedSlice(start));
+  _currentDepth.insert(arangodb::basics::VPackHashedSlice(start));
   _iterator = _currentDepth.begin();
 }
 
@@ -267,7 +268,7 @@ bool NeighborsEnumerator::next() {
 
 arangodb::aql::AqlValue NeighborsEnumerator::lastVertexToAqlValue() {
   TRI_ASSERT(_iterator != _currentDepth.end());
-  return _traverser->fetchVertexData((*_iterator).slice);
+  return _traverser->fetchVertexData(StringRef((*_iterator).slice));
 }
 
 arangodb::aql::AqlValue NeighborsEnumerator::lastEdgeToAqlValue() {

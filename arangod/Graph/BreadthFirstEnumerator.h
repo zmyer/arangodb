@@ -31,7 +31,7 @@ namespace arangodb {
 
 namespace traverser {
 class Traverser;
-class TraverserOptions;
+struct TraverserOptions;
 }
 
 namespace graph {

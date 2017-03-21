@@ -102,8 +102,7 @@ class ClusterTraverser final : public Traverser {
   std::unordered_map<StringRef, arangodb::velocypack::Slice>
       _edges;
 
-  std::unordered_map<arangodb::velocypack::Slice,
-                     std::shared_ptr<arangodb::velocypack::Buffer<uint8_t>>>
+  std::unordered_map<StringRef, std::shared_ptr<arangodb::velocypack::Buffer<uint8_t>>>
       _vertices;
 
   std::string _dbname;

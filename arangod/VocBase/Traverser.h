@@ -351,9 +351,7 @@ class Traverser {
   bool vertexMatchesConditions(arangodb::velocypack::Slice, uint64_t);
 
   void allowOptimizedNeighbors();
-  
-  Resolver
-  
+    
  protected:
 
   /// @brief Outer top level transaction

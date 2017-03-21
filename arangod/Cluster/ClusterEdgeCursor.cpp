@@ -35,31 +35,30 @@ using ClusterEdgeCursor = arangodb::traverser::ClusterEdgeCursor;
 
 ClusterEdgeCursor::ClusterEdgeCursor(StringRef vertexId, uint64_t depth,
                                      arangodb::traverser::ClusterTraverser* traverser)
-    : _position(0) {
+    : _position(0), _resolver(traverser->_trx->resolver()) {
       transaction::BuilderLeaser leased(traverser->_trx);
-      fetchEdgesFromEngines(traverser->_dbname, traverser->_engines, vertexId, depth,
+      
+#warning fix copying by either adding overloaded method or
+      transaction::BuilderLeaser b(traverser->_trx);
+      b->add(VPackValue(vertexId.data()));
+      
+      fetchEdgesFromEngines(traverser->_dbname, traverser->_engines, b->slice(), depth,
                             traverser->_edges, _edgeList, traverser->_datalake,
                             *(leased.get()), traverser->_filteredPaths,
                             traverser->_readDocuments);
       
-      traverser->_trx
     }
 
 bool ClusterEdgeCursor::next(std::function<void(std::string const&,
                                                 VPackSlice, size_t)> callback) {
   if (_position < _edgeList.size()) {
     VPackSlice edge = _edgeList[_position];
-    std::string eid = _trx->extractIdString(edgeDocument);
-    
-    callback();
-    result.emplace_back(_edgeList[_position]);
+    std::string eid = transaction::helpers::extractIdString(_resolver, edge, VPackSlice());
+    callback(eid, edge, _position);
     ++_position;
     return true;
   }
   return false;
-}
-bool ClusterEdgeCursor::next(std::vector<VPackSlice>& result, size_t& cursorId) {
-  
 }
 
 bool ClusterEdgeCursor::readAll(std::unordered_set<VPackSlice>& result, size_t& cursorId) {

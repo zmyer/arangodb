@@ -37,7 +37,7 @@ using BreadthFirstEnumerator = arangodb::graph::BreadthFirstEnumerator;
 BreadthFirstEnumerator::BreadthFirstEnumerator(Traverser* traverser,
                                                VPackSlice startVertex,
                                                TraverserOptions const* opts)
-    : PathEnumerator(traverser, startVertex, opts),
+    : PathEnumerator(traverser, startVertex.copyString(), opts),
       _schreierIndex(1),
       _lastReturned(0),
       _currentDepth(0),
@@ -52,16 +52,14 @@ bool BreadthFirstEnumerator::next() {
   if (_isFirst) {
     _isFirst = false;
     if (_opts->minDepth == 0) {
-      computeEnumeratedPath(_lastReturned++);
       return true;
     }
-    _lastReturned++;
   }
+  _lastReturned++;
 
   if (_lastReturned < _schreierIndex) {
     // We still have something on our stack.
     // Paths have been read but not returned.
-    computeEnumeratedPath(_lastReturned++);
     return true;
   }
 
@@ -80,8 +78,6 @@ bool BreadthFirstEnumerator::next() {
       // This depth is done. GoTo next
       if (_nextDepth.empty()) {
         // That's it. we are done.
-        _enumeratedPath.edges.clear();
-        _enumeratedPath.vertices.clear();
         return false;
       }
       // Save copies:
@@ -104,8 +100,9 @@ bool BreadthFirstEnumerator::next() {
     _tmpEdges.clear();
     auto const nextIdx = _toSearch[_toSearchPos++].sourceIdx;
     auto const nextVertex = _schreier[nextIdx].vertex;
+    const StringRef nvid(nextVertex);
 
-    std::unique_ptr<arangodb::traverser::EdgeCursor> cursor(_opts->nextCursor(_traverser->mmdr(), nextVertex, _currentDepth));
+    std::unique_ptr<arangodb::traverser::EdgeCursor> cursor(_opts->nextCursor(_traverser->mmdr(), nvid, _currentDepth));
     if (cursor != nullptr) {
       size_t cursorIdx;
       bool shouldReturnPath = _currentDepth + 1 >= _opts->minDepth;
@@ -117,16 +114,17 @@ bool BreadthFirstEnumerator::next() {
           for (auto const& e : _tmpEdges) {
             if (_opts->uniqueEdges ==
                 TraverserOptions::UniquenessLevel::GLOBAL) {
-              if (_returnedEdges.find(e) == _returnedEdges.end()) {
+              std::string eid = e.copyString();
+              if (_returnedEdges.find(eid) == _returnedEdges.end()) {
                 // Edge not yet visited. Mark and continue.
-                _returnedEdges.emplace(e);
+                _returnedEdges.emplace(eid);
               } else {
                 _traverser->_filteredPaths++;
                 continue;
               }
             }
 
-            if (!_traverser->edgeMatchesConditions(e, nextVertex,
+            if (!_traverser->edgeMatchesConditions(e, nvid,
                                                    _currentDepth,
                                                    cursorIdx)) {
               continue;
@@ -159,68 +157,67 @@ bool BreadthFirstEnumerator::next() {
   }
 
   // _lastReturned points to the last used
-  // entry. We compute the path to it
-  // and increase the schreierIndex to point
-  // to the next free position.
-  computeEnumeratedPath(_lastReturned++);
+  // entry. We compute the path to it.
   return true;
 }
 
-// TODO Optimize this. Remove enumeratedPath
-// All can be read from schreier vector directly
 arangodb::aql::AqlValue BreadthFirstEnumerator::lastVertexToAqlValue() {
-  return _traverser->fetchVertexData(StringRef(
-      _enumeratedPath.vertices.back()));
+  TRI_ASSERT(_lastReturned < _schreier.size());
+  PathStep const& current = _schreier[_lastReturned];
+  return _traverser->fetchVertexData(StringRef(current.vertex));
 }
 
 arangodb::aql::AqlValue BreadthFirstEnumerator::lastEdgeToAqlValue() {
-  if (_enumeratedPath.edges.empty()) {
+  TRI_ASSERT(_lastReturned < _schreier.size());
+  if (_lastReturned == 0) {
+    // This is the first Vertex. No Edge Pointing to it
     return arangodb::aql::AqlValue(arangodb::basics::VelocyPackHelper::NullValue());
   }
-  return _traverser->fetchEdgeData(_enumeratedPath.edges.back());
+  PathStep const& current = _schreier[_lastReturned];
+  return _traverser->fetchEdgeData(StringRef(current.edge));
 }
 
 arangodb::aql::AqlValue BreadthFirstEnumerator::pathToAqlValue(
     arangodb::velocypack::Builder& result) {
+  // TODO make deque class variable
+  std::deque<size_t> fullPath;
+  size_t cur = _lastReturned;
+  while (cur != 0) {
+    // Walk backwards through the path and push everything found on the local stack
+    fullPath.emplace_front(cur);
+    cur = _schreier[cur].sourceIdx;
+  }
+
   result.clear();
   result.openObject();
   result.add(VPackValue("edges"));
   result.openArray();
-  for (auto const& it : _enumeratedPath.edges) {
-    _traverser->addEdgeToVelocyPack(it, result);
+  for (auto const& idx : fullPath) {
+    if (_schreier[idx].edge.isString()) {
+      _traverser->addEdgeToVelocyPack(StringRef(_schreier[idx].edge), result);
+    } else {
+      result.add(_schreier[idx].edge);
+    }
   }
   result.close();
   result.add(VPackValue("vertices"));
   result.openArray();
-  for (auto const& it : _enumeratedPath.vertices) {
-    _traverser->addVertexToVelocyPack(it, result);
+  // Always add the start vertex
+  //_traverser->addVertexToVelocyPack(_schreier[0].vertex, result);
+  if (_schreier[0].edge.isString()) {
+    _traverser->addVertexToVelocyPack(StringRef(_schreier[0].vertex), result);
+  } else {
+    result.add(_schreier[0].vertex);
+  }
+  for (auto const& idx : fullPath) {
+    //_traverser->addVertexToVelocyPack(_schreier[idx].vertex, result);
+    if (_schreier[idx].edge.isString()) {
+      _traverser->addVertexToVelocyPack(StringRef(_schreier[idx].vertex), result);
+    } else {
+      result.add(_schreier[idx].vertex);
+    }
   }
   result.close();
   result.close();
   return arangodb::aql::AqlValue(result.slice());
 }
-
-void BreadthFirstEnumerator::computeEnumeratedPath(size_t index) {
-  TRI_ASSERT(index < _schreier.size());
-
-  size_t depth = getDepth(index);
-  _enumeratedPath.edges.clear();
-  _enumeratedPath.vertices.clear();
-  _enumeratedPath.edges.resize(depth);
-  _enumeratedPath.vertices.resize(depth + 1);
-
-  // Computed path. Insert it into the path enumerator.
-  while (index != 0) {
-    TRI_ASSERT(depth > 0);
-    PathStep const& current = _schreier[index];
-    _enumeratedPath.vertices[depth] = current.vertex;
-    _enumeratedPath.edges[depth - 1] = current.edge;
-
-    index = current.sourceIdx;
-    --depth;
-  }
-
-  _enumeratedPath.vertices[0] = _schreier[0].vertex;
-}
-
-

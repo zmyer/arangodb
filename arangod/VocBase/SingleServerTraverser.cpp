@@ -238,7 +238,7 @@ void SingleServerTraverser::setStartVertex(std::string const& vid) {
     if (_canUseOptimizedNeighbors) {
       _enumerator.reset(new NeighborsEnumerator(this, vid, _opts));
     } else {
-      //_enumerator.reset(new BreadthFirstEnumerator(this, vid, _opts));
+      _enumerator.reset(new BreadthFirstEnumerator(this, _startIdBuilder->slice(), _opts));
     }
   } else {
     _enumerator.reset(new DepthFirstEnumerator(this, vid, _opts));

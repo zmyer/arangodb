@@ -35,9 +35,6 @@
 /// @author Copyright 2017, ArangoDB GmbH, Cologne, Germany
 ////////////////////////////////////////////////////////////////////////////////
 
-/* regression testing program for GeoIndex module     */
-/*  R.A.P. 2.1  8.1.2012                              */
-
 #include "Basics/Common.h"
 
 #include "catch.hpp"
