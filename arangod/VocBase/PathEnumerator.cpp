@@ -24,6 +24,7 @@
 #include "PathEnumerator.h"
 #include "Basics/VelocyPackHelper.h"
 #include "VocBase/Traverser.h"
+#include "VocBase/TraverserCache.h"
 
 using DepthFirstEnumerator = arangodb::traverser::DepthFirstEnumerator;
 using NeighborsEnumerator = arangodb::traverser::NeighborsEnumerator;
@@ -69,6 +70,8 @@ bool DepthFirstEnumerator::next() {
       = cursor->next([this, &foundPath, &exitInnerLoop] (std::string const& documentId, VPackSlice const& edgeDoc, size_t cursorId) {
         ++_traverser->_readDocuments;
         _enumeratedPath.edges.push_back(documentId);
+        _traverser->_cache->insertDocument(StringRef(documentId), edgeDoc);
+        
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::GLOBAL) {
           if (_returnedEdges.find(documentId) ==
               _returnedEdges.end()) {
@@ -92,9 +95,9 @@ bool DepthFirstEnumerator::next() {
         }
 
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::PATH) {
-          auto& e = _enumeratedPath.edges.back();
+          std::string const& e = _enumeratedPath.edges.back();
           bool foundOnce = false;
-          for (auto const& it : _enumeratedPath.edges) {
+          for (std::string const& it : _enumeratedPath.edges) {
             if (foundOnce) {
               foundOnce = false; // if we leave with foundOnce == false we found the edge earlier
               exitInnerLoop = true;
@@ -123,7 +126,7 @@ bool DepthFirstEnumerator::next() {
             for (auto const& it : _enumeratedPath.vertices) {
               if (foundOnce) {
                 foundOnce = false;  // if we leave with foundOnce == false we
-                // found the edge earlier
+                                    // found the edge earlier
                 break;
               }
               if (it == e) {
@@ -146,6 +149,7 @@ bool DepthFirstEnumerator::next() {
           }
           
           foundPath = true;
+          return;
         }
         // Vertex Invalid. Revoke edge
         TRI_ASSERT(!_enumeratedPath.edges.empty());

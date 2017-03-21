@@ -206,13 +206,7 @@ void SingleServerEdgeCursor::readAll(std::function<void(std::string const&, aran
 SingleServerTraverser::SingleServerTraverser(TraverserOptions* opts,
                                              transaction::Methods* trx,
                                              ManagedDocumentResult* mmdr)
-  : Traverser(opts, trx, mmdr) {
-    usleep(1000000);
-    usleep(1000000);
-    usleep(1000000);
-    usleep(1000000);
-    usleep(1000000);
-  }
+  : Traverser(opts, trx, mmdr) {}
 
 SingleServerTraverser::~SingleServerTraverser() {}
 

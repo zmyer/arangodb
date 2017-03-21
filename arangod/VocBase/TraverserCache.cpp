@@ -106,7 +106,7 @@ VPackSlice TraverserCache::lookupInCollection(StringRef idString) {
   if (value) {
     bool success = _cache->insert(value.get());
     if (!success) {
-      LOG_TOPIC(ERR, Logger::GRAPHS) << "Insert failed";
+      LOG_TOPIC(DEBUG, Logger::GRAPHS) << "Insert failed";
     }
     // Cache is responsible.
     // If this failed, well we do not store it and read it again next time.
@@ -142,27 +142,30 @@ aql::AqlValue TraverserCache::fetchAqlResult(StringRef idString) {
   }
 }
 
- void TraverserCache::insertDocument(StringRef idString,
- arangodb::velocypack::Slice const& document) {
-  VPackValueLength keySize = idString.length();
-  void const* key = idString.data();
-
-  void const* resVal = document.begin();
-  uint64_t resValSize = static_cast<uint64_t>(document.byteSize());
-  std::unique_ptr<cache::CachedValue> value(
-      cache::CachedValue::construct(key, keySize, resVal, resValSize));
-
-  if (value) {
-    bool success = _cache->insert(value.get());
-    if (!success) {
-      LOG_TOPIC(ERR, Logger::GRAPHS) << "Insert failed";
+void TraverserCache::insertDocument(StringRef idString, arangodb::velocypack::Slice const& document) {
+  auto finding = lookup(idString);
+#warning TODO always write updated document?
+  if (!finding.found()) {
+    VPackValueLength keySize = idString.length();
+    void const* key = idString.data();
+    
+    void const* resVal = document.begin();
+    uint64_t resValSize = static_cast<uint64_t>(document.byteSize());
+    std::unique_ptr<cache::CachedValue> value(
+                                              cache::CachedValue::construct(key, keySize, resVal, resValSize));
+    
+    if (value) {
+      bool success = _cache->insert(value.get());
+      if (!success) {
+        LOG_TOPIC(ERR, Logger::GRAPHS) << "Insert failed";
+      }
+      // Cache is responsible.
+      // If this failed, well we do not store it and read it again next time.
+      value.release();
     }
-    // Cache is responsible.
-    // If this failed, well we do not store it and read it again next time.
-    value.release();
+    ++_insertedDocuments;
   }
-  ++_insertedDocuments;
- }
+}
 
 bool TraverserCache::validateFilter(
     StringRef idString,

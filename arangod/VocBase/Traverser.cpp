@@ -170,8 +170,8 @@ Traverser::Traverser(arangodb::traverser::TraverserOptions* opts, transaction::M
       _pruneNext(false),
       _done(true),
       _opts(opts),
-      _canUseOptimizedNeighbors(false),
-      _cache(new TraverserCache(trx, mmdr)) {
+      _cache(new TraverserCache(trx, mmdr)),
+      _canUseOptimizedNeighbors(false) {
   if (opts->uniqueVertices == TraverserOptions::UniquenessLevel::GLOBAL) {
     _vertexGetter = std::make_unique<UniqueVertexGetter>(this);
   } else {
