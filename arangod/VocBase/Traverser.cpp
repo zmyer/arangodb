@@ -28,6 +28,7 @@
 #include "Transaction/Context.h"
 #include "VocBase/KeyGenerator.h"
 #include "VocBase/TraverserOptions.h"
+#include "VocBase/TraverserCache.h"
 
 #include <velocypack/Iterator.h> 
 #include <velocypack/velocypack-aliases.h>
@@ -104,12 +105,9 @@ bool Traverser::VertexGetter::getSingleVertex(VPackSlice edge,
 void Traverser::VertexGetter::reset(arangodb::velocypack::Slice) {
 }
 
-bool Traverser::UniqueVertexGetter::getVertex(
-  VPackSlice edge, std::vector<VPackSlice>& result) {
+bool Traverser::UniqueVertexGetter::getVertex(VPackSlice edge, std::vector<std::string>& result) {
   VPackSlice toAdd = transaction::helpers::extractFromFromDocument(edge);
-  VPackSlice cmp = result.back();
-
-  if (toAdd == cmp) {
+  if (toAdd.compareString(result.back().c_str(), result.back().length()) == 0) {
     toAdd = transaction::helpers::extractToFromDocument(edge);
   }
 
@@ -128,7 +126,7 @@ bool Traverser::UniqueVertexGetter::getVertex(
     return false;
   }
 
-  result.emplace_back(toAdd);
+  result.emplace_back(toAdd.copyString());
   return true;
 }
 
@@ -181,6 +179,8 @@ Traverser::Traverser(arangodb::traverser::TraverserOptions* opts, transaction::M
   }
 }
 
+Traverser::~Traverser() {}
+
 bool arangodb::traverser::Traverser::edgeMatchesConditions(VPackSlice e,
                                                            StringRef vid,
                                                            uint64_t depth,
@@ -192,7 +192,7 @@ bool arangodb::traverser::Traverser::edgeMatchesConditions(VPackSlice e,
   return true;
 }
 
-bool arangodb::traverser::Traverser::vertexMatchesConditions(StringRef v, uint64_t depth) {
+bool arangodb::traverser::Traverser::vertexMatchesConditions(VPackSlice v, uint64_t depth) {
   TRI_ASSERT(v.isString());
   if (_opts->vertexHasFilter(depth)) {
     aql::AqlValue vertex = fetchVertexData(v);

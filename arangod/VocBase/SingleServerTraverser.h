@@ -103,26 +103,26 @@ class SingleServerTraverser final : public Traverser {
   /// @brief Function to fetch the real data of a vertex into an AQLValue
   //////////////////////////////////////////////////////////////////////////////
 
-  aql::AqlValue fetchVertexData(arangodb::velocypack::Slice) override;
+  aql::AqlValue fetchVertexData(StringRef) override;
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Function to fetch the real data of an edge into an AQLValue
   //////////////////////////////////////////////////////////////////////////////
 
-  aql::AqlValue fetchEdgeData(arangodb::velocypack::Slice) override;
+  aql::AqlValue fetchEdgeData(StringRef) override;
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Function to add the real data of a vertex into a velocypack builder
   //////////////////////////////////////////////////////////////////////////////
 
-  void addVertexToVelocyPack(arangodb::velocypack::Slice,
+  void addVertexToVelocyPack(StringRef,
                              arangodb::velocypack::Builder&) override;
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Function to add the real data of an edge into a velocypack builder
   //////////////////////////////////////////////////////////////////////////////
 
-  void addEdgeToVelocyPack(arangodb::velocypack::Slice,
+  void addEdgeToVelocyPack(StringRef,
                            arangodb::velocypack::Builder&) override;
 
  private:

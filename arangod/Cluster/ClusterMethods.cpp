@@ -1502,7 +1502,7 @@ int fetchEdgesFromEngines(
 
   // This function works for one specific vertex
   // or for a list of vertices.
-  TRI_ASSERT(vertexId.isString() || vertexId.isArray());
+  TRI_ASSERT(vertexId.isArray());
   builder.clear();
   builder.openObject();
   builder.add("depth", VPackValue(depth));
@@ -1576,7 +1576,7 @@ int fetchEdgesFromEngines(
 void fetchVerticesFromEngines(
     std::string const& dbname,
     std::unordered_map<ServerID, traverser::TraverserEngineID> const* engines,
-    std::unordered_set<VPackSlice>& vertexIds,
+    std::unordered_set<StringRef>& vertexIds,
     std::unordered_map<VPackSlice, std::shared_ptr<VPackBuffer<uint8_t>>>&
         result,
     VPackBuilder& builder) {
@@ -1594,8 +1594,8 @@ void fetchVerticesFromEngines(
   builder.add(VPackValue("keys"));
   builder.openArray();
   for (auto const& v : vertexIds) {
-    TRI_ASSERT(v.isString());
-    builder.add(v);
+    //TRI_ASSERT(v.isString());
+    builder.add(VPackValue(v));
   }
   builder.close(); // 'keys' Array
   builder.close(); // base object

@@ -61,16 +61,15 @@ TraverserCache::~TraverserCache() {
 // the cache from removing this specific object. Should not be retained
 // for a longer period of time.
 // DO NOT give it to a caller.
-cache::Finding TraverserCache::lookup(VPackSlice const& idString) {
-  TRI_ASSERT(idString.isString());
-  VPackValueLength keySize;
-  void const* key = idString.getString(keySize);
+cache::Finding TraverserCache::lookup(StringRef idString) {
+  VPackValueLength keySize = idString.length();
+  void const* key = idString.data();
   //uint32_t keySize = static_cast<uint32_t>(idString.byteSize());
   return _cache->find(key, keySize);
 }
 
-VPackSlice TraverserCache::lookupInCollection(arangodb::velocypack::Slice const& idString) {
-  TRI_ASSERT(idString.isString());
+VPackSlice TraverserCache::lookupInCollection(StringRef idString) {
+  //TRI_ASSERT(idString.isString());
   
   StringRef id(idString);
   size_t pos = id.find('/');
@@ -96,8 +95,8 @@ VPackSlice TraverserCache::lookupInCollection(arangodb::velocypack::Slice const&
     result = VPackSlice(_mmdr->vpack());
   }
 
-  VPackValueLength keySize;
-  void const* key = idString.getString(keySize);
+  VPackValueLength keySize = idString.length();
+  void const* key = idString.data();
 
   void const* resVal = result.begin();
   uint64_t resValSize = static_cast<uint64_t>(result.byteSize());
@@ -117,7 +116,7 @@ VPackSlice TraverserCache::lookupInCollection(arangodb::velocypack::Slice const&
   return result;
 }
 
-void TraverserCache::insertIntoResult(VPackSlice const& idString,
+void TraverserCache::insertIntoResult(StringRef idString,
                                       VPackBuilder& builder) {
   auto finding = lookup(idString);
   if (finding.found()) {
@@ -131,7 +130,7 @@ void TraverserCache::insertIntoResult(VPackSlice const& idString,
   }
 }
 
-aql::AqlValue TraverserCache::fetchAqlResult(arangodb::velocypack::Slice const& idString) {
+aql::AqlValue TraverserCache::fetchAqlResult(StringRef idString) {
   auto finding = lookup(idString);
   if (finding.found()) {
     auto val = finding.value();
@@ -143,10 +142,10 @@ aql::AqlValue TraverserCache::fetchAqlResult(arangodb::velocypack::Slice const& 
   }
 }
 
- void TraverserCache::insertDocument(std::string const& idString,
+ void TraverserCache::insertDocument(StringRef idString,
  arangodb::velocypack::Slice const& document) {
   VPackValueLength keySize = idString.length();
-  void const* key = idString.c_str();
+  void const* key = idString.data();
 
   void const* resVal = document.begin();
   uint64_t resValSize = static_cast<uint64_t>(document.byteSize());
@@ -166,7 +165,7 @@ aql::AqlValue TraverserCache::fetchAqlResult(arangodb::velocypack::Slice const& 
  }
 
 bool TraverserCache::validateFilter(
-    VPackSlice const& idString,
+    StringRef idString,
     std::function<bool(VPackSlice const&)> filterFunc) {
   auto finding = lookup(idString);
   if (finding.found()) {

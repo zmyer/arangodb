@@ -23,14 +23,17 @@
 
 #include "SingleServerTraverser.h"
 #include "Basics/StringRef.h"
+
+#include "Aql/AqlValue.h"
+#include "Graph/BreadthFirstEnumerator.h"
 #include "Transaction/Methods.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ManagedDocumentResult.h"
 #include "VocBase/TraverserCache.h"
-#include "Aql/AqlValue.h"
 
 using namespace arangodb;
 using namespace arangodb::traverser;
+using namespace arangodb::graph;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief Get a document by it's ID. Also lazy locks the collection.
@@ -182,10 +185,9 @@ SingleServerTraverser::SingleServerTraverser(TraverserOptions* opts,
 
 SingleServerTraverser::~SingleServerTraverser() {}
 
-aql::AqlValue SingleServerTraverser::fetchVertexData(VPackSlice id) {
-  TRI_ASSERT(id.isString());
+aql::AqlValue SingleServerTraverser::fetchVertexData(StringRef vid) {
   //usleep(10000);
-  return _cache->fetchAqlResult(id);
+  return _cache->fetchAqlResult(vid);
   
   /*auto it = _vertices.find(id);
   if (it == _vertices.end()) {
@@ -204,35 +206,19 @@ aql::AqlValue SingleServerTraverser::fetchVertexData(VPackSlice id) {
   return aql::AqlValue((*it).second, aql::AqlValueFromManagedDocument());*/
 }
 
-aql::AqlValue SingleServerTraverser::fetchEdgeData(VPackSlice edge) {
-  return aql::AqlValue(edge);
+aql::AqlValue SingleServerTraverser::fetchEdgeData(StringRef edge) {  
+  return _cache->fetchAqlResult(edge);
 }
 
-void SingleServerTraverser::addVertexToVelocyPack(VPackSlice id,
+void SingleServerTraverser::addVertexToVelocyPack(StringRef vid,
                                                   VPackBuilder& result) {
-  TRI_ASSERT(id.isString());
-  _cache->insertIntoResult(id, result);
-  /*auto it = _vertices.find(id);
-
-  if (it == _vertices.end()) {
-    StringRef ref(id);
-    int res = FetchDocumentById(_trx, ref, *_mmdr);
-    ++_readDocuments;
-    if (res != TRI_ERROR_NO_ERROR) {
-      result.add(basics::VelocyPackHelper::NullValue());
-    } else {
-      uint8_t const* p = _mmdr->vpack();
-      _vertices.emplace(id, p);
-      result.addExternal(p);
-    }
-  } else {
-    result.addExternal((*it).second);
-  }*/
+  _cache->insertIntoResult(vid, result);
 }
 
-void SingleServerTraverser::addEdgeToVelocyPack(VPackSlice edge,
+void SingleServerTraverser::addEdgeToVelocyPack(StringRef edge,
     VPackBuilder& result) {
-  result.addExternal(edge.begin());
+  _cache->insertIntoResult(edge, result);
+  //result.addExternal(edge.begin());
 }
 
 void SingleServerTraverser::setStartVertex(std::string const& vid) {

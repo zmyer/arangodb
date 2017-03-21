@@ -26,6 +26,7 @@
 #include "Cluster/ClusterMethods.h"
 #include "Cluster/ClusterTraverser.h"
 #include "Transaction/Helpers.h"
+#include "Transaction/Methods.h"
 
 #include <velocypack/Slice.h>
 #include <velocypack/velocypack-aliases.h>
@@ -40,16 +41,25 @@ ClusterEdgeCursor::ClusterEdgeCursor(StringRef vertexId, uint64_t depth,
                             traverser->_edges, _edgeList, traverser->_datalake,
                             *(leased.get()), traverser->_filteredPaths,
                             traverser->_readDocuments);
+      
+      traverser->_trx
     }
 
-
-bool ClusterEdgeCursor::next(std::vector<VPackSlice>& result, size_t& cursorId) {
+bool ClusterEdgeCursor::next(std::function<void(std::string const&,
+                                                VPackSlice, size_t)> callback) {
   if (_position < _edgeList.size()) {
+    VPackSlice edge = _edgeList[_position];
+    std::string eid = _trx->extractIdString(edgeDocument);
+    
+    callback();
     result.emplace_back(_edgeList[_position]);
     ++_position;
     return true;
   }
   return false;
+}
+bool ClusterEdgeCursor::next(std::vector<VPackSlice>& result, size_t& cursorId) {
+  
 }
 
 bool ClusterEdgeCursor::readAll(std::unordered_set<VPackSlice>& result, size_t& cursorId) {

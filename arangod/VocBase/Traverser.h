@@ -53,6 +53,11 @@ struct AstNode;
 class Expression;
 class Query;
 }
+
+namespace graph {
+class BreadthFirstEnumerator;
+}
+
 namespace traverser {
 
 struct TraverserOptions;
@@ -165,7 +170,7 @@ class TraversalPath {
 
 
 class Traverser {
-  friend class BreadthFirstEnumerator;
+  friend class arangodb::graph::BreadthFirstEnumerator;
   friend class DepthFirstEnumerator;
   friend class NeighborsEnumerator;
 #ifdef USE_ENTERPRISE
@@ -235,8 +240,8 @@ class Traverser {
   /// @brief Destructor
   //////////////////////////////////////////////////////////////////////////////
 
-  virtual ~Traverser() {}
-
+  virtual ~Traverser();
+  
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Reset the traverser to use another start vertex
   //////////////////////////////////////////////////////////////////////////////
@@ -262,7 +267,9 @@ class Traverser {
   /// @brief Get the next possible path in the graph.
   bool next();
 
-  TraverserCache* traverserCache(); 
+  TraverserCache* traverserCache() {
+    return _cache.get();
+  };
 
  protected:
 
@@ -345,6 +352,8 @@ class Traverser {
 
   void allowOptimizedNeighbors();
   
+  Resolver
+  
  protected:
 
   /// @brief Outer top level transaction
@@ -379,17 +388,17 @@ class Traverser {
   bool _canUseOptimizedNeighbors;
 
   /// @brief Function to fetch the real data of a vertex into an AQLValue
-  virtual aql::AqlValue fetchVertexData(arangodb::velocypack::Slice) = 0;
+  virtual aql::AqlValue fetchVertexData(StringRef vid) = 0;
 
   /// @brief Function to fetch the real data of an edge into an AQLValue
-  virtual aql::AqlValue fetchEdgeData(arangodb::velocypack::Slice) = 0;
+  virtual aql::AqlValue fetchEdgeData(StringRef eid) = 0;
 
   /// @brief Function to add the real data of a vertex into a velocypack builder
-  virtual void addVertexToVelocyPack(arangodb::velocypack::Slice,
+  virtual void addVertexToVelocyPack(StringRef vid,
                                      arangodb::velocypack::Builder&) = 0;
 
   /// @brief Function to add the real data of an edge into a velocypack builder
-  virtual void addEdgeToVelocyPack(arangodb::velocypack::Slice,
+  virtual void addEdgeToVelocyPack(StringRef eid,
                                    arangodb::velocypack::Builder&) = 0;
  
 };

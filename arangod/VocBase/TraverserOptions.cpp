@@ -681,7 +681,8 @@ arangodb::traverser::EdgeCursor*
 arangodb::traverser::TraverserOptions::nextCursorCoordinator(
     StringRef vid, uint64_t depth) const {
   TRI_ASSERT(_traverser != nullptr);
-  auto cursor = std::make_unique<ClusterEdgeCursor>(vertex, depth, _traverser);
+  auto cursor = std::make_unique<ClusterEdgeCursor>(_trx->resolver(),
+                                                    vid, depth, _traverser);
   return cursor.release();
 }
 

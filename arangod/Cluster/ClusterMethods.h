@@ -149,7 +149,7 @@ int fetchEdgesFromEngines(
 void fetchVerticesFromEngines(
     std::string const&,
     std::unordered_map<ServerID, traverser::TraverserEngineID> const*,
-    std::unordered_set<arangodb::velocypack::Slice>&,
+    std::unordered_set<StringRef>&,
     std::unordered_map<arangodb::velocypack::Slice,
                        std::shared_ptr<arangodb::velocypack::Buffer<uint8_t>>>&,
     arangodb::velocypack::Builder&);

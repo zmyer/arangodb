@@ -26,7 +26,6 @@
 #include "VocBase/Traverser.h"
 
 using DepthFirstEnumerator = arangodb::traverser::DepthFirstEnumerator;
-//using BreadthFirstEnumerator = arangodb::traverser::BreadthFirstEnumerator;
 using NeighborsEnumerator = arangodb::traverser::NeighborsEnumerator;
 using Traverser = arangodb::traverser::Traverser;
 using TraverserOptions = arangodb::traverser::TraverserOptions;
@@ -42,8 +41,6 @@ bool DepthFirstEnumerator::next() {
     // We are done;
     return false;
   }
-
-  size_t cursorId = 0;
 
   while (true) {
     if (_enumeratedPath.edges.size() < _opts->maxDepth) {
@@ -67,7 +64,9 @@ bool DepthFirstEnumerator::next() {
       auto& cursor = _edgeCursors.top();
 
       bool foundPath = false;
-      cursor->next([this] (std::string const& documentId, VPackSlice const& edgeDoc, size_t cursorId) {
+      bool exitInnerLoop = false;
+      bool notEmpty
+      = cursor->next([this, &foundPath, &exitInnerLoop] (std::string const& documentId, VPackSlice const& edgeDoc, size_t cursorId) {
         //++_traverser->_readDocuments;
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::GLOBAL) {
           if (_returnedEdges.find(documentId) ==
@@ -99,7 +98,8 @@ bool DepthFirstEnumerator::next() {
           for (auto const& it : _enumeratedPath.edges) {
             if (foundOnce) {
               foundOnce = false; // if we leave with foundOnce == false we found the edge earlier
-              break;
+              exitInnerLoop = true;
+              return;
             }
             if (it == e) {
               foundOnce = true;
@@ -137,25 +137,26 @@ bool DepthFirstEnumerator::next() {
               TRI_ASSERT(!_enumeratedPath.edges.empty());
               _enumeratedPath.vertices.pop_back();
               _enumeratedPath.edges.pop_back();
-              continue;
+              return;
             }
           }
           if (_enumeratedPath.edges.size() < _opts->minDepth) {
             // Do not return, but leave this loop. Continue with the outer.
-            break;
+            exitInnerLoop = true;
+            return;
           }
           
-          return true;
+          foundPath = true;
         }
         // Vertex Invalid. Revoke edge
         TRI_ASSERT(!_enumeratedPath.edges.empty());
         _enumeratedPath.edges.pop_back();
       });
-
-      if (cursor->next(_enumeratedPath.edges, cursorId)) {
-        
-        
-      } else {
+      if (foundPath) {
+        return true;
+      } else if(exitInnerLoop) {
+        break;
+      } else if (!notEmpty)  {
         // cursor is empty.
         _edgeCursors.pop();
         if (!_enumeratedPath.edges.empty()) {
@@ -174,14 +175,14 @@ bool DepthFirstEnumerator::next() {
 }
 
 arangodb::aql::AqlValue DepthFirstEnumerator::lastVertexToAqlValue() {
-  return _traverser->fetchVertexData(_enumeratedPath.vertices.back());
+  return _traverser->fetchVertexData(StringRef(_enumeratedPath.vertices.back()));
 }
 
 arangodb::aql::AqlValue DepthFirstEnumerator::lastEdgeToAqlValue() {
   if (_enumeratedPath.edges.empty()) {
     return arangodb::aql::AqlValue(arangodb::basics::VelocyPackHelper::NullValue());
   }
-  return _traverser->fetchEdgeData(_enumeratedPath.edges.back());
+  return _traverser->fetchEdgeData(StringRef(_enumeratedPath.edges.back()));
 }
 
 arangodb::aql::AqlValue DepthFirstEnumerator::pathToAqlValue(arangodb::velocypack::Builder& result) {
@@ -204,11 +205,11 @@ arangodb::aql::AqlValue DepthFirstEnumerator::pathToAqlValue(arangodb::velocypac
 }
 
 NeighborsEnumerator::NeighborsEnumerator(Traverser* traverser,
-                                         VPackSlice startVertex,
+                                         std::string const& startVertex,
                                          TraverserOptions const* opts)
     : PathEnumerator(traverser, startVertex, opts),
       _searchDepth(0) {
-  _allFound.insert(arangodb::basics::VPackHashedSlice(startVertex));
+  _allFound.insert(arangodb::basics::VPackHashedSlice(VPstartVertex));
   _currentDepth.insert(arangodb::basics::VPackHashedSlice(startVertex));
   _iterator = _currentDepth.begin();
 }
@@ -234,7 +235,7 @@ bool NeighborsEnumerator::next() {
       for (auto const& nextVertex : _lastDepth) {
         size_t cursorIdx = 0;
         std::unique_ptr<arangodb::traverser::EdgeCursor> cursor(
-            _opts->nextCursor(_traverser->mmdr(), nextVertex.slice, _searchDepth));
+            _opts->nextCursor(_traverser->mmdr(), StringRef(nextVertex.slice), _searchDepth));
         while (cursor->readAll(_tmpEdges, cursorIdx)) {
           if (!_tmpEdges.empty()) {
             _traverser->_readDocuments += _tmpEdges.size();

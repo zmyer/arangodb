@@ -27,17 +27,18 @@
 #include "VocBase/TraverserOptions.h"
 
 namespace arangodb {
+class CollectionNameResolver;
 namespace traverser {
 
 class ClusterEdgeCursor : public EdgeCursor {
 
  public:
-  ClusterEdgeCursor(StringRef vid, uint64_t, ClusterTraverser*);
+  ClusterEdgeCursor(CollectionNameResolver *resolver, StringRef vid, uint64_t, ClusterTraverser*);
 
   ~ClusterEdgeCursor() {
   }
 
-  bool next(std::vector<arangodb::velocypack::Slice>&, size_t&) override;
+  bool next(std::function<void(std::string const&, VPackSlice, size_t)> callback) override;
 
   bool readAll(std::unordered_set<arangodb::velocypack::Slice>&, size_t&) override;
 
@@ -46,6 +47,7 @@ class ClusterEdgeCursor : public EdgeCursor {
   std::vector<arangodb::velocypack::Slice> _edgeList;
 
   size_t _position;
+  CollectionNameResolver *_resolver;
 };
 }
 }
