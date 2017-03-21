@@ -23,14 +23,17 @@
 
 #include "SingleServerTraverser.h"
 #include "Basics/StringRef.h"
+
+#include "Aql/AqlValue.h"
+#include "Graph/BreadthFirstEnumerator.h"
 #include "Transaction/Methods.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ManagedDocumentResult.h"
 #include "VocBase/TraverserCache.h"
-#include "Aql/AqlValue.h"
 
 using namespace arangodb;
 using namespace arangodb::traverser;
+using namespace arangodb::graph;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief Get a document by it's ID. Also lazy locks the collection.

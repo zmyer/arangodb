@@ -25,6 +25,7 @@
 #include "Basics/StaticStrings.h"
 #include "Basics/VelocyPackHelper.h"
 #include "Cluster/ClusterMethods.h"
+#include "Graph/BreadthFirstEnumerator.h"
 #include "Transaction/Helpers.h"
 
 #include <velocypack/Iterator.h>
@@ -70,7 +71,7 @@ void ClusterTraverser::setStartVertex(std::string const& id) {
   _vertexGetter->reset(idSlice);
   if (_opts->useBreadthFirst) {
     _enumerator.reset(
-        new arangodb::traverser::BreadthFirstEnumerator(this, idSlice, _opts));
+        new arangodb::graph::BreadthFirstEnumerator(this, idSlice, _opts));
   } else {
     _enumerator.reset(
         new arangodb::traverser::DepthFirstEnumerator(this, idSlice, _opts));

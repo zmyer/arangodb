@@ -52,6 +52,11 @@ struct AstNode;
 class Expression;
 class Query;
 }
+
+namespace graph {
+class BreadthFirstEnumerator;
+}
+
 namespace traverser {
 
 struct TraverserOptions;
@@ -163,7 +168,7 @@ class TraversalPath {
 
 
 class Traverser {
-  friend class BreadthFirstEnumerator;
+  friend class arangodb::graph::BreadthFirstEnumerator;
   friend class DepthFirstEnumerator;
   friend class NeighborsEnumerator;
 #ifdef USE_ENTERPRISE
