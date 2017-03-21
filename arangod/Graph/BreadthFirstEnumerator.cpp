@@ -52,16 +52,16 @@ bool BreadthFirstEnumerator::next() {
   if (_isFirst) {
     _isFirst = false;
     if (_opts->minDepth == 0) {
-      computeEnumeratedPath(_lastReturned++);
+      computeEnumeratedPath(_lastReturned);
       return true;
     }
-    _lastReturned++;
   }
+  _lastReturned++;
 
   if (_lastReturned < _schreierIndex) {
     // We still have something on our stack.
     // Paths have been read but not returned.
-    computeEnumeratedPath(_lastReturned++);
+    computeEnumeratedPath(_lastReturned);
     return true;
   }
 
@@ -159,10 +159,8 @@ bool BreadthFirstEnumerator::next() {
   }
 
   // _lastReturned points to the last used
-  // entry. We compute the path to it
-  // and increase the schreierIndex to point
-  // to the next free position.
-  computeEnumeratedPath(_lastReturned++);
+  // entry. We compute the path to it.
+  computeEnumeratedPath(_lastReturned);
   return true;
 }
 
