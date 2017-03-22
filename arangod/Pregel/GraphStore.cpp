@@ -92,7 +92,7 @@ std::map<ShardID, uint64_t> GraphStore<V, E>::_allocateMemory() {
   double t = TRI_microtime();
   std::unique_ptr<transaction::Methods> countTrx(_createTransaction());
   std::map<ShardID, uint64_t> shardSizes;
-  LOG_TOPIC(INFO, Logger::PREGEL) << "Allocating memory";
+  LOG_TOPIC(DEBUG, Logger::PREGEL) << "Allocating memory";
   uint64_t totalMemory = TRI_totalSystemMemory();
 
   // Allocating some memory
@@ -136,7 +136,7 @@ std::map<ShardID, uint64_t> GraphStore<V, E>::_allocateMemory() {
     LOG_TOPIC(WARN, Logger::PREGEL)
         << "Pregel worker: Failed to commit on a read transaction";
   }
-  LOG_TOPIC(INFO, Logger::PREGEL) << "took " << TRI_microtime() - t << "s";
+  LOG_TOPIC(DEBUG, Logger::PREGEL) << "took " << TRI_microtime() - t << "s";
 
   return shardSizes;
 }

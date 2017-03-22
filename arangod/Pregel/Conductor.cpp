@@ -649,14 +649,14 @@ int Conductor::_finalizeWorkers() {
 
   LOG_TOPIC(INFO, Logger::PREGEL) << "Done. We did " << _globalSuperstep
                                   << " rounds";
-  LOG_TOPIC(INFO, Logger::PREGEL)
+  LOG_TOPIC(DEBUG, Logger::PREGEL)
       << "Startup Time: " << _computationStartTimeSecs - _startTimeSecs << "s";
-  LOG_TOPIC(INFO, Logger::PREGEL)
+  LOG_TOPIC(DEBUG, Logger::PREGEL)
       << "Computation Time: " << compEnd - _computationStartTimeSecs << "s";
-  LOG_TOPIC(INFO, Logger::PREGEL)
+  LOG_TOPIC(DEBUG, Logger::PREGEL)
       << "Storage Time: " << TRI_microtime() - compEnd << "s";
   LOG_TOPIC(INFO, Logger::PREGEL) << "Overall: " << totalRuntimeSecs() << "s";
-  LOG_TOPIC(INFO, Logger::PREGEL) << "Stats: " << debugOut.toString();
+  LOG_TOPIC(DEBUG, Logger::PREGEL) << "Stats: " << debugOut.toString();
   return res;
 }
 
