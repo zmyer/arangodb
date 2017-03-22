@@ -257,7 +257,7 @@ void SingleServerTraverser::setStartVertex(std::string const& vid) {
     return;
   }
 
-  _vertexGetter->reset(idSlice);
+  _vertexGetter->reset(vid);
 
   if (_opts->useBreadthFirst) {
     if (_canUseOptimizedNeighbors) {

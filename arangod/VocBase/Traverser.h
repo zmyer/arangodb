@@ -198,7 +198,7 @@ class Traverser {
                                  arangodb::velocypack::Slice, uint64_t,
                                  arangodb::velocypack::Slice&);
 
-    virtual void reset(arangodb::velocypack::Slice);
+    virtual void reset(std::string const&);
 
    protected:
     Traverser* _traverser;
@@ -222,10 +222,10 @@ class Traverser {
                          arangodb::velocypack::Slice, uint64_t,
                          arangodb::velocypack::Slice&) override;
 
-    void reset(arangodb::velocypack::Slice) override;
+    void reset(std::string const&) override;
 
    private:
-    std::unordered_set<arangodb::basics::VPackHashedSlice> _returnedVertices;
+    std::unordered_set<std::string> _returnedVertices;
   };
 
 
@@ -335,8 +335,6 @@ class Traverser {
   
   ManagedDocumentResult* mmdr() const { return _mmdr; }
 
-  std::unique_ptr<TraverserCache> _cache;
-
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Simple check if there are potentially more paths.
   ///        It might return true although there are no more paths available.
@@ -382,6 +380,9 @@ class Traverser {
 
   /// @brief options for traversal
   TraverserOptions* _opts;
+  
+  /// @brief the traverser cache
+  std::unique_ptr<TraverserCache> _cache;
 
   bool _canUseOptimizedNeighbors;
 

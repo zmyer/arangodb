@@ -102,24 +102,25 @@ bool Traverser::VertexGetter::getSingleVertex(VPackSlice edge,
   return _traverser->vertexMatchesConditions(result, depth);
 }
 
-void Traverser::VertexGetter::reset(arangodb::velocypack::Slice) {
+void Traverser::VertexGetter::reset(std::string const&) {
 }
 
 bool Traverser::UniqueVertexGetter::getVertex(VPackSlice edge, std::vector<std::string>& result) {
   VPackSlice toAdd = transaction::helpers::extractFromFromDocument(edge);
-  if (toAdd.compareString(result.back().c_str(), result.back().length()) == 0) {
+  std::string const& cmp = result.back();
+  if (toAdd.compareString(cmp.c_str(), cmp.length()) == 0) {
     toAdd = transaction::helpers::extractToFromDocument(edge);
   }
 
-  arangodb::basics::VPackHashedSlice hashed(toAdd);
-
+  //arangodb::basics::VPackHashedSlice hashed(toAdd);
+  std::string toAddStr (toAdd.copyString());
   // First check if we visited it. If not, then mark
-  if (_returnedVertices.find(hashed) != _returnedVertices.end()) {
+  if (_returnedVertices.find(toAddStr) != _returnedVertices.end()) {
     // This vertex is not unique.
     ++_traverser->_filteredPaths;
     return false;
   } else {
-    _returnedVertices.emplace(hashed);
+    _returnedVertices.emplace(toAddStr);
   }
 
   if (!_traverser->vertexMatchesConditions(toAdd, result.size())) {
@@ -138,26 +139,24 @@ bool Traverser::UniqueVertexGetter::getSingleVertex(
     result = transaction::helpers::extractToFromDocument(edge);
   }
   
-  arangodb::basics::VPackHashedSlice hashed(result);
-  
+  //arangodb::basics::VPackHashedSlice hashed(result);
+  std::string toAddStr (result.copyString());
   // First check if we visited it. If not, then mark
-  if (_returnedVertices.find(hashed) != _returnedVertices.end()) {
+  if (_returnedVertices.find(toAddStr) != _returnedVertices.end()) {
     // This vertex is not unique.
     ++_traverser->_filteredPaths;
     return false;
   } else {
-    _returnedVertices.emplace(hashed);
+    _returnedVertices.emplace(toAddStr);
   }
 
   return _traverser->vertexMatchesConditions(result, depth);
 }
 
-void Traverser::UniqueVertexGetter::reset(VPackSlice startVertex) {
+void Traverser::UniqueVertexGetter::reset(std::string const& startVertex) {
   _returnedVertices.clear();
-  
-  arangodb::basics::VPackHashedSlice hashed(startVertex);
   // The startVertex always counts as visited!
-  _returnedVertices.emplace(hashed);
+  _returnedVertices.emplace(startVertex);
 }
 
 Traverser::Traverser(arangodb::traverser::TraverserOptions* opts, transaction::Methods* trx,

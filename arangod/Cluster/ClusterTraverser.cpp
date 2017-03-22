@@ -45,17 +45,17 @@ ClusterTraverser::ClusterTraverser(
   _opts->linkTraverser(this);
 }
 
-void ClusterTraverser::setStartVertex(std::string const& id) {
+void ClusterTraverser::setStartVertex(std::string const& vid) {
   _verticesToFetch.clear();
   _startIdBuilder->clear();
-  _startIdBuilder->add(VPackValue(id));
+  _startIdBuilder->add(VPackValue(vid));
   VPackSlice idSlice = _startIdBuilder->slice();
 
-  auto it = _vertices.find(StringRef(id));
+  auto it = _vertices.find(StringRef(vid));
   if (it == _vertices.end()) {
-    size_t firstSlash = id.find("/");
+    size_t firstSlash = vid.find("/");
     if (firstSlash == std::string::npos ||
-        id.find("/", firstSlash + 1) != std::string::npos) {
+        vid.find("/", firstSlash + 1) != std::string::npos) {
       // We can stop here. The start vertex is not a valid _id
       ++_filteredPaths;
       _done = true;
@@ -69,13 +69,13 @@ void ClusterTraverser::setStartVertex(std::string const& id) {
     return;
   }
 
-  _vertexGetter->reset(idSlice);
+  _vertexGetter->reset(vid);
   if (_opts->useBreadthFirst) {
     _enumerator.reset(
         new arangodb::graph::BreadthFirstEnumerator(this, idSlice, _opts));
   } else {
     _enumerator.reset(
-        new arangodb::traverser::DepthFirstEnumerator(this, id, _opts));
+        new arangodb::traverser::DepthFirstEnumerator(this, vid, _opts));
   }
   _done = false;
 }

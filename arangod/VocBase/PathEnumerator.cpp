@@ -63,20 +63,19 @@ bool DepthFirstEnumerator::next() {
     while (!_edgeCursors.empty()) {
       TRI_ASSERT(_edgeCursors.size() == _enumeratedPath.edges.size() + 1);
       auto& cursor = _edgeCursors.top();
-
+      
       bool foundPath = false;
       bool exitInnerLoop = false;
-      bool notEmpty
-      = cursor->next([this, &foundPath, &exitInnerLoop] (std::string const& documentId, VPackSlice const& edgeDoc, size_t cursorId) {
+      auto callback = [&] (std::string const& eid, VPackSlice const& edge, size_t cursorId) {
         ++_traverser->_readDocuments;
-        _enumeratedPath.edges.push_back(documentId);
-        _traverser->_cache->insertDocument(StringRef(documentId), edgeDoc);
+        _enumeratedPath.edges.push_back(eid);
+        _traverser->_cache->insertDocument(StringRef(eid), edge);// TODO handle in cursor directly?
+        LOG_TOPIC(INFO, Logger::FIXME) << edge.toJson();
         
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::GLOBAL) {
-          if (_returnedEdges.find(documentId) ==
-              _returnedEdges.end()) {
+          if (_returnedEdges.find(eid) == _returnedEdges.end()) {
             // Edge not yet visited. Mark and continue.
-            _returnedEdges.emplace(documentId);
+            _returnedEdges.emplace(eid);
           } else {
             _traverser->_filteredPaths++;
             TRI_ASSERT(!_enumeratedPath.edges.empty());
@@ -84,24 +83,23 @@ bool DepthFirstEnumerator::next() {
             return;
           }
         }
-        if (!_traverser->edgeMatchesConditions(edgeDoc,
+        if (!_traverser->edgeMatchesConditions(edge,
                                                StringRef(_enumeratedPath.vertices.back()),
                                                _enumeratedPath.edges.size() - 1,
                                                cursorId)) {
-            // This edge does not pass the filtering
-            TRI_ASSERT(!_enumeratedPath.edges.empty());
-            _enumeratedPath.edges.pop_back();
-            return;
+          // This edge does not pass the filtering
+          TRI_ASSERT(!_enumeratedPath.edges.empty());
+          _enumeratedPath.edges.pop_back();
+          return;
         }
-
+        
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::PATH) {
           std::string const& e = _enumeratedPath.edges.back();
           bool foundOnce = false;
           for (std::string const& it : _enumeratedPath.edges) {
             if (foundOnce) {
               foundOnce = false; // if we leave with foundOnce == false we found the edge earlier
-              exitInnerLoop = true;
-              return;
+              break;
             }
             if (it == e) {
               foundOnce = true;
@@ -117,8 +115,7 @@ bool DepthFirstEnumerator::next() {
         }
         
         // We have to check if edge and vertex is valid
-        
-        if (_traverser->getVertex(edgeDoc, _enumeratedPath.vertices)) {
+        if (_traverser->getVertex(edge, _enumeratedPath.vertices)) {
           // case both are valid.
           if (_opts->uniqueVertices == TraverserOptions::UniquenessLevel::PATH) {
             auto& e = _enumeratedPath.vertices.back();
@@ -126,7 +123,7 @@ bool DepthFirstEnumerator::next() {
             for (auto const& it : _enumeratedPath.vertices) {
               if (foundOnce) {
                 foundOnce = false;  // if we leave with foundOnce == false we
-                                    // found the edge earlier
+                // found the edge earlier
                 break;
               }
               if (it == e) {
@@ -154,12 +151,14 @@ bool DepthFirstEnumerator::next() {
         // Vertex Invalid. Revoke edge
         TRI_ASSERT(!_enumeratedPath.edges.empty());
         _enumeratedPath.edges.pop_back();
-      });
-      if (foundPath) {
-        return true;
-      } else if(exitInnerLoop) {
-        break;
-      } else if (!notEmpty)  {
+      };
+      if (cursor->next(callback)) {
+        if (foundPath) {
+          return true;
+        } else if(exitInnerLoop) {
+          break;
+        }
+      } else {
         // cursor is empty.
         _edgeCursors.pop();
         if (!_enumeratedPath.edges.empty()) {
