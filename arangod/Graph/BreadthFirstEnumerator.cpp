@@ -37,7 +37,7 @@ using BreadthFirstEnumerator = arangodb::graph::BreadthFirstEnumerator;
 BreadthFirstEnumerator::BreadthFirstEnumerator(Traverser* traverser,
                                                VPackSlice startVertex,
                                                TraverserOptions const* opts)
-    : PathEnumerator(traverser, startVertex, opts),
+    : PathEnumerator(traverser, startVertex.copyString(), opts),
       _schreierIndex(1),
       _lastReturned(0),
       _currentDepth(0),
@@ -100,20 +100,21 @@ bool BreadthFirstEnumerator::next() {
     _tmpEdges.clear();
     auto const nextIdx = _toSearch[_toSearchPos++].sourceIdx;
     auto const nextVertex = _schreier[nextIdx].vertex;
+    const StringRef nvid(nextVertex);
 
-    std::unique_ptr<arangodb::traverser::EdgeCursor> cursor(_opts->nextCursor(_traverser->mmdr(), nextVertex, _currentDepth));
+    std::unique_ptr<arangodb::traverser::EdgeCursor> cursor(_opts->nextCursor(_traverser->mmdr(), nvid, _currentDepth));
     if (cursor != nullptr) {
       bool shouldReturnPath = _currentDepth + 1 >= _opts->minDepth;
       bool didInsert = false;
 
-      auto callback = [&] (VPackSlice e, size_t cursorIdx) -> void {
+      auto callback = [&] (std::string const& eid, VPackSlice e, size_t cursorIdx) -> void {
         VPackSlice v;
         if (_opts->uniqueEdges ==
             TraverserOptions::UniquenessLevel::GLOBAL) {
-          if (_returnedEdges.find(e) == _returnedEdges.end()) {
+          if (_returnedEdges.find(eid) == _returnedEdges.end()) {
             // Edge not yet visited. Mark and continue.
             // TODO FIXME the edge will run out of scope
-            _returnedEdges.emplace(e);
+            _returnedEdges.emplace(eid);
           } else {
             // Edge filtered due to unique_constraint
             _traverser->_filteredPaths++;
@@ -121,7 +122,7 @@ bool BreadthFirstEnumerator::next() {
           }
         }
 
-        if (!_traverser->edgeMatchesConditions(e, nextVertex,
+        if (!_traverser->edgeMatchesConditions(e, nvid,
                                                _currentDepth,
                                                cursorIdx)) {
           return;
@@ -163,7 +164,7 @@ bool BreadthFirstEnumerator::next() {
 arangodb::aql::AqlValue BreadthFirstEnumerator::lastVertexToAqlValue() {
   TRI_ASSERT(_lastReturned < _schreier.size());
   PathStep const& current = _schreier[_lastReturned];
-  return _traverser->fetchVertexData(current.vertex);
+  return _traverser->fetchVertexData(StringRef(current.vertex));
 }
 
 arangodb::aql::AqlValue BreadthFirstEnumerator::lastEdgeToAqlValue() {
@@ -173,7 +174,7 @@ arangodb::aql::AqlValue BreadthFirstEnumerator::lastEdgeToAqlValue() {
     return arangodb::aql::AqlValue(arangodb::basics::VelocyPackHelper::NullValue());
   }
   PathStep const& current = _schreier[_lastReturned];
-  return _traverser->fetchEdgeData(current.edge);
+  return _traverser->fetchEdgeData(StringRef(current.edge));
 }
 
 arangodb::aql::AqlValue BreadthFirstEnumerator::pathToAqlValue(
@@ -192,15 +193,29 @@ arangodb::aql::AqlValue BreadthFirstEnumerator::pathToAqlValue(
   result.add(VPackValue("edges"));
   result.openArray();
   for (auto const& idx : fullPath) {
-    _traverser->addEdgeToVelocyPack(_schreier[idx].edge, result);
+    if (_schreier[idx].edge.isString()) {
+      _traverser->addEdgeToVelocyPack(StringRef(_schreier[idx].edge), result);
+    } else {
+      result.add(_schreier[idx].edge);
+    }
   }
   result.close();
   result.add(VPackValue("vertices"));
   result.openArray();
   // Always add the start vertex
-  _traverser->addVertexToVelocyPack(_schreier[0].vertex, result);
+  //_traverser->addVertexToVelocyPack(_schreier[0].vertex, result);
+  if (_schreier[0].edge.isString()) {
+    _traverser->addVertexToVelocyPack(StringRef(_schreier[0].vertex), result);
+  } else {
+    result.add(_schreier[0].vertex);
+  }
   for (auto const& idx : fullPath) {
-    _traverser->addVertexToVelocyPack(_schreier[idx].vertex, result);
+    //_traverser->addVertexToVelocyPack(_schreier[idx].vertex, result);
+    if (_schreier[idx].edge.isString()) {
+      _traverser->addVertexToVelocyPack(StringRef(_schreier[idx].vertex), result);
+    } else {
+      result.add(_schreier[idx].vertex);
+    }
   }
   result.close();
   result.close();

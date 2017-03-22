@@ -31,9 +31,9 @@ using namespace arangodb::traverser;
 using namespace arangodb::graph;
 
 NeighborsEnumerator::NeighborsEnumerator(Traverser* traverser,
-                                         VPackSlice startVertex,
+                                         VPackSlice const& startVertex,
                                          TraverserOptions const* opts)
-    : PathEnumerator(traverser, startVertex, opts),
+    : PathEnumerator(traverser, startVertex.copyString(), opts),
       _searchDepth(0) {
   _allFound.insert(arangodb::basics::VPackHashedSlice(startVertex));
   _currentDepth.insert(arangodb::basics::VPackHashedSlice(startVertex));
@@ -60,8 +60,9 @@ bool NeighborsEnumerator::next() {
       _currentDepth.clear();
       for (auto const& nextVertex : _lastDepth) {
         size_t cursorIdx = 0;
+        StringRef vId(nextVertex.slice);
         std::unique_ptr<arangodb::traverser::EdgeCursor> cursor(
-            _opts->nextCursor(_traverser->mmdr(), nextVertex.slice, _searchDepth));
+            _opts->nextCursor(_traverser->mmdr(), vId, _searchDepth));
         while (cursor->readAll(_tmpEdges, cursorIdx)) {
           if (!_tmpEdges.empty()) {
             _traverser->_readDocuments += _tmpEdges.size();
@@ -93,7 +94,8 @@ bool NeighborsEnumerator::next() {
 
 arangodb::aql::AqlValue NeighborsEnumerator::lastVertexToAqlValue() {
   TRI_ASSERT(_iterator != _currentDepth.end());
-  return _traverser->fetchVertexData((*_iterator).slice);
+  StringRef vid(_iterator->slice);
+  return _traverser->fetchVertexData(vid);
 }
 
 arangodb::aql::AqlValue NeighborsEnumerator::lastEdgeToAqlValue() {

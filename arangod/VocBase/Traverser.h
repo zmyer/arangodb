@@ -27,6 +27,7 @@
 #include "Basics/Common.h"
 #include "Basics/hashes.h"
 #include "Basics/ShortestPathFinder.h"
+#include "Basics/StringRef.h"
 #include "Basics/VelocyPackHelper.h"
 #include "Aql/AqlValue.h"
 #include "Aql/AstNode.h"
@@ -61,6 +62,7 @@ class NeighborsEnumerator;
 namespace traverser {
 
 struct TraverserOptions;
+class TraverserCache;
 
 class ShortestPath {
   friend class arangodb::basics::DynamicDistanceFinder<
@@ -191,7 +193,7 @@ class Traverser {
     virtual ~VertexGetter() = default;
 
     virtual bool getVertex(arangodb::velocypack::Slice,
-                           std::vector<arangodb::velocypack::Slice>&);
+                           std::vector<std::string>&);
 
     virtual bool getSingleVertex(arangodb::velocypack::Slice,
                                  arangodb::velocypack::Slice, uint64_t,
@@ -215,7 +217,7 @@ class Traverser {
     ~UniqueVertexGetter() = default;
 
     bool getVertex(arangodb::velocypack::Slice,
-                   std::vector<arangodb::velocypack::Slice>&) override;
+                   std::vector<std::string>&) override;
 
     bool getSingleVertex(arangodb::velocypack::Slice,
                          arangodb::velocypack::Slice, uint64_t,
@@ -239,8 +241,8 @@ class Traverser {
   /// @brief Destructor
   //////////////////////////////////////////////////////////////////////////////
 
-  virtual ~Traverser() {}
-
+  virtual ~Traverser();
+  
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Reset the traverser to use another start vertex
   //////////////////////////////////////////////////////////////////////////////
@@ -266,13 +268,17 @@ class Traverser {
   /// @brief Get the next possible path in the graph.
   bool next();
 
+  TraverserCache* traverserCache() {
+    return _cache.get();
+  };
+
+ protected:
+
   /// @brief Function to load the other sides vertex of an edge
   ///        Returns true if the vertex passes filtering conditions
   ///        Also appends the _id value of the vertex in the given vector
-
- protected:
   virtual bool getVertex(arangodb::velocypack::Slice,
-                         std::vector<arangodb::velocypack::Slice>&) = 0;
+                         std::vector<std::string>&) = 0;
 
   /// @brief Function to load the other sides vertex of an edge
   ///        Returns true if the vertex passes filtering conditions
@@ -338,13 +344,17 @@ class Traverser {
 
   bool hasMore() { return !_done; }
 
-  bool edgeMatchesConditions(arangodb::velocypack::Slice,
-                             arangodb::velocypack::Slice, uint64_t, size_t);
+  bool edgeMatchesConditions(arangodb::velocypack::Slice edge, StringRef vid,
+                             uint64_t depth, size_t cursorId);
 
   bool vertexMatchesConditions(arangodb::velocypack::Slice, uint64_t);
 
   void allowOptimizedNeighbors();
-  
+    
+public:
+
+  std::unique_ptr<TraverserCache> _cache;
+
  protected:
 
   /// @brief Outer top level transaction
@@ -379,17 +389,17 @@ class Traverser {
   bool _canUseOptimizedNeighbors;
 
   /// @brief Function to fetch the real data of a vertex into an AQLValue
-  virtual aql::AqlValue fetchVertexData(arangodb::velocypack::Slice) = 0;
+  virtual aql::AqlValue fetchVertexData(StringRef vid) = 0;
 
   /// @brief Function to fetch the real data of an edge into an AQLValue
-  virtual aql::AqlValue fetchEdgeData(arangodb::velocypack::Slice) = 0;
+  virtual aql::AqlValue fetchEdgeData(StringRef eid) = 0;
 
   /// @brief Function to add the real data of a vertex into a velocypack builder
-  virtual void addVertexToVelocyPack(arangodb::velocypack::Slice,
+  virtual void addVertexToVelocyPack(StringRef vid,
                                      arangodb::velocypack::Builder&) = 0;
 
   /// @brief Function to add the real data of an edge into a velocypack builder
-  virtual void addEdgeToVelocyPack(arangodb::velocypack::Slice,
+  virtual void addEdgeToVelocyPack(StringRef eid,
                                    arangodb::velocypack::Builder&) = 0;
  
 };

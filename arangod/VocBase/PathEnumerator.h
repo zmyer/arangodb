@@ -43,8 +43,8 @@ class Traverser;
 struct TraverserOptions;
 
 struct EnumeratedPath {
-  std::vector<arangodb::velocypack::Slice> edges;
-  std::vector<arangodb::velocypack::Slice> vertices;
+  std::vector<std::string> edges;
+  std::vector<std::string> vertices;
   EnumeratedPath() {}
 };
 
@@ -81,13 +81,12 @@ class PathEnumerator {
   EnumeratedPath _enumeratedPath;
 
   /// @brief List which edges have been visited already.
-  std::unordered_set<arangodb::velocypack::Slice> _returnedEdges;
+  std::unordered_set<std::string> _returnedEdges;
 
  public:
-  PathEnumerator(Traverser* traverser, arangodb::velocypack::Slice startVertex,
+  PathEnumerator(Traverser* traverser, std::string const& startVertex,
                  TraverserOptions const* opts)
       : _traverser(traverser), _isFirst(true), _opts(opts) {
-    TRI_ASSERT(startVertex.isString());
     _enumeratedPath.vertices.push_back(startVertex);
     TRI_ASSERT(_enumeratedPath.vertices.size() == 1);
   }
@@ -117,7 +116,7 @@ class DepthFirstEnumerator final : public PathEnumerator {
 
  public:
   DepthFirstEnumerator(Traverser* traverser,
-                       arangodb::velocypack::Slice startVertex,
+                       std::string const& startVertex,
                        TraverserOptions const* opts)
       : PathEnumerator(traverser, startVertex, opts) {}
 
@@ -142,7 +141,6 @@ class DepthFirstEnumerator final : public PathEnumerator {
   aql::AqlValue pathToAqlValue(arangodb::velocypack::Builder& result) override;
 
 };
-
 
 } // namespace traverser
 } // namespace arangodb

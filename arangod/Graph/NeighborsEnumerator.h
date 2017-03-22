@@ -61,7 +61,7 @@ class NeighborsEnumerator final : public arangodb::traverser::PathEnumerator {
 
  public:
    NeighborsEnumerator(arangodb::traverser::Traverser* traverser,
-                       arangodb::velocypack::Slice startVertex,
+                       arangodb::velocypack::Slice const& startVertex,
                        arangodb::traverser::TraverserOptions const* opts);
 
    ~NeighborsEnumerator() {

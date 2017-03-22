@@ -25,6 +25,7 @@
 #define ARANGOD_VOC_BASE_TRAVERSER_OPTIONS_H 1
 
 #include "Basics/Common.h"
+#include "Basics/StringRef.h"
 #include "Aql/FixedVarExpressionContext.h"
 #include "StorageEngine/TransactionState.h"
 #include "Transaction/Methods.h"
@@ -57,12 +58,18 @@ class EdgeCursor {
   EdgeCursor() {}
   virtual ~EdgeCursor() {}
 
-  virtual bool next(std::vector<arangodb::velocypack::Slice>&, size_t&) = 0;
+  virtual bool next(std::function<void(std::string const&, VPackSlice, size_t)> callback) = 0;
+  void allNext(std::function<void(std::string const&, VPackSlice, size_t)> callback) {
+    bool cont;
+    do {
+      cont = this->next(callback);
+    } while(!cont);
+  }
   virtual bool readAll(std::unordered_set<arangodb::velocypack::Slice>&,
                        size_t&) = 0;
 
   // TODO Temporary to silence the cluster
-  virtual void readAll(std::function<void(arangodb::velocypack::Slice, size_t&)>) {};
+  virtual void readAll(std::function<void(std::string const&, arangodb::velocypack::Slice, size_t&)>) {};
 
 };
 
@@ -162,12 +169,12 @@ struct TraverserOptions {
   bool vertexHasFilter(uint64_t) const;
 
   bool evaluateEdgeExpression(arangodb::velocypack::Slice,
-                              arangodb::velocypack::Slice, uint64_t,
+                              StringRef vertexId, uint64_t,
                               size_t) const;
 
   bool evaluateVertexExpression(arangodb::velocypack::Slice, uint64_t) const;
 
-  EdgeCursor* nextCursor(ManagedDocumentResult*, arangodb::velocypack::Slice, uint64_t) const;
+  EdgeCursor* nextCursor(ManagedDocumentResult*, StringRef vid, uint64_t) const;
 
   void clearVariableValues();
 
@@ -185,10 +192,10 @@ struct TraverserOptions {
                                size_t& createItems) const;
 
   EdgeCursor* nextCursorLocal(ManagedDocumentResult*,
-                              arangodb::velocypack::Slice, uint64_t,
+                              StringRef vid, uint64_t,
                               std::vector<LookupInfo>&) const;
 
-  EdgeCursor* nextCursorCoordinator(arangodb::velocypack::Slice, uint64_t) const;
+  EdgeCursor* nextCursorCoordinator(StringRef vid, uint64_t) const;
 };
 
 }

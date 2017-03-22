@@ -43,7 +43,7 @@ using namespace arangodb;
 using namespace arangodb::traverser;
 
 TraverserCache::TraverserCache(transaction::Methods* trx, ManagedDocumentResult *mmdr)
-    : _cache(nullptr), _mmdr(mmdr), _trx(trx), _readDocuments(0) {
+    : _cache(nullptr), _mmdr(mmdr), _trx(trx), _insertedDocuments(0) {
   auto cacheManager = CacheManagerFeature::MANAGER;
   TRI_ASSERT(cacheManager != nullptr);
   _cache = cacheManager->createCache(cache::CacheType::Plain);
@@ -61,15 +61,15 @@ TraverserCache::~TraverserCache() {
 // the cache from removing this specific object. Should not be retained
 // for a longer period of time.
 // DO NOT give it to a caller.
-cache::Finding TraverserCache::lookup(VPackSlice const& idString) {
-  TRI_ASSERT(idString.isString());
-  void const* key = idString.begin();
-  uint32_t keySize = static_cast<uint32_t>(idString.byteSize());
+cache::Finding TraverserCache::lookup(StringRef idString) {
+  VPackValueLength keySize = idString.length();
+  void const* key = idString.data();
+  //uint32_t keySize = static_cast<uint32_t>(idString.byteSize());
   return _cache->find(key, keySize);
 }
 
-VPackSlice TraverserCache::lookupInCollection(arangodb::velocypack::Slice const& idString) {
-  TRI_ASSERT(idString.isString());
+VPackSlice TraverserCache::lookupInCollection(StringRef idString) {
+  //TRI_ASSERT(idString.isString());
   
   StringRef id(idString);
   size_t pos = id.find('/');
@@ -95,28 +95,28 @@ VPackSlice TraverserCache::lookupInCollection(arangodb::velocypack::Slice const&
     result = VPackSlice(_mmdr->vpack());
   }
 
-  void const* key = idString.begin();
-  uint32_t keySize = static_cast<uint32_t>(idString.byteSize());
+  VPackValueLength keySize = idString.length();
+  void const* key = idString.data();
 
   void const* resVal = result.begin();
   uint64_t resValSize = static_cast<uint64_t>(result.byteSize());
   std::unique_ptr<cache::CachedValue> value(
       cache::CachedValue::construct(key, keySize, resVal, resValSize));
 
-  if (value != nullptr) {
+  if (value) {
     bool success = _cache->insert(value.get());
     if (!success) {
-      LOG_TOPIC(ERR, Logger::GRAPHS) << "Insert failed";
+      LOG_TOPIC(DEBUG, Logger::GRAPHS) << "Insert failed";
     }
     // Cache is responsible.
     // If this failed, well we do not store it and read it again next time.
     value.release();
   }
-  ++_readDocuments;
+  ++_insertedDocuments;
   return result;
 }
 
-void TraverserCache::insertIntoResult(VPackSlice const& idString,
+void TraverserCache::insertIntoResult(StringRef idString,
                                       VPackBuilder& builder) {
   auto finding = lookup(idString);
   if (finding.found()) {
@@ -130,7 +130,7 @@ void TraverserCache::insertIntoResult(VPackSlice const& idString,
   }
 }
 
-aql::AqlValue TraverserCache::fetchAqlResult(arangodb::velocypack::Slice const& idString) {
+aql::AqlValue TraverserCache::fetchAqlResult(StringRef idString) {
   auto finding = lookup(idString);
   if (finding.found()) {
     auto val = finding.value();
@@ -142,8 +142,33 @@ aql::AqlValue TraverserCache::fetchAqlResult(arangodb::velocypack::Slice const& 
   }
 }
 
+void TraverserCache::insertDocument(StringRef idString, arangodb::velocypack::Slice const& document) {
+  auto finding = lookup(idString);
+#warning TODO always write updated document?
+  if (!finding.found()) {
+    VPackValueLength keySize = idString.length();
+    void const* key = idString.data();
+    
+    void const* resVal = document.begin();
+    uint64_t resValSize = static_cast<uint64_t>(document.byteSize());
+    std::unique_ptr<cache::CachedValue> value(
+                                              cache::CachedValue::construct(key, keySize, resVal, resValSize));
+    
+    if (value) {
+      bool success = _cache->insert(value.get());
+      if (!success) {
+        LOG_TOPIC(ERR, Logger::GRAPHS) << "Insert failed";
+      }
+      // Cache is responsible.
+      // If this failed, well we do not store it and read it again next time.
+      value.release();
+    }
+    ++_insertedDocuments;
+  }
+}
+
 bool TraverserCache::validateFilter(
-    VPackSlice const& idString,
+    StringRef idString,
     std::function<bool(VPackSlice const&)> filterFunc) {
   auto finding = lookup(idString);
   if (finding.found()) {

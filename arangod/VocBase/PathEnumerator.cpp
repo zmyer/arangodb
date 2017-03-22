@@ -24,6 +24,7 @@
 #include "PathEnumerator.h"
 #include "Basics/VelocyPackHelper.h"
 #include "VocBase/Traverser.h"
+#include "VocBase/TraverserCache.h"
 
 using DepthFirstEnumerator = arangodb::traverser::DepthFirstEnumerator;
 using Traverser = arangodb::traverser::Traverser;
@@ -41,13 +42,11 @@ bool DepthFirstEnumerator::next() {
     return false;
   }
 
-  size_t cursorId = 0;
-
   while (true) {
     if (_enumeratedPath.edges.size() < _opts->maxDepth) {
       // We are not done with this path, so
       // we reserve the cursor for next depth
-      auto cursor = _opts->nextCursor(_traverser->mmdr(), _enumeratedPath.vertices.back(),
+      auto cursor = _opts->nextCursor(_traverser->mmdr(), StringRef(_enumeratedPath.vertices.back()),
                                       _enumeratedPath.edges.size());
       if (cursor != nullptr) {
         _edgeCursors.emplace(cursor);
@@ -63,37 +62,45 @@ bool DepthFirstEnumerator::next() {
     while (!_edgeCursors.empty()) {
       TRI_ASSERT(_edgeCursors.size() == _enumeratedPath.edges.size() + 1);
       auto& cursor = _edgeCursors.top();
-      if (cursor->next(_enumeratedPath.edges, cursorId)) {
+
+      bool foundPath = false;
+      bool exitInnerLoop = false;
+      bool notEmpty
+      = cursor->next([this, &foundPath, &exitInnerLoop] (std::string const& documentId, VPackSlice const& edgeDoc, size_t cursorId) {
         ++_traverser->_readDocuments;
+        _enumeratedPath.edges.push_back(documentId);
+        _traverser->_cache->insertDocument(StringRef(documentId), edgeDoc);
+        
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::GLOBAL) {
-          if (_returnedEdges.find(_enumeratedPath.edges.back()) ==
+          if (_returnedEdges.find(documentId) ==
               _returnedEdges.end()) {
             // Edge not yet visited. Mark and continue.
-            _returnedEdges.emplace(_enumeratedPath.edges.back());
+            _returnedEdges.emplace(documentId);
           } else {
             _traverser->_filteredPaths++;
             TRI_ASSERT(!_enumeratedPath.edges.empty());
             _enumeratedPath.edges.pop_back();
-            continue;
+            return;
           }
         }
-        if (!_traverser->edgeMatchesConditions(_enumeratedPath.edges.back(),
-                                               _enumeratedPath.vertices.back(),
+        if (!_traverser->edgeMatchesConditions(edgeDoc,
+                                               StringRef(_enumeratedPath.vertices.back()),
                                                _enumeratedPath.edges.size() - 1,
                                                cursorId)) {
             // This edge does not pass the filtering
             TRI_ASSERT(!_enumeratedPath.edges.empty());
             _enumeratedPath.edges.pop_back();
-            continue;
+            return;
         }
 
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::PATH) {
-          auto& e = _enumeratedPath.edges.back();
+          std::string const& e = _enumeratedPath.edges.back();
           bool foundOnce = false;
-          for (auto const& it : _enumeratedPath.edges) {
+          for (std::string const& it : _enumeratedPath.edges) {
             if (foundOnce) {
               foundOnce = false; // if we leave with foundOnce == false we found the edge earlier
-              break;
+              exitInnerLoop = true;
+              return;
             }
             if (it == e) {
               foundOnce = true;
@@ -104,13 +111,13 @@ bool DepthFirstEnumerator::next() {
             // This edge is allready on the path
             TRI_ASSERT(!_enumeratedPath.edges.empty());
             _enumeratedPath.edges.pop_back();
-            continue;
+            return;
           }
         }
-
+        
         // We have to check if edge and vertex is valid
-        if (_traverser->getVertex(_enumeratedPath.edges.back(),
-                                  _enumeratedPath.vertices)) {
+        
+        if (_traverser->getVertex(edgeDoc, _enumeratedPath.vertices)) {
           // case both are valid.
           if (_opts->uniqueVertices == TraverserOptions::UniquenessLevel::PATH) {
             auto& e = _enumeratedPath.vertices.back();
@@ -131,21 +138,27 @@ bool DepthFirstEnumerator::next() {
               TRI_ASSERT(!_enumeratedPath.edges.empty());
               _enumeratedPath.vertices.pop_back();
               _enumeratedPath.edges.pop_back();
-              continue;
+              return;
             }
           }
           if (_enumeratedPath.edges.size() < _opts->minDepth) {
             // Do not return, but leave this loop. Continue with the outer.
-            break;
+            exitInnerLoop = true;
+            return;
           }
-
-          return true;
+          
+          foundPath = true;
+          return;
         }
         // Vertex Invalid. Revoke edge
         TRI_ASSERT(!_enumeratedPath.edges.empty());
         _enumeratedPath.edges.pop_back();
-        continue;
-      } else {
+      });
+      if (foundPath) {
+        return true;
+      } else if(exitInnerLoop) {
+        break;
+      } else if (!notEmpty)  {
         // cursor is empty.
         _edgeCursors.pop();
         if (!_enumeratedPath.edges.empty()) {
@@ -153,25 +166,25 @@ bool DepthFirstEnumerator::next() {
           _enumeratedPath.vertices.pop_back();
         }
       }
-    }
+    }// while (!_edgeCursors.empty())
     if (_edgeCursors.empty()) {
       // If we get here all cursors are exhausted.
       _enumeratedPath.edges.clear();
       _enumeratedPath.vertices.clear();
       return false;
     }
-  }
+  }// while (true)
 }
 
 arangodb::aql::AqlValue DepthFirstEnumerator::lastVertexToAqlValue() {
-  return _traverser->fetchVertexData(_enumeratedPath.vertices.back());
+  return _traverser->fetchVertexData(StringRef(_enumeratedPath.vertices.back()));
 }
 
 arangodb::aql::AqlValue DepthFirstEnumerator::lastEdgeToAqlValue() {
   if (_enumeratedPath.edges.empty()) {
     return arangodb::aql::AqlValue(arangodb::basics::VelocyPackHelper::NullValue());
   }
-  return _traverser->fetchEdgeData(_enumeratedPath.edges.back());
+  return _traverser->fetchEdgeData(StringRef(_enumeratedPath.edges.back()));
 }
 
 arangodb::aql::AqlValue DepthFirstEnumerator::pathToAqlValue(arangodb::velocypack::Builder& result) {
@@ -180,13 +193,13 @@ arangodb::aql::AqlValue DepthFirstEnumerator::pathToAqlValue(arangodb::velocypac
   result.add(VPackValue("edges"));
   result.openArray();
   for (auto const& it : _enumeratedPath.edges) {
-    _traverser->addEdgeToVelocyPack(it, result);
+    _traverser->addEdgeToVelocyPack(StringRef(it), result);
   }
   result.close();
   result.add(VPackValue("vertices"));
   result.openArray();
   for (auto const& it : _enumeratedPath.vertices) {
-    _traverser->addVertexToVelocyPack(it, result);
+    _traverser->addVertexToVelocyPack(StringRef(it), result);
   }
   result.close();
   result.close();

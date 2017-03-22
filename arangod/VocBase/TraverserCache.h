@@ -24,6 +24,7 @@
 #define ARANGOD_VOC_BASE_TRAVERSER_CACHE_H 1
 
 #include "Basics/Common.h"
+#include "Basics/StringRef.h"
 
 namespace arangodb {
 class ManagedDocumentResult;
@@ -61,10 +62,22 @@ class TraverserCache {
    ///        If it is not cached it will be looked up in the StorageEngine
    //////////////////////////////////////////////////////////////////////////////
 
-   void insertIntoResult(arangodb::velocypack::Slice const& idString,
+   void insertIntoResult(StringRef idString,
                          arangodb::velocypack::Builder& builder);
+
+   //////////////////////////////////////////////////////////////////////////////
+   /// @brief Return AQL value containing the result
+   ///        The document will be taken from the hash-cache.
+   ///        If it is not cached it will be looked up in the StorageEngine
+   //////////////////////////////////////////////////////////////////////////////
   
-   aql::AqlValue fetchAqlResult(arangodb::velocypack::Slice const& idString);
+   aql::AqlValue fetchAqlResult(StringRef idString);
+
+   //////////////////////////////////////////////////////////////////////////////
+   /// @brief Insert value into store
+   //////////////////////////////////////////////////////////////////////////////
+   void insertDocument(StringRef idString,
+                       arangodb::velocypack::Slice const& document);
 
    //////////////////////////////////////////////////////////////////////////////
    /// @brief Throws the document referenced by the token into the filter
@@ -73,13 +86,12 @@ class TraverserCache {
    ///        If it is not cached it will be looked up in the StorageEngine
    //////////////////////////////////////////////////////////////////////////////
 
-   bool validateFilter(
-       arangodb::velocypack::Slice const& idString,
+   bool validateFilter(StringRef idString,
        std::function<bool(arangodb::velocypack::Slice const&)> filterFunc);
   
-  size_t getAndResetReadDocuments() {
-    size_t tmp = _readDocuments;
-    _readDocuments = 0;
+  size_t getAndResetInsertedDocuments() {
+    size_t tmp = _insertedDocuments;
+    _insertedDocuments = 0;
     return tmp;
   }
 
@@ -91,7 +103,7 @@ class TraverserCache {
    ///        stays valid. Finding should not be retained very long, if it is
    ///        needed for longer, copy the value.
    //////////////////////////////////////////////////////////////////////////////
-   cache::Finding lookup(arangodb::velocypack::Slice const& idString);
+   cache::Finding lookup(StringRef idString);
 
    //////////////////////////////////////////////////////////////////////////////
    /// @brief Lookup a document from the database and insert it into the cache.
@@ -100,9 +112,7 @@ class TraverserCache {
    //////////////////////////////////////////////////////////////////////////////
 
    arangodb::velocypack::Slice lookupInCollection(
-       arangodb::velocypack::Slice const& idString);
-
-  private:
+       StringRef idString);
 
    //////////////////////////////////////////////////////////////////////////////
    /// @brief The hash-cache that saves documents found in the Database
@@ -120,8 +130,7 @@ class TraverserCache {
    //////////////////////////////////////////////////////////////////////////////
    arangodb::transaction::Methods* _trx;
   
-   size_t _readDocuments;
-  std::set<std::string> _found;
+   size_t _insertedDocuments;
 };
 
 }

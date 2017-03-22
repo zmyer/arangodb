@@ -27,6 +27,7 @@
 #include "Cluster/ClusterMethods.h"
 #include "Graph/BreadthFirstEnumerator.h"
 #include "Transaction/Helpers.h"
+#include "VocBase/TraverserCache.h"
 
 #include <velocypack/Iterator.h>
 #include <velocypack/velocypack-aliases.h>
@@ -50,7 +51,7 @@ void ClusterTraverser::setStartVertex(std::string const& id) {
   _startIdBuilder->add(VPackValue(id));
   VPackSlice idSlice = _startIdBuilder->slice();
 
-  auto it = _vertices.find(idSlice);
+  auto it = _vertices.find(StringRef(id));
   if (it == _vertices.end()) {
     size_t firstSlash = id.find("/");
     if (firstSlash == std::string::npos ||
@@ -74,16 +75,16 @@ void ClusterTraverser::setStartVertex(std::string const& id) {
         new arangodb::graph::BreadthFirstEnumerator(this, idSlice, _opts));
   } else {
     _enumerator.reset(
-        new arangodb::traverser::DepthFirstEnumerator(this, idSlice, _opts));
+        new arangodb::traverser::DepthFirstEnumerator(this, id, _opts));
   }
   _done = false;
 }
 
 bool ClusterTraverser::getVertex(VPackSlice edge,
-                                 std::vector<VPackSlice>& result) {
+                                 std::vector<std::string>& result) {
   bool res = _vertexGetter->getVertex(edge, result);
   if (res) {
-    VPackSlice other = result.back();
+    StringRef other(result.back());
     if (_vertices.find(other) == _vertices.end()) {
       // Vertex not yet cached. Prepare it.
       _verticesToFetch.emplace(other);
@@ -96,7 +97,8 @@ bool ClusterTraverser::getSingleVertex(VPackSlice edge, VPackSlice comp,
                                        uint64_t depth, VPackSlice& result) {
   bool res = _vertexGetter->getSingleVertex(edge, comp, depth, result);
   if (res) {
-    if (_vertices.find(result) == _vertices.end()) {
+    TRI_ASSERT(result.isString());
+    if (_vertices.find(StringRef(result)) == _vertices.end()) {
       // Vertex not yet cached. Prepare it.
       _verticesToFetch.emplace(result);
     }
@@ -112,8 +114,8 @@ void ClusterTraverser::fetchVertices() {
   _verticesToFetch.clear();
 }
 
-aql::AqlValue ClusterTraverser::fetchVertexData(VPackSlice idString) {
-  TRI_ASSERT(idString.isString());
+aql::AqlValue ClusterTraverser::fetchVertexData(StringRef idString) {
+  //TRI_ASSERT(idString.isString());
   auto cached = _vertices.find(idString);
   if (cached == _vertices.end()) {
     // Vertex not yet cached. Prepare for load.
@@ -126,23 +128,23 @@ aql::AqlValue ClusterTraverser::fetchVertexData(VPackSlice idString) {
   return aql::AqlValue((*cached).second->data());
 }
 
-aql::AqlValue ClusterTraverser::fetchEdgeData(VPackSlice edge) {
-  return aql::AqlValue(edge);
+aql::AqlValue ClusterTraverser::fetchEdgeData(StringRef eid) {
+  return aql::AqlValue(_edges[eid]);//this->_cache->fetchAqlResult(edge);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 /// @brief Function to add the real data of a vertex into a velocypack builder
 //////////////////////////////////////////////////////////////////////////////
 
-void ClusterTraverser::addVertexToVelocyPack(VPackSlice id,
+void ClusterTraverser::addVertexToVelocyPack(StringRef vid,
                                              VPackBuilder& result) {
-  TRI_ASSERT(id.isString());
-  auto cached = _vertices.find(id);
+  //TRI_ASSERT(id.isString());
+  auto cached = _vertices.find(vid);
   if (cached == _vertices.end()) {
     // Vertex not yet cached. Prepare for load.
-    _verticesToFetch.emplace(id);
+    _verticesToFetch.emplace(vid);
     fetchVertices();
-    cached = _vertices.find(id);
+    cached = _vertices.find(vid);
   }
   // Now all vertices are cached!!
   TRI_ASSERT(cached != _vertices.end());
@@ -153,7 +155,7 @@ void ClusterTraverser::addVertexToVelocyPack(VPackSlice id,
 /// @brief Function to add the real data of an edge into a velocypack builder
 //////////////////////////////////////////////////////////////////////////////
 
-void ClusterTraverser::addEdgeToVelocyPack(arangodb::velocypack::Slice edge,
+void ClusterTraverser::addEdgeToVelocyPack(StringRef eid,
                          arangodb::velocypack::Builder& result) {
-  result.add(edge);
+  result.add(_edges[eid]);
 }
