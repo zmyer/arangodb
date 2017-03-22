@@ -63,7 +63,7 @@ class EdgeCursor {
     bool cont;
     do {
       cont = this->next(callback);
-    } while(!cont);
+    } while(cont);
   }
   virtual bool readAll(std::unordered_set<arangodb::velocypack::Slice>&,
                        size_t&) = 0;

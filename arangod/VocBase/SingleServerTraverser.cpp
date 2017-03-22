@@ -211,7 +211,6 @@ SingleServerTraverser::SingleServerTraverser(TraverserOptions* opts,
 SingleServerTraverser::~SingleServerTraverser() {}
 
 aql::AqlValue SingleServerTraverser::fetchVertexData(StringRef vid) {
-  //usleep(10000);
   return _cache->fetchAqlResult(vid);
   
   /*auto it = _vertices.find(id);
