@@ -21,18 +21,26 @@
 /// @author Jan Steemann
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "MMFilesRestHandlers.h"
-#include "GeneralServer/RestHandlerFactory.h"
-#include "MMFiles/MMFilesRestExportHandler.h"
-#include "MMFiles/MMFilesRestWalHandler.h"
-#include "RestHandler/RestHandlerCreator.h"
+#include "RestEngineHandler.h"
+#include "Rest/HttpRequest.h"
+#include "StorageEngine/EngineSelectorFeature.h"
+
+#include <velocypack/Builder.h>
+#include <velocypack/velocypack-aliases.h>
 
 using namespace arangodb;
+using namespace arangodb::basics;
+using namespace arangodb::rest;
 
-void MMFilesRestHandlers::registerResources(rest::RestHandlerFactory* handlerFactory) {
-  handlerFactory->addPrefixHandler(
-      "/_admin/wal", RestHandlerCreator<MMFilesRestWalHandler>::createNoData);
-  
-  handlerFactory->addPrefixHandler(
-      "/_api/export", RestHandlerCreator<MMFilesRestExportHandler>::createNoData);
+RestEngineHandler::RestEngineHandler(GeneralRequest* request,
+                                     GeneralResponse* response)
+    : RestBaseHandler(request, response) {}
+
+RestStatus RestEngineHandler::execute() {
+  VPackBuilder result;
+  result.add(VPackValue(VPackValueType::Object));
+  result.add("name", VPackValue(EngineSelectorFeature::engineName()));
+  result.close();
+  generateResult(rest::ResponseCode::OK, result.slice());
+  return RestStatus::DONE;
 }

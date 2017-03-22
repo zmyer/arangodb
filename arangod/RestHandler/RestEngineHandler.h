@@ -21,18 +21,21 @@
 /// @author Jan Steemann
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "MMFilesRestHandlers.h"
-#include "GeneralServer/RestHandlerFactory.h"
-#include "MMFiles/MMFilesRestExportHandler.h"
-#include "MMFiles/MMFilesRestWalHandler.h"
-#include "RestHandler/RestHandlerCreator.h"
+#ifndef ARANGOD_REST_HANDLER_REST_ENGINE_HANDLER_H
+#define ARANGOD_REST_HANDLER_REST_ENGINE_HANDLER_H 1
 
-using namespace arangodb;
+#include "RestHandler/RestBaseHandler.h"
 
-void MMFilesRestHandlers::registerResources(rest::RestHandlerFactory* handlerFactory) {
-  handlerFactory->addPrefixHandler(
-      "/_admin/wal", RestHandlerCreator<MMFilesRestWalHandler>::createNoData);
-  
-  handlerFactory->addPrefixHandler(
-      "/_api/export", RestHandlerCreator<MMFilesRestExportHandler>::createNoData);
+namespace arangodb {
+class RestEngineHandler : public arangodb::RestBaseHandler {
+ public:
+  RestEngineHandler(GeneralRequest*, GeneralResponse*);
+
+ public:
+  char const* name() const override final { return "RestEngineHandler"; }
+  bool isDirect() const override { return true; }
+  RestStatus execute() override;
+};
 }
+
+#endif
