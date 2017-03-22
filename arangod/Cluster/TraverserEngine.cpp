@@ -145,24 +145,25 @@ void BaseTraverserEngine::getEdges(VPackSlice vertex, size_t depth, VPackBuilder
     for (VPackSlice v : VPackArrayIterator(vertex)) {
       TRI_ASSERT(v.isString());
       //result.clear();
-      auto edgeCursor = _opts->nextCursor(&mmdr, StringRef(v), depth);
+      StringRef vertexId(v);
+      auto edgeCursor = _opts->nextCursor(&mmdr, vertexId, depth);
       
-      edgeCursor->allNext([&] (std::string const& documentId, VPackSlice edge, size_t cursorId) {
-        if (!_opts->evaluateEdgeExpression(edge, StringRef(v), depth, cursorId)) {
-          filtered++;
-        } else {
+      edgeCursor->allNext([&] (std::string const& eid, VPackSlice edge, size_t cursorId) {
+        if (_opts->evaluateEdgeExpression(edge, vertexId, depth, cursorId)) {
           builder.add(edge);
+        } else {
+          filtered++;
         }
       });
       // Result now contains all valid edges, probably multiples.
     }
   } else if (vertex.isString()) {
     std::unique_ptr<arangodb::traverser::EdgeCursor> edgeCursor(_opts->nextCursor(&mmdr, StringRef(vertex), depth));
-    edgeCursor->allNext([&] (std::string const& documentId, VPackSlice edge, size_t cursorId) {
-      if (!_opts->evaluateEdgeExpression(edge, StringRef(vertex), depth, cursorId)) {
-        filtered++;
-      } else {
+    edgeCursor->allNext([&] (std::string const& eid, VPackSlice edge, size_t cursorId) {
+      if (_opts->evaluateEdgeExpression(edge, StringRef(vertex), depth, cursorId)) {
         builder.add(edge);
+      } else {
+        filtered++;
       }
     });
     // Result now contains all valid edges, probably multiples.

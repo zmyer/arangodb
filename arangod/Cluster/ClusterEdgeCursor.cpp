@@ -40,7 +40,7 @@ ClusterEdgeCursor::ClusterEdgeCursor(StringRef vertexId, uint64_t depth,
       
 #warning fix copying by either adding overloaded method or
       transaction::BuilderLeaser b(traverser->_trx);
-      b->add(VPackValue(vertexId.data()));
+      b->add(VPackValue(vertexId.toString()));
       
       fetchEdgesFromEngines(traverser->_dbname, traverser->_engines, b->slice(), depth,
                             traverser->_edges, _edgeList, traverser->_datalake,
