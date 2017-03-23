@@ -22,6 +22,7 @@
 
 #include "TraverserCache.h"
 
+#include "Basics/StringHeap.h"
 #include "Basics/StringRef.h"
 #include "Basics/VelocyPackHelper.h"
 
@@ -42,8 +43,9 @@
 using namespace arangodb;
 using namespace arangodb::traverser;
 
-TraverserCache::TraverserCache(transaction::Methods* trx, ManagedDocumentResult *mmdr)
-    : _cache(nullptr), _mmdr(mmdr), _trx(trx), _insertedDocuments(0) {
+TraverserCache::TraverserCache(transaction::Methods* trx)
+    : _cache(nullptr), _trx(trx), _mmdr(new ManagedDocumentResult{}), _insertedDocuments(0),
+    _stringHeap(new StringHeap{4096}) /* arbitrary block-size may be adjusted for perforamnce */ {
   auto cacheManager = CacheManagerFeature::MANAGER;
   TRI_ASSERT(cacheManager != nullptr);
   _cache = cacheManager->createCache(cache::CacheType::Plain);
@@ -68,10 +70,7 @@ cache::Finding TraverserCache::lookup(StringRef idString) {
   return _cache->find(key, keySize);
 }
 
-VPackSlice TraverserCache::lookupInCollection(StringRef idString) {
-  //TRI_ASSERT(idString.isString());
-  
-  StringRef id(idString);
+VPackSlice TraverserCache::lookupInCollection(StringRef id) {
   size_t pos = id.find('/');
   if (pos == std::string::npos) {
     // Invalid input. If we get here somehow we managed to store invalid _from/_to
@@ -95,8 +94,8 @@ VPackSlice TraverserCache::lookupInCollection(StringRef idString) {
     result = VPackSlice(_mmdr->vpack());
   }
 
-  VPackValueLength keySize = idString.length();
-  void const* key = idString.data();
+  void const* key = id.begin();
+  VPackValueLength keySize = id.length();
 
   void const* resVal = result.begin();
   uint64_t resValSize = static_cast<uint64_t>(result.byteSize());
@@ -157,7 +156,7 @@ void TraverserCache::insertDocument(StringRef idString, arangodb::velocypack::Sl
     if (value) {
       bool success = _cache->insert(value.get());
       if (!success) {
-        LOG_TOPIC(ERR, Logger::GRAPHS) << "Insert failed";
+        LOG_TOPIC(ERR, Logger::GRAPHS) << "Insert document into cache failed";
       }
       // Cache is responsible.
       // If this failed, well we do not store it and read it again next time.
@@ -182,4 +181,13 @@ bool TraverserCache::validateFilter(
   return filterFunc(slice);
 }
 
-
+StringRef TraverserCache::persistString(
+    StringRef const idString) {
+  auto it = _persistedStrings.find(idString);
+  if (it != _persistedStrings.end()) {
+    return *it;
+  }
+  StringRef res = _stringHeap->registerString(idString.begin(), idString.length());
+  _persistedStrings.emplace(res);
+  return res;
+}

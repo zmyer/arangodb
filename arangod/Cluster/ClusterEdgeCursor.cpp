@@ -27,6 +27,7 @@
 #include "Cluster/ClusterTraverser.h"
 #include "Transaction/Helpers.h"
 #include "Transaction/Methods.h"
+#include "VocBase/TraverserCache.h"
 
 #include <velocypack/Slice.h>
 #include <velocypack/velocypack-aliases.h>
@@ -35,7 +36,7 @@ using ClusterEdgeCursor = arangodb::traverser::ClusterEdgeCursor;
 
 ClusterEdgeCursor::ClusterEdgeCursor(StringRef vertexId, uint64_t depth,
                                      arangodb::traverser::ClusterTraverser* traverser)
-    : _position(0), _resolver(traverser->_trx->resolver()) {
+    : _position(0), _resolver(traverser->_trx->resolver()), _traverser(traverser) {
       transaction::BuilderLeaser leased(traverser->_trx);
       
 #warning fix copying by either adding overloaded method or
@@ -49,12 +50,14 @@ ClusterEdgeCursor::ClusterEdgeCursor(StringRef vertexId, uint64_t depth,
       
     }
 
-bool ClusterEdgeCursor::next(std::function<void(std::string const&,
+bool ClusterEdgeCursor::next(std::function<void(StringRef const&,
                                                 VPackSlice, size_t)> callback) {
   if (_position < _edgeList.size()) {
     VPackSlice edge = _edgeList[_position];
     std::string eid = transaction::helpers::extractIdString(_resolver, edge, VPackSlice());
-    callback(eid, edge, _position);
+#warning FIXME visibility incorrect
+    StringRef persId = _traverser->traverserCache()->persistString(StringRef(eid));
+    callback(persId, edge, _position);
     ++_position;
     return true;
   }

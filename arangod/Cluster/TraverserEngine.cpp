@@ -147,7 +147,7 @@ void BaseTraverserEngine::getEdges(VPackSlice vertex, size_t depth, VPackBuilder
       //result.clear();
       auto edgeCursor = _opts->nextCursor(&mmdr, StringRef(v), depth);
       
-      edgeCursor->allNext([&] (std::string const& documentId, VPackSlice edge, size_t cursorId) {
+      edgeCursor->readAll([&] (StringRef const& documentId, VPackSlice edge, size_t cursorId) {
         if (!_opts->evaluateEdgeExpression(edge, StringRef(v), depth, cursorId)) {
           filtered++;
         } else {
@@ -158,7 +158,7 @@ void BaseTraverserEngine::getEdges(VPackSlice vertex, size_t depth, VPackBuilder
     }
   } else if (vertex.isString()) {
     std::unique_ptr<arangodb::traverser::EdgeCursor> edgeCursor(_opts->nextCursor(&mmdr, StringRef(vertex), depth));
-    edgeCursor->allNext([&] (std::string const& documentId, VPackSlice edge, size_t cursorId) {
+    edgeCursor->readAll([&] (StringRef const& documentId, VPackSlice edge, size_t cursorId) {
       if (!_opts->evaluateEdgeExpression(edge, StringRef(vertex), depth, cursorId)) {
         filtered++;
       } else {

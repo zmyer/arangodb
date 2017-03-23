@@ -30,6 +30,7 @@
 #include "Cluster/ClusterEdgeCursor.h"
 #include "Indexes/Index.h"
 #include "VocBase/SingleServerTraverser.h"
+#include "VocBase/TraverserCache.h"
 
 #include <velocypack/Iterator.h>
 #include <velocypack/velocypack-aliases.h>
@@ -151,6 +152,24 @@ double arangodb::traverser::TraverserOptions::LookupInfo::estimateCost(size_t& n
   return 1000.0;
 }
 
+arangodb::traverser::TraverserCache* arangodb::traverser::TraverserOptions::cache() const {
+  return _cache.get();
+}
+
+arangodb::traverser::TraverserOptions::TraverserOptions(transaction::Methods* trx)
+      : _trx(trx),
+        _baseVertexExpression(nullptr),
+        _tmpVar(nullptr),
+        _ctx(new aql::FixedVarExpressionContext()),
+        _traverser(nullptr),
+        _isCoordinator(trx->state()->isCoordinator()),
+        _cache(new TraverserCache(trx)),
+        minDepth(1),
+        maxDepth(1),
+        useBreadthFirst(false),
+        uniqueVertices(UniquenessLevel::NONE),
+        uniqueEdges(UniquenessLevel::PATH) {}
+
 arangodb::traverser::TraverserOptions::TraverserOptions(
     transaction::Methods* trx, VPackSlice const& slice)
     : _trx(trx),
@@ -159,6 +178,7 @@ arangodb::traverser::TraverserOptions::TraverserOptions(
       _ctx(new aql::FixedVarExpressionContext()),
       _traverser(nullptr),
       _isCoordinator(arangodb::ServerState::instance()->isCoordinator()),
+      _cache(new TraverserCache(trx)),
       minDepth(1),
       maxDepth(1),
       useBreadthFirst(false),
@@ -212,6 +232,7 @@ arangodb::traverser::TraverserOptions::TraverserOptions(
       _ctx(new aql::FixedVarExpressionContext()),
       _traverser(nullptr),
       _isCoordinator(arangodb::ServerState::instance()->isCoordinator()),
+      _cache(new TraverserCache(_trx)),
       minDepth(1),
       maxDepth(1),
       useBreadthFirst(false),
@@ -370,6 +391,7 @@ arangodb::traverser::TraverserOptions::TraverserOptions(
       _ctx(new aql::FixedVarExpressionContext()),
       _traverser(nullptr),
       _isCoordinator(arangodb::ServerState::instance()->isCoordinator()),
+      _cache(new TraverserCache(_trx)),
       minDepth(other.minDepth),
       maxDepth(other.maxDepth),
       useBreadthFirst(other.useBreadthFirst),
@@ -631,7 +653,7 @@ bool arangodb::traverser::TraverserOptions::evaluateVertexExpression(
 arangodb::traverser::EdgeCursor*
 arangodb::traverser::TraverserOptions::nextCursor(ManagedDocumentResult* mmdr,
                                                   StringRef vid,
-                                                  uint64_t depth) const {
+                                                  uint64_t depth) {
   if (_isCoordinator) {
     return nextCursorCoordinator(vid, depth);
   }
@@ -648,9 +670,9 @@ arangodb::traverser::TraverserOptions::nextCursor(ManagedDocumentResult* mmdr,
 
 arangodb::traverser::EdgeCursor*
 arangodb::traverser::TraverserOptions::nextCursorLocal(ManagedDocumentResult* mmdr,
-    StringRef vid, uint64_t depth, std::vector<LookupInfo>& list) const {
+    StringRef vid, uint64_t depth, std::vector<LookupInfo>& list) {
   TRI_ASSERT(mmdr != nullptr);
-  auto allCursor = std::make_unique<SingleServerEdgeCursor>(mmdr, _trx, list.size());
+  auto allCursor = std::make_unique<SingleServerEdgeCursor>(mmdr, this, list.size());
   auto& opCursors = allCursor->getCursors();
   for (auto& info : list) {
     auto& node = info.indexCondition;
@@ -679,7 +701,7 @@ arangodb::traverser::TraverserOptions::nextCursorLocal(ManagedDocumentResult* mm
 
 arangodb::traverser::EdgeCursor*
 arangodb::traverser::TraverserOptions::nextCursorCoordinator(
-    StringRef vid, uint64_t depth) const {
+    StringRef vid, uint64_t depth) {
   TRI_ASSERT(_traverser != nullptr);
   auto cursor = std::make_unique<ClusterEdgeCursor>(vid, depth, _traverser);
   return cursor.release();

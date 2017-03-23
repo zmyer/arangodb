@@ -45,18 +45,17 @@ class BreadthFirstEnumerator final : public arangodb::traverser::PathEnumerator 
 
   struct PathStep {
     size_t sourceIdx;
-    arangodb::velocypack::Slice edge;
-    arangodb::velocypack::Slice vertex;
+    arangodb::StringRef const edge;
+    arangodb::StringRef const vertex;
 
    private:
     PathStep() {}
 
    public:
-    explicit PathStep(arangodb::velocypack::Slice vertex) : sourceIdx(0), vertex(vertex) {}
+    explicit PathStep(arangodb::StringRef const vertex);
 
-    PathStep(size_t sourceIdx, arangodb::velocypack::Slice edge,
-             arangodb::velocypack::Slice vertex)
-        : sourceIdx(sourceIdx), edge(edge), vertex(vertex) {}
+    PathStep(size_t sourceIdx, arangodb::StringRef const edge,
+             arangodb::StringRef const vertex);
   };
 
   //////////////////////////////////////////////////////////////////////////////
@@ -127,7 +126,7 @@ class BreadthFirstEnumerator final : public arangodb::traverser::PathEnumerator 
  public:
   BreadthFirstEnumerator(arangodb::traverser::Traverser* traverser,
                          arangodb::velocypack::Slice startVertex,
-                         arangodb::traverser::TraverserOptions const* opts);
+                         arangodb::traverser::TraverserOptions* opts);
 
   ~BreadthFirstEnumerator() {}
 

@@ -34,8 +34,8 @@
 #include <velocypack/velocypack-aliases.h>
 
 using namespace arangodb;
+using namespace arangodb::traverser;
 
-using Traverser = arangodb::traverser::Traverser;
 /// @brief Class Shortest Path
 
 /// @brief Clears the path
@@ -76,16 +76,16 @@ void arangodb::traverser::ShortestPath::vertexToVelocyPack(transaction::Methods*
   }
 }
 
-bool Traverser::VertexGetter::getVertex(VPackSlice edge, std::vector<std::string>& result) {
+bool Traverser::VertexGetter::getVertex(VPackSlice edge, std::vector<StringRef>& result) {
   VPackSlice res = transaction::helpers::extractFromFromDocument(edge);
-  if (res.compareString(result.back().c_str(), result.back().length()) == 0) {
+  if (result.back() == StringRef(res)) {
     res = transaction::helpers::extractToFromDocument(edge);
   }
 
   if (!_traverser->vertexMatchesConditions(res, result.size())) {
     return false;
   }
-  result.emplace_back(res.copyString());
+  result.emplace_back(_traverser->traverserCache()->persistString(StringRef(res)));
   return true;
 }
 
@@ -102,18 +102,17 @@ bool Traverser::VertexGetter::getSingleVertex(VPackSlice edge,
   return _traverser->vertexMatchesConditions(result, depth);
 }
 
-void Traverser::VertexGetter::reset(std::string const&) {
+void Traverser::VertexGetter::reset(StringRef const&) {
 }
 
-bool Traverser::UniqueVertexGetter::getVertex(VPackSlice edge, std::vector<std::string>& result) {
+bool Traverser::UniqueVertexGetter::getVertex(VPackSlice edge, std::vector<StringRef>& result) {
   VPackSlice toAdd = transaction::helpers::extractFromFromDocument(edge);
-  std::string const& cmp = result.back();
-  if (toAdd.compareString(cmp.c_str(), cmp.length()) == 0) {
+  StringRef const& cmp = result.back();
+  TRI_ASSERT(toAdd.isString());
+  if (cmp == StringRef(toAdd)) {
     toAdd = transaction::helpers::extractToFromDocument(edge);
   }
-
-  //arangodb::basics::VPackHashedSlice hashed(toAdd);
-  std::string toAddStr (toAdd.copyString());
+  StringRef toAddStr = _traverser->traverserCache()->persistString(StringRef(toAdd));
   // First check if we visited it. If not, then mark
   if (_returnedVertices.find(toAddStr) != _returnedVertices.end()) {
     // This vertex is not unique.
@@ -127,7 +126,7 @@ bool Traverser::UniqueVertexGetter::getVertex(VPackSlice edge, std::vector<std::
     return false;
   }
 
-  result.emplace_back(toAdd.copyString());
+  result.emplace_back(toAddStr);
   return true;
 }
 
@@ -139,8 +138,8 @@ bool Traverser::UniqueVertexGetter::getSingleVertex(
     result = transaction::helpers::extractToFromDocument(edge);
   }
   
-  //arangodb::basics::VPackHashedSlice hashed(result);
-  std::string toAddStr (result.copyString());
+  TRI_ASSERT(result.isString());
+  StringRef toAddStr = _traverser->traverserCache()->persistString(StringRef(result));
   // First check if we visited it. If not, then mark
   if (_returnedVertices.find(toAddStr) != _returnedVertices.end()) {
     // This vertex is not unique.
@@ -153,16 +152,16 @@ bool Traverser::UniqueVertexGetter::getSingleVertex(
   return _traverser->vertexMatchesConditions(result, depth);
 }
 
-void Traverser::UniqueVertexGetter::reset(std::string const& startVertex) {
+void Traverser::UniqueVertexGetter::reset(arangodb::StringRef const& startVertex) {
   _returnedVertices.clear();
   // The startVertex always counts as visited!
   _returnedVertices.emplace(startVertex);
 }
 
-Traverser::Traverser(arangodb::traverser::TraverserOptions* opts, transaction::Methods* trx,
+Traverser::Traverser(arangodb::traverser::TraverserOptions* opts,
+                     transaction::Methods* trx,
                      arangodb::ManagedDocumentResult* mmdr)
-    : _cache(new TraverserCache(trx, mmdr)),
-      _trx(trx),
+    : _trx(trx),
       _mmdr(mmdr),
       _startIdBuilder(trx),
       _readDocuments(0),
@@ -210,6 +209,10 @@ bool arangodb::traverser::Traverser::next() {
     _done = true;
   }
   return res;
+}
+
+TraverserCache* arangodb::traverser::Traverser::traverserCache() {
+  return _opts->cache();
 }
 
 arangodb::aql::AqlValue arangodb::traverser::Traverser::lastVertexToAqlValue() {

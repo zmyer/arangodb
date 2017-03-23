@@ -26,9 +26,19 @@
 #include "VocBase/Traverser.h"
 #include "VocBase/TraverserCache.h"
 
+using PathEnumerator = arangodb::traverser::PathEnumerator;
 using DepthFirstEnumerator = arangodb::traverser::DepthFirstEnumerator;
 using Traverser = arangodb::traverser::Traverser;
 using TraverserOptions = arangodb::traverser::TraverserOptions;
+
+PathEnumerator::PathEnumerator(Traverser* traverser, std::string const& startVertex,
+                               TraverserOptions* opts)
+    : _traverser(traverser), _isFirst(true), _opts(opts) {
+  StringRef svId = _opts->cache()->persistString(StringRef(startVertex));
+  // Guarantee that this vertex _id does not run away
+  _enumeratedPath.vertices.push_back(svId);
+  TRI_ASSERT(_enumeratedPath.vertices.size() == 1);
+}
 
 bool DepthFirstEnumerator::next() {
   if (_isFirst) {
@@ -65,10 +75,10 @@ bool DepthFirstEnumerator::next() {
       
       bool foundPath = false;
       bool exitInnerLoop = false;
-      auto callback = [&] (std::string const& eid, VPackSlice const& edge, size_t cursorId) {
+      auto callback = [&] (StringRef const& eid, VPackSlice const& edge, size_t cursorId) {
         ++_traverser->_readDocuments;
         _enumeratedPath.edges.push_back(eid);
-        _traverser->_cache->insertDocument(StringRef(eid), edge);// TODO handle in cursor directly?
+        _opts->cache()->insertDocument(StringRef(eid), edge); // TODO handle in cursor directly?
         LOG_TOPIC(INFO, Logger::FIXME) << edge.toJson();
         
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::GLOBAL) {
@@ -93,9 +103,9 @@ bool DepthFirstEnumerator::next() {
         }
         
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::PATH) {
-          std::string const& e = _enumeratedPath.edges.back();
+          StringRef const& e = _enumeratedPath.edges.back();
           bool foundOnce = false;
-          for (std::string const& it : _enumeratedPath.edges) {
+          for (StringRef const& it : _enumeratedPath.edges) {
             if (foundOnce) {
               foundOnce = false; // if we leave with foundOnce == false we found the edge earlier
               break;

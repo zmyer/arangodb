@@ -25,6 +25,7 @@
 #define ARANGODB_VOCBASE_PATHENUMERATOR_H 1
 
 #include "Basics/Common.h"
+#include "VocBase/Traverser.h"
 #include "VocBase/TraverserOptions.h"
 #include <velocypack/Slice.h>
 #include <stack>
@@ -43,8 +44,8 @@ class Traverser;
 struct TraverserOptions;
 
 struct EnumeratedPath {
-  std::vector<std::string> edges;
-  std::vector<std::string> vertices;
+  std::vector<arangodb::StringRef> edges;
+  std::vector<arangodb::StringRef> vertices;
   EnumeratedPath() {}
 };
 
@@ -69,10 +70,10 @@ class PathEnumerator {
   bool _isFirst;
 
   //////////////////////////////////////////////////////////////////////////////
-  /// @brief Maximal path length which should be enumerated.
+  /// @brief Options used in the traversal
   //////////////////////////////////////////////////////////////////////////////
 
-  TraverserOptions const* _opts; 
+  TraverserOptions* _opts; 
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief List of the last path is used to
@@ -81,15 +82,11 @@ class PathEnumerator {
   EnumeratedPath _enumeratedPath;
 
   /// @brief List which edges have been visited already.
-  std::unordered_set<std::string> _returnedEdges;
+  std::unordered_set<arangodb::StringRef> _returnedEdges;
 
  public:
   PathEnumerator(Traverser* traverser, std::string const& startVertex,
-                 TraverserOptions const* opts)
-      : _traverser(traverser), _isFirst(true), _opts(opts) {
-    _enumeratedPath.vertices.push_back(startVertex);
-    TRI_ASSERT(_enumeratedPath.vertices.size() == 1);
-  }
+                 TraverserOptions* opts);
 
   virtual ~PathEnumerator() {}
 
@@ -117,7 +114,7 @@ class DepthFirstEnumerator final : public PathEnumerator {
  public:
   DepthFirstEnumerator(Traverser* traverser,
                        std::string const& startVertex,
-                       TraverserOptions const* opts)
+                       TraverserOptions* opts)
       : PathEnumerator(traverser, startVertex, opts) {}
 
   ~DepthFirstEnumerator() {

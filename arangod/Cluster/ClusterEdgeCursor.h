@@ -30,6 +30,8 @@ namespace arangodb {
 class CollectionNameResolver;
 namespace traverser {
 
+class Traverser;
+
 class ClusterEdgeCursor : public EdgeCursor {
 
  public:
@@ -38,7 +40,7 @@ class ClusterEdgeCursor : public EdgeCursor {
   ~ClusterEdgeCursor() {
   }
 
-  bool next(std::function<void(std::string const&, VPackSlice, size_t)> callback) override;
+  bool next(std::function<void(arangodb::StringRef const&, VPackSlice, size_t)> callback) override;
 
   bool readAll(std::unordered_set<arangodb::velocypack::Slice>&, size_t&) override;
 
@@ -47,7 +49,8 @@ class ClusterEdgeCursor : public EdgeCursor {
   std::vector<arangodb::velocypack::Slice> _edgeList;
 
   size_t _position;
-  CollectionNameResolver const*_resolver;
+  CollectionNameResolver const* _resolver;
+  arangodb::traverser::Traverser* _traverser;
 };
 }
 }

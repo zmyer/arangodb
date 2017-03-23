@@ -61,6 +61,7 @@ class NeighborsEnumerator;
 
 namespace traverser {
 
+class PathEnumerator;
 struct TraverserOptions;
 class TraverserCache;
 
@@ -193,13 +194,13 @@ class Traverser {
     virtual ~VertexGetter() = default;
 
     virtual bool getVertex(arangodb::velocypack::Slice,
-                           std::vector<std::string>&);
+                           std::vector<arangodb::StringRef>&);
 
     virtual bool getSingleVertex(arangodb::velocypack::Slice,
                                  arangodb::velocypack::Slice, uint64_t,
                                  arangodb::velocypack::Slice&);
 
-    virtual void reset(std::string const&);
+    virtual void reset(arangodb::StringRef const&);
 
    protected:
     Traverser* _traverser;
@@ -217,16 +218,16 @@ class Traverser {
     ~UniqueVertexGetter() = default;
 
     bool getVertex(arangodb::velocypack::Slice,
-                   std::vector<std::string>&) override;
+                   std::vector<arangodb::StringRef>&) override;
 
     bool getSingleVertex(arangodb::velocypack::Slice,
                          arangodb::velocypack::Slice, uint64_t,
                          arangodb::velocypack::Slice&) override;
 
-    void reset(std::string const&) override;
+    void reset(arangodb::StringRef const&) override;
 
    private:
-    std::unordered_set<std::string> _returnedVertices;
+    std::unordered_set<arangodb::StringRef> _returnedVertices;
   };
 
 
@@ -268,9 +269,7 @@ class Traverser {
   /// @brief Get the next possible path in the graph.
   bool next();
 
-  TraverserCache* traverserCache() {
-    return _cache.get();
-  };
+  TraverserCache* traverserCache();
 
  protected:
 
@@ -278,7 +277,7 @@ class Traverser {
   ///        Returns true if the vertex passes filtering conditions
   ///        Also appends the _id value of the vertex in the given vector
   virtual bool getVertex(arangodb::velocypack::Slice,
-                         std::vector<std::string>&) = 0;
+                         std::vector<arangodb::StringRef>&) = 0;
 
   /// @brief Function to load the other sides vertex of an edge
   ///        Returns true if the vertex passes filtering conditions
@@ -286,6 +285,16 @@ class Traverser {
   virtual bool getSingleVertex(arangodb::velocypack::Slice,
                                arangodb::velocypack::Slice, uint64_t,
                                arangodb::velocypack::Slice&) = 0;
+
+  virtual bool getSingleVertex(arangodb::velocypack::Slice edge,
+                               arangodb::StringRef const sourceVertexId,
+                               uint64_t depth,
+                               arangodb::StringRef& targetVertexId) {
+    // TODO This is the new version has to be build for all classes!!
+    TRI_ASSERT(false);
+    return false;
+  };
+ 
  public:
  
   //////////////////////////////////////////////////////////////////////////////
@@ -332,7 +341,7 @@ class Traverser {
     return tmp;
   }
   
-  TraverserOptions const* options() { return _opts; }
+  TraverserOptions* options() { return _opts; }
   
   ManagedDocumentResult* mmdr() const { return _mmdr; }
 
@@ -351,10 +360,6 @@ class Traverser {
 
   void allowOptimizedNeighbors();
     
-public:
-
-  std::unique_ptr<TraverserCache> _cache;
-
  protected:
 
   /// @brief Outer top level transaction
@@ -386,9 +391,6 @@ public:
   /// @brief options for traversal
   TraverserOptions* _opts;
   
-  /// @brief the traverser cache
-  std::unique_ptr<TraverserCache> _cache;
-
   bool _canUseOptimizedNeighbors;
 
   /// @brief Function to fetch the real data of a vertex into an AQLValue

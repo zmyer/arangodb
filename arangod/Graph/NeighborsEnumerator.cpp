@@ -32,7 +32,7 @@ using namespace arangodb::graph;
 
 NeighborsEnumerator::NeighborsEnumerator(Traverser* traverser,
                                          VPackSlice const& startVertex,
-                                         TraverserOptions const* opts)
+                                         TraverserOptions* opts)
     : PathEnumerator(traverser, startVertex.copyString(), opts),
       _searchDepth(0) {
   _allFound.insert(arangodb::basics::VPackHashedSlice(startVertex));

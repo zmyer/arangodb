@@ -61,13 +61,13 @@ class ClusterTraverser final : public Traverser {
   ///        Returns true if the vertex passes filtering conditions
   ///        Also apppends the _id value of the vertex in the given vector
 
-  bool getVertex(arangodb::velocypack::Slice, std::vector<std::string>&) override;
+  bool getVertex(arangodb::velocypack::Slice, std::vector<arangodb::StringRef>&) override;
 
   /// @brief Function to load the other sides vertex of an edge
   ///        Returns true if the vertex passes filtering conditions
 
-  bool getSingleVertex(arangodb::velocypack::Slice, arangodb::velocypack::Slice,
-                       uint64_t, arangodb::velocypack::Slice&) override;
+  bool getSingleVertex(arangodb::velocypack::Slice edge, arangodb::velocypack::Slice vertexId,
+                       uint64_t depth, arangodb::velocypack::Slice&) override;
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Function to fetch the real data of a vertex into an AQLValue

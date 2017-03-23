@@ -28,6 +28,7 @@
 
 namespace arangodb {
 class ManagedDocumentResult;
+class StringHeap;
 
 namespace cache {
 class Cache;
@@ -51,7 +52,7 @@ namespace traverser {
 class TraverserCache {
 
   public:
-   TraverserCache(transaction::Methods* trx, ManagedDocumentResult* mmdr);
+   explicit TraverserCache(transaction::Methods* trx);
 
    ~TraverserCache();
 
@@ -95,6 +96,12 @@ class TraverserCache {
     return tmp;
   }
 
+   //////////////////////////////////////////////////////////////////////////////
+   /// @brief Persist the given id string. The return value is guaranteed to
+   ///        stay valid as long as this cache is valid
+   //////////////////////////////////////////////////////////////////////////////
+   StringRef persistString(StringRef const idString);
+
   private:
 
    //////////////////////////////////////////////////////////////////////////////
@@ -123,14 +130,29 @@ class TraverserCache {
    /// @brief Reusable ManagedDocumentResult that temporarily takes
    ///        responsibility for one document.
    //////////////////////////////////////////////////////////////////////////////
-   ManagedDocumentResult *_mmdr;
+   std::unique_ptr<ManagedDocumentResult> _mmdr;
 
    //////////////////////////////////////////////////////////////////////////////
    /// @brief Transaction to access data, This class is NOT responsible for it.
    //////////////////////////////////////////////////////////////////////////////
    arangodb::transaction::Methods* _trx;
   
+   //////////////////////////////////////////////////////////////////////////////
+   /// @brief Documents inserted in this cache
+   //////////////////////////////////////////////////////////////////////////////
    size_t _insertedDocuments;
+
+   //////////////////////////////////////////////////////////////////////////////
+   /// @brief Stringheap to take care of _id strings, s.t. they stay valid
+   ///        during the entire traversal.
+   //////////////////////////////////////////////////////////////////////////////
+   std::unique_ptr<arangodb::StringHeap> _stringHeap;
+
+   //////////////////////////////////////////////////////////////////////////////
+   /// @brief Set of all strings persisted in the stringHeap. So we can save some
+   ///        memory by not storing them twice.
+   //////////////////////////////////////////////////////////////////////////////
+   std::unordered_set<arangodb::StringRef> _persistedStrings;
 };
 
 }

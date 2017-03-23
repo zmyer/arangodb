@@ -68,8 +68,9 @@ void ClusterTraverser::setStartVertex(std::string const& vid) {
     _done = true;
     return;
   }
+  StringRef persId = traverserCache()->persistString(StringRef(vid));
 
-  _vertexGetter->reset(vid);
+  _vertexGetter->reset(persId);
   if (_opts->useBreadthFirst) {
     _enumerator.reset(
         new arangodb::graph::BreadthFirstEnumerator(this, idSlice, _opts));
@@ -81,10 +82,10 @@ void ClusterTraverser::setStartVertex(std::string const& vid) {
 }
 
 bool ClusterTraverser::getVertex(VPackSlice edge,
-                                 std::vector<std::string>& result) {
+                                 std::vector<StringRef>& result) {
   bool res = _vertexGetter->getVertex(edge, result);
   if (res) {
-    StringRef other(result.back());
+    StringRef const& other = result.back();
     if (_vertices.find(other) == _vertices.end()) {
       // Vertex not yet cached. Prepare it.
       _verticesToFetch.emplace(other);
