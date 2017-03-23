@@ -63,9 +63,8 @@ class SingleServerEdgeCursor : public EdgeCursor {
 
   bool next(std::function<void(std::string const&, VPackSlice, size_t)> callback) override;
 
-  bool readAll(std::unordered_set<arangodb::velocypack::Slice>&, size_t&) override;
-
-  void readAll(std::function<void(std::string const&, arangodb::velocypack::Slice, size_t&)>) override;
+  //bool readAll(std::unordered_set<arangodb::velocypack::Slice>&, size_t&) override;
+  void readAll(std::function<void(std::string const&, arangodb::velocypack::Slice, size_t)>) override;
 
   std::vector<std::vector<OperationCursor*>>& getCursors() {
     return _cursors;

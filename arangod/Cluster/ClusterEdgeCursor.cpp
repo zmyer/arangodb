@@ -38,9 +38,10 @@ ClusterEdgeCursor::ClusterEdgeCursor(StringRef vertexId, uint64_t depth,
     : _position(0), _resolver(traverser->_trx->resolver()) {
       transaction::BuilderLeaser leased(traverser->_trx);
       
-#warning fix copying by either adding overloaded method or
+#warning fix copying by adding overloaded method?
       transaction::BuilderLeaser b(traverser->_trx);
-      b->add(VPackValue(vertexId.toString()));
+      b->add(VPackValuePair(vertexId.data(), vertexId.length(), VPackValueType::String));
+
       
       fetchEdgesFromEngines(traverser->_dbname, traverser->_engines, b->slice(), depth,
                             traverser->_edges, _edgeList, traverser->_datalake,
@@ -61,13 +62,13 @@ bool ClusterEdgeCursor::next(std::function<void(std::string const&,
   return false;
 }
 
-bool ClusterEdgeCursor::readAll(std::unordered_set<VPackSlice>& result, size_t& cursorId) {
+void ClusterEdgeCursor::readAll(std::function<void(std::string const&, arangodb::velocypack::Slice, size_t)> callback) {
   if (_position == 0) {
     // We have not yet returned anything. So we simply return everything at once.
-    std::copy(_edgeList.begin(), _edgeList.end(), std::inserter(result, result.end()));
+    for (VPackSlice edge : _edgeList) {
+      std::string eid = transaction::helpers::extractIdString(_resolver, edge, VPackSlice());
+      callback(eid, edge, _position);
+    }
     _position++;
-    return true;
-  }
-  // We have already returned everything last time.
-  return false;
+  } // We have already returned everything last time.
 }

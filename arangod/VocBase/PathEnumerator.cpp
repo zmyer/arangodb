@@ -236,25 +236,22 @@ bool NeighborsEnumerator::next() {
       _lastDepth.swap(_currentDepth);
       _currentDepth.clear();
       for (auto const& nextVertex : _lastDepth) {
-        size_t cursorIdx = 0;
+        //size_t cursorIdx = 0;
         std::unique_ptr<arangodb::traverser::EdgeCursor> cursor(
             _opts->nextCursor(_traverser->mmdr(), StringRef(nextVertex.slice), _searchDepth));
-        while (cursor->readAll(_tmpEdges, cursorIdx)) {
-          if (!_tmpEdges.empty()) {
-            _traverser->_readDocuments += _tmpEdges.size();
-            VPackSlice v;
-            for (auto const& e : _tmpEdges) {
-              if (_traverser->getSingleVertex(e, nextVertex.slice, _searchDepth, v)) {
-                arangodb::basics::VPackHashedSlice hashed(v);
-                if (_allFound.find(hashed) == _allFound.end()) {
-                  _currentDepth.emplace(hashed);
-                  _allFound.emplace(hashed);
-                }
-              }
+        
+        cursor->readAll([&] (std::string const& eid, VPackSlice e, size_t cursorIdx) {
+          _traverser->_readDocuments++;
+          _traverser->_cache->insertDocument(StringRef(eid), e);// needed for single server traverser
+          VPackSlice v;
+          if (_traverser->getSingleVertex(e, nextVertex.slice, _searchDepth, v)) {
+            arangodb::basics::VPackHashedSlice hashed(v);
+            if (_allFound.find(hashed) == _allFound.end()) {
+              _currentDepth.emplace(hashed);
+              _allFound.emplace(hashed);
             }
-            _tmpEdges.clear();
           }
-        }
+        });
       }
       if (_currentDepth.empty()) {
         // Nothing found. Cannot do anything more.
