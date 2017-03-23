@@ -79,7 +79,6 @@ bool DepthFirstEnumerator::next() {
         ++_traverser->_readDocuments;
         _enumeratedPath.edges.push_back(eid);
         _opts->cache()->insertDocument(StringRef(eid), edge); // TODO handle in cursor directly?
-        LOG_TOPIC(INFO, Logger::FIXME) << edge.toJson();
         
         if (_opts->uniqueEdges == TraverserOptions::UniquenessLevel::GLOBAL) {
           if (_returnedEdges.find(eid) == _returnedEdges.end()) {
