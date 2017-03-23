@@ -68,6 +68,11 @@ class ClusterTraverser final : public Traverser {
 
   bool getSingleVertex(arangodb::velocypack::Slice edge, arangodb::velocypack::Slice vertexId,
                        uint64_t depth, arangodb::velocypack::Slice&) override;
+  
+  bool getSingleVertex(arangodb::velocypack::Slice edge,
+                       StringRef const sourceVertexId,
+                       uint64_t depth,
+                       StringRef& targetVertexId) override;
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Function to fetch the real data of a vertex into an AQLValue

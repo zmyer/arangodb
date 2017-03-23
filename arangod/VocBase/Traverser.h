@@ -199,6 +199,9 @@ class Traverser {
     virtual bool getSingleVertex(arangodb::velocypack::Slice,
                                  arangodb::velocypack::Slice, uint64_t,
                                  arangodb::velocypack::Slice&);
+    
+    virtual bool getSingleVertex(arangodb::velocypack::Slice, StringRef,
+                                 uint64_t, StringRef&);
 
     virtual void reset(arangodb::StringRef const&);
 
@@ -223,6 +226,9 @@ class Traverser {
     bool getSingleVertex(arangodb::velocypack::Slice,
                          arangodb::velocypack::Slice, uint64_t,
                          arangodb::velocypack::Slice&) override;
+    
+    bool getSingleVertex(arangodb::velocypack::Slice, StringRef,
+                         uint64_t, StringRef&) override;
 
     void reset(arangodb::StringRef const&) override;
 

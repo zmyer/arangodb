@@ -232,10 +232,10 @@ bool SingleServerTraverser::getSingleVertex(VPackSlice edge, VPackSlice vertex,
 bool SingleServerTraverser::getSingleVertex(VPackSlice edge, StringRef const sourceVertexId,
                                             uint64_t depth, StringRef& targetVertexId) {
   // TODO FIXME!!!! All of this dies in scoping!!
-  VPackBuilder builder;
-  builder.add(VPackValue(sourceVertexId.toString()));
-  VPackSlice target;
-  bool res = _vertexGetter->getSingleVertex(edge, builder.slice(), depth, target);
-  targetVertexId = StringRef{target};
-  return res;
+  //VPackBuilder builder;
+  //builder.add(VPackValue(sourceVertexId.toString()));
+  //VPackSlice target;
+  return _vertexGetter->getSingleVertex(edge, sourceVertexId, depth, targetVertexId);
+  //targetVertexId = StringRef{target};
+  //return res;
 }

@@ -102,6 +102,19 @@ bool Traverser::VertexGetter::getSingleVertex(VPackSlice edge,
   return _traverser->vertexMatchesConditions(result, depth);
 }
 
+bool Traverser::VertexGetter::getSingleVertex(arangodb::velocypack::Slice edge, StringRef cmp,
+                                              uint64_t depth, StringRef& result) {
+  VPackSlice resSlice;
+  VPackSlice from = transaction::helpers::extractFromFromDocument(edge);
+  if (from.compareString(cmp.data(), cmp.length()) != 0) {
+    resSlice = from;
+  } else {
+    resSlice = transaction::helpers::extractToFromDocument(edge);
+  }
+  result = StringRef(resSlice);
+  return _traverser->vertexMatchesConditions(resSlice, depth);
+}
+
 void Traverser::VertexGetter::reset(StringRef const&) {
 }
 
@@ -150,6 +163,28 @@ bool Traverser::UniqueVertexGetter::getSingleVertex(
   }
 
   return _traverser->vertexMatchesConditions(result, depth);
+}
+
+bool Traverser::UniqueVertexGetter::getSingleVertex(arangodb::velocypack::Slice edge, StringRef cmp,
+                                              uint64_t depth, StringRef& result) {
+  VPackSlice resSlice = transaction::helpers::extractFromFromDocument(edge);
+    
+  if (resSlice.compareString(cmp.data(), cmp.length()) == 0) {
+    resSlice = transaction::helpers::extractToFromDocument(edge);
+  }
+  TRI_ASSERT(resSlice.isString());
+  
+  StringRef toAddStr = _traverser->traverserCache()->persistString(StringRef(resSlice));
+  // First check if we visited it. If not, then mark
+  if (_returnedVertices.find(toAddStr) != _returnedVertices.end()) {
+    // This vertex is not unique.
+    ++_traverser->_filteredPaths;
+    return false;
+  } else {
+    _returnedVertices.emplace(toAddStr);
+  }
+  result = StringRef(resSlice);
+  return _traverser->vertexMatchesConditions(resSlice, depth);
 }
 
 void Traverser::UniqueVertexGetter::reset(arangodb::StringRef const& startVertex) {

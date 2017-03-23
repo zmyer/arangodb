@@ -107,6 +107,18 @@ bool ClusterTraverser::getSingleVertex(VPackSlice edge, VPackSlice comp,
   return res;
 }
 
+bool ClusterTraverser::getSingleVertex(arangodb::velocypack::Slice edge, StringRef const sourceVertexId,
+                     uint64_t depth, StringRef& targetVertexId) {
+  bool res = _vertexGetter->getSingleVertex(edge, sourceVertexId, depth, targetVertexId);
+  if (res) {
+    if (_vertices.find(targetVertexId) == _vertices.end()) {
+      // Vertex not yet cached. Prepare it.
+      _verticesToFetch.emplace(targetVertexId);
+    }
+  }
+  return res;
+}
+
 void ClusterTraverser::fetchVertices() {
   _readDocuments += _verticesToFetch.size();
   transaction::BuilderLeaser lease(_trx);
