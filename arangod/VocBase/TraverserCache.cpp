@@ -44,8 +44,9 @@ using namespace arangodb;
 using namespace arangodb::traverser;
 
 TraverserCache::TraverserCache(transaction::Methods* trx)
-    : _cache(nullptr), _trx(trx), _mmdr(new ManagedDocumentResult{}), _insertedDocuments(0),
-    _stringHeap(new StringHeap{4096}) /* arbitrary block-size may be adjusted for perforamnce */ {
+    : _cache(nullptr), _mmdr(new ManagedDocumentResult{}),
+      _trx(trx), _insertedDocuments(0),
+      _stringHeap(new StringHeap{4096}) /* arbitrary block-size may be adjusted for perforamnce */ {
   auto cacheManager = CacheManagerFeature::MANAGER;
   TRI_ASSERT(cacheManager != nullptr);
   _cache = cacheManager->createCache(cache::CacheType::Plain);
@@ -134,11 +135,10 @@ aql::AqlValue TraverserCache::fetchAqlResult(StringRef idString) {
   if (finding.found()) {
     auto val = finding.value();
     // finding makes sure that slice contant stays valid.
-    return aql::AqlValue(val->value(), aql::AqlValueFromManagedDocument());
-  } else {
-    // Not in cache. Fetch and insert.
-    return aql::AqlValue(lookupInCollection(idString));
+    return aql::AqlValue(val->value());
   }
+  // Not in cache. Fetch and insert.
+  return aql::AqlValue(lookupInCollection(idString));
 }
 
 void TraverserCache::insertDocument(StringRef idString, arangodb::velocypack::Slice const& document) {
