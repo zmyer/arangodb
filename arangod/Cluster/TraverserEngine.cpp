@@ -145,7 +145,8 @@ void BaseTraverserEngine::getEdges(VPackSlice vertex, size_t depth, VPackBuilder
     for (VPackSlice v : VPackArrayIterator(vertex)) {
       TRI_ASSERT(v.isString());
       //result.clear();
-      auto edgeCursor = _opts->nextCursor(&mmdr, StringRef(v), depth);
+      StringRef vertexId(v);
+      auto edgeCursor = _opts->nextCursor(&mmdr, vertexId, depth);
       
       edgeCursor->readAll([&] (StringRef const& documentId, VPackSlice edge, size_t cursorId) {
         if (!_opts->evaluateEdgeExpression(edge, StringRef(v), depth, cursorId)) {
