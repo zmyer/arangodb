@@ -52,10 +52,10 @@ ClusterEdgeCursor::ClusterEdgeCursor(StringRef vertexId, uint64_t depth,
 
 bool ClusterEdgeCursor::next(std::function<void(StringRef const&,
                                                 VPackSlice, size_t)> callback) {
+#warning FIXME Is the edgeList guaranteed to succeed?
   if (_position < _edgeList.size()) {
     VPackSlice edge = _edgeList[_position];
     std::string eid = transaction::helpers::extractIdString(_resolver, edge, VPackSlice());
-#warning FIXME visibility incorrect
     StringRef persId = _traverser->traverserCache()->persistString(StringRef(eid));
     callback(persId, edge, _position);
     ++_position;
@@ -64,13 +64,12 @@ bool ClusterEdgeCursor::next(std::function<void(StringRef const&,
   return false;
 }
 
-bool ClusterEdgeCursor::readAll(std::unordered_set<VPackSlice>& result, size_t& cursorId) {
-  if (_position == 0) {
-    // We have not yet returned anything. So we simply return everything at once.
-    std::copy(_edgeList.begin(), _edgeList.end(), std::inserter(result, result.end()));
-    _position++;
-    return true;
+void ClusterEdgeCursor::readAll(std::function<void(StringRef const&,
+                                                VPackSlice, size_t&)> callback) {
+#warning FIXME Is the edgeList guaranteed to succeed?
+  for (auto const& edge : _edgeList) {
+    std::string eid = transaction::helpers::extractIdString(_resolver, edge, VPackSlice());
+    StringRef persId = _traverser->traverserCache()->persistString(StringRef(eid));
+    callback(persId, edge, _position);
   }
-  // We have already returned everything last time.
-  return false;
 }

@@ -25,6 +25,7 @@
 
 #include "Basics/VelocyPackHelper.h"
 #include "VocBase/Traverser.h"
+#include "VocBase/TraverserCache.h"
 
 using namespace arangodb;
 using namespace arangodb::traverser;
@@ -35,8 +36,9 @@ NeighborsEnumerator::NeighborsEnumerator(Traverser* traverser,
                                          TraverserOptions* opts)
     : PathEnumerator(traverser, startVertex.copyString(), opts),
       _searchDepth(0) {
-  _allFound.insert(arangodb::basics::VPackHashedSlice(startVertex));
-  _currentDepth.insert(arangodb::basics::VPackHashedSlice(startVertex));
+  StringRef vId = _traverser->traverserCache()->persistString(StringRef(startVertex));
+  _allFound.insert(vId);
+  _currentDepth.insert(vId);
   _iterator = _currentDepth.begin();
 }
 
@@ -58,27 +60,22 @@ bool NeighborsEnumerator::next() {
 
       _lastDepth.swap(_currentDepth);
       _currentDepth.clear();
+      StringRef v;
       for (auto const& nextVertex : _lastDepth) {
-        size_t cursorIdx = 0;
-        StringRef vId(nextVertex.slice);
-        std::unique_ptr<arangodb::traverser::EdgeCursor> cursor(
-            _opts->nextCursor(_traverser->mmdr(), vId, _searchDepth));
-        while (cursor->readAll(_tmpEdges, cursorIdx)) {
-          if (!_tmpEdges.empty()) {
-            _traverser->_readDocuments += _tmpEdges.size();
-            VPackSlice v;
-            for (auto const& e : _tmpEdges) {
-              if (_traverser->getSingleVertex(e, nextVertex.slice, _searchDepth, v)) {
-                arangodb::basics::VPackHashedSlice hashed(v);
-                if (_allFound.find(hashed) == _allFound.end()) {
-                  _currentDepth.emplace(hashed);
-                  _allFound.emplace(hashed);
-                }
-              }
+        auto callback = [&](StringRef const& edgeId, VPackSlice e, size_t& cursorId) {
+          // Counting should be done in readAll
+          _traverser->_readDocuments++;
+          if (_traverser->getSingleVertex(e, nextVertex, _searchDepth, v)) {
+            StringRef otherId = _traverser->traverserCache()->persistString(v);
+            if (_allFound.find(otherId) == _allFound.end()) {
+              _currentDepth.emplace(otherId);
+              _allFound.emplace(otherId);
             }
-            _tmpEdges.clear();
           }
-        }
+        };
+        std::unique_ptr<arangodb::traverser::EdgeCursor> cursor(
+            _opts->nextCursor(_traverser->mmdr(), nextVertex, _searchDepth));
+        cursor->readAll(callback);
       }
       if (_currentDepth.empty()) {
         // Nothing found. Cannot do anything more.
@@ -94,8 +91,7 @@ bool NeighborsEnumerator::next() {
 
 arangodb::aql::AqlValue NeighborsEnumerator::lastVertexToAqlValue() {
   TRI_ASSERT(_iterator != _currentDepth.end());
-  StringRef vid(_iterator->slice);
-  return _traverser->fetchVertexData(vid);
+  return _traverser->fetchVertexData(*_iterator);
 }
 
 arangodb::aql::AqlValue NeighborsEnumerator::lastEdgeToAqlValue() {

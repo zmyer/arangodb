@@ -34,22 +34,11 @@ namespace graph {
 // @brief Enumerator optimized for neighbors. Does not allow edge access
 
 class NeighborsEnumerator final : public arangodb::traverser::PathEnumerator {
-  std::unordered_set<arangodb::basics::VPackHashedSlice,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringHash,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringEqual>
-      _allFound;
+  std::unordered_set<arangodb::StringRef> _allFound;
+  std::unordered_set<arangodb::StringRef> _currentDepth;
+  std::unordered_set<arangodb::StringRef> _lastDepth;
+  std::unordered_set<arangodb::StringRef>::iterator _iterator;
 
-  std::unordered_set<arangodb::basics::VPackHashedSlice,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringHash,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringEqual>
-      _currentDepth;
-
-  std::unordered_set<arangodb::basics::VPackHashedSlice,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringHash,
-                     arangodb::basics::VelocyPackHelper::VPackHashedStringEqual>
-      _lastDepth;
-
-  std::unordered_set<arangodb::basics::VPackHashedSlice, arangodb::basics::VelocyPackHelper::VPackHashedStringHash, arangodb::basics::VelocyPackHelper::VPackHashedStringEqual>::iterator _iterator;
   uint64_t _searchDepth;
  
   //////////////////////////////////////////////////////////////////////////////

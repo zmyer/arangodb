@@ -61,8 +61,7 @@ class EdgeCursor {
 
   virtual bool next(std::function<void(arangodb::StringRef const&, VPackSlice, size_t)> callback) = 0;
 
-  virtual bool readAll(std::unordered_set<arangodb::velocypack::Slice>&, size_t&) = 0;
-  virtual void readAll(std::function<void(arangodb::StringRef const&, arangodb::velocypack::Slice, size_t&)>) {};
+  virtual void readAll(std::function<void(arangodb::StringRef const&, arangodb::velocypack::Slice, size_t&)>) = 0;
 
 };
 
