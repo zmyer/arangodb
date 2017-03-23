@@ -147,10 +147,9 @@ void SingleServerEdgeCursor::readAll(std::function<void(StringRef const&, arango
     }
     auto& cursorSet = _cursors[currentCursor];
     for (auto& cursor : cursorSet) {
-      LogicalCollection* collection = cursor->collection(); 
+      LogicalCollection* collection = cursor->collection();
       auto cb = [&] (DocumentIdentifierToken const& token) {
         if (collection->readDocument(_trx, token, *_mmdr)) {
-          
           VPackSlice doc(_mmdr->vpack());
           std::string tmpId = _trx->extractIdString(doc);
           StringRef edgeId = _opts->cache()->persistString(StringRef(tmpId)); 

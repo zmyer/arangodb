@@ -1596,8 +1596,7 @@ void fetchVerticesFromEngines(
   builder.openArray();
   for (auto const& v : vertexIds) {
     //TRI_ASSERT(v.isString());
-#warning TODO Fix unnecessary string copying
-    builder.add(VPackValue(v.toString()));
+    builder.add(VPackValuePair(v.data(), v.length(), VPackValueType::String));
   }
   builder.close(); // 'keys' Array
   builder.close(); // base object
