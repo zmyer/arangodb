@@ -138,14 +138,14 @@ bool SingleServerEdgeCursor::next(std::function<void(StringRef const&, VPackSlic
 
 void SingleServerEdgeCursor::readAll(std::function<void(StringRef const&, arangodb::velocypack::Slice, size_t&)> callback) {
   size_t cursorId = 0;
-  for (size_t currentCursor = 0; currentCursor < _cursors.size(); ++currentCursor) {
+  for (_currentCursor = 0; _currentCursor < _cursors.size(); ++_currentCursor) {
     if (_internalCursorMapping != nullptr) {
       TRI_ASSERT(_currentCursor < _internalCursorMapping->size());
       cursorId = _internalCursorMapping->at(_currentCursor);
     } else {
       cursorId = _currentCursor;
     }
-    auto& cursorSet = _cursors[currentCursor];
+    auto& cursorSet = _cursors[_currentCursor];
     for (auto& cursor : cursorSet) {
       LogicalCollection* collection = cursor->collection();
       auto cb = [&] (DocumentIdentifierToken const& token) {
