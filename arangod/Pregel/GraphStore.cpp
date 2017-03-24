@@ -433,8 +433,6 @@ void GraphStore<V, E>::_loadEdges(transaction::Methods* trx,
         document = document.resolveExternal();
       }
 
-      // LOG_TOPIC(INFO, Logger::PREGEL) << "Loaded Edge: " <<
-      // document.toJson();
       std::string toValue = document.get(StaticStrings::ToString).copyString();
       std::size_t pos = toValue.find('/');
       std::string collectionName = toValue.substr(0, pos);
@@ -534,7 +532,6 @@ void GraphStore<V, E>::_storeVertices(std::vector<ShardID> const& globalShards,
       ++buffer;
     }
     b->close();
-    // LOG_TOPIC(INFO, Logger::PREGEL) << b->toString();
     if (_destroyed) {
       LOG_TOPIC(WARN, Logger::PREGEL)
           << "Storing data was canceled prematurely";
@@ -587,7 +584,7 @@ void GraphStore<V, E>::storeResults(WorkerConfig* config,
       }
       _runningThreads--;
       if (_runningThreads == 0) {
-        LOG_TOPIC(INFO, Logger::PREGEL) << "Storing data took "
+        LOG_TOPIC(DEBUG, Logger::PREGEL) << "Storing data took "
                                         << (TRI_microtime() - now) << "s";
         callback();
       }
