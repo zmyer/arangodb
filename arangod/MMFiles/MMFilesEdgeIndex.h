@@ -90,10 +90,6 @@ class MMFilesEdgeIndex final : public Index {
 
   bool hasBatchInsert() const override { return true; }
 
-  TRI_MMFilesEdgeIndexHash_t* from() { return _edgesFrom; }
-
-  TRI_MMFilesEdgeIndexHash_t* to() { return _edgesTo; }
-
   bool supportsFilterCondition(arangodb::aql::AstNode const*,
                                arangodb::aql::Variable const*, size_t, size_t&,
                                double&) const override;
