@@ -27,7 +27,6 @@
 #include "Basics/AssocMulti.h"
 #include "Basics/Common.h"
 #include "Indexes/Index.h"
-#include "Indexes/IndexIterator.h"
 #include "MMFiles/MMFilesIndexElement.h"
 #include "VocBase/voc-types.h"
 #include "VocBase/vocbase.h"
@@ -40,36 +39,10 @@ namespace basics {
 class LocalTaskQueue;
 }
 
-class MMFilesEdgeIndex;
-  
 typedef arangodb::basics::AssocMulti<arangodb::velocypack::Slice, MMFilesSimpleIndexElement,
                                      uint32_t, false> TRI_MMFilesEdgeIndexHash_t;
 
-class MMFilesEdgeIndexIterator final : public IndexIterator {
- public:
-  MMFilesEdgeIndexIterator(LogicalCollection* collection, transaction::Methods* trx,
-                    ManagedDocumentResult* mmdr,
-                    arangodb::MMFilesEdgeIndex const* index,
-                    TRI_MMFilesEdgeIndexHash_t const* indexImpl,
-                    std::unique_ptr<VPackBuilder>& keys);
-
-  ~MMFilesEdgeIndexIterator();
-  
-  char const* typeName() const override { return "edge-index-iterator"; }
-
-  bool next(TokenCallback const& cb, size_t limit) override;
-
-  void reset() override;
-
- private:
-  TRI_MMFilesEdgeIndexHash_t const* _index;
-  std::unique_ptr<arangodb::velocypack::Builder> _keys;
-  arangodb::velocypack::ArrayIterator _iterator;
-  std::vector<MMFilesSimpleIndexElement> _buffer;
-  size_t _posInBuffer;
-  size_t _batchSize;
-  MMFilesSimpleIndexElement _lastElement;
-};
+class IndexIterator;
 
 class MMFilesEdgeIndex final : public Index {
  public:

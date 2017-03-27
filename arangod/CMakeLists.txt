@@ -396,6 +396,7 @@ set(ARANGOD_SOURCES
   MMFiles/MMFilesDitch.cpp
   MMFiles/MMFilesDocumentOperation.cpp
   MMFiles/MMFilesEdgeIndex.cpp
+  MMFiles/MMFilesEdgeIndexIterator.cpp
   MMFiles/MMFilesEngine.cpp
   MMFiles/MMFilesExportCursor.cpp
   MMFiles/MMFilesIndexElement.cpp

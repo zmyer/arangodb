@@ -34,6 +34,7 @@
 #include "Indexes/SimpleAttributeEqualityMatcher.h"
 #include "MMFiles/MMFilesCollection.h"
 #include "MMFiles/MMFilesToken.h"
+#include "MMFiles/MMFilesEdgeIndexIterator.h"
 #include "StorageEngine/TransactionState.h"
 #include "Transaction/Helpers.h"
 #include "Transaction/Methods.h"
@@ -106,77 +107,7 @@ static bool IsEqualElementEdgeByKey(void* userData, MMFilesSimpleIndexElement co
     return false;
   }
 }
-  
-MMFilesEdgeIndexIterator::MMFilesEdgeIndexIterator(LogicalCollection* collection, transaction::Methods* trx,
-                                     ManagedDocumentResult* mmdr,
-                                     arangodb::MMFilesEdgeIndex const* index,
-                                     TRI_MMFilesEdgeIndexHash_t const* indexImpl,
-                                     std::unique_ptr<VPackBuilder>& keys)
-    : IndexIterator(collection, trx, mmdr, index),
-      _index(indexImpl),
-      _keys(keys.get()),
-      _iterator(_keys->slice()),
-      _posInBuffer(0),
-      _batchSize(1000),
-      _lastElement() {
-  keys.release();  // now we have ownership for _keys
-}
-
-MMFilesEdgeIndexIterator::~MMFilesEdgeIndexIterator() {
-  if (_keys != nullptr) {
-    // return the VPackBuilder to the transaction context
-    _trx->transactionContextPtr()->returnBuilder(_keys.release());
-  }
-}
-
-
-bool MMFilesEdgeIndexIterator::next(TokenCallback const& cb, size_t limit) {
-  if (limit == 0 || (_buffer.empty() && !_iterator.valid())) {
-    // No limit no data, or we are actually done. The last call should have returned false
-    TRI_ASSERT(limit > 0); // Someone called with limit == 0. Api broken
-    return false;
-  }
-  while (limit > 0) {
-    if (_buffer.empty()) {
-      // We start a new lookup
-      _posInBuffer = 0;
-
-      VPackSlice tmp = _iterator.value();
-      if (tmp.isObject()) {
-        tmp = tmp.get(StaticStrings::IndexEq);
-      }
-      _index->lookupByKey(&_context, &tmp, _buffer, _batchSize);
-    } else if (_posInBuffer >= _buffer.size()) {
-      // We have to refill the buffer
-      _buffer.clear();
-
-      _posInBuffer = 0;
-      _index->lookupByKeyContinue(&_context, _lastElement, _buffer, _batchSize);
-    }
-
-    if (_buffer.empty()) {
-      _iterator.next();
-      _lastElement = MMFilesSimpleIndexElement();
-      if (!_iterator.valid()) {
-        return false;
-      }
-    } else {
-      _lastElement = _buffer.back();
-      // found something
-      cb(MMFilesToken{_buffer[_posInBuffer++].revisionId()});
-      limit--;
-    }
-  }
-  return true;
-}
-
-void MMFilesEdgeIndexIterator::reset() {
-  _posInBuffer = 0;
-  _buffer.clear();
-  _iterator.reset();
-  _lastElement = MMFilesSimpleIndexElement();
-}
-  
+ 
 MMFilesEdgeIndex::MMFilesEdgeIndex(TRI_idx_iid_t iid, arangodb::LogicalCollection* collection)
     : Index(iid, collection,
             std::vector<std::vector<arangodb::basics::AttributeName>>(
