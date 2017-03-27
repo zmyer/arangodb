@@ -214,8 +214,6 @@ void SingleServerTraverser::setStartVertex(std::string const& vid) {
 }
 
 size_t SingleServerTraverser::getAndResetReadDocuments() {
-  //size_t tmp = _readDocuments;
-  //_readDocuments = 0;
   return _opts->cache()->getAndResetInsertedDocuments();
 }
 
@@ -224,18 +222,7 @@ bool SingleServerTraverser::getVertex(VPackSlice edge,
   return _vertexGetter->getVertex(edge, result);
 }
 
-bool SingleServerTraverser::getSingleVertex(VPackSlice edge, VPackSlice vertex,
-                                            uint64_t depth, VPackSlice& result) {
-  return _vertexGetter->getSingleVertex(edge, vertex, depth, result);
-}
-
 bool SingleServerTraverser::getSingleVertex(VPackSlice edge, StringRef const sourceVertexId,
                                             uint64_t depth, StringRef& targetVertexId) {
-  // TODO FIXME!!!! All of this dies in scoping!!
-  //VPackBuilder builder;
-  //builder.add(VPackValue(sourceVertexId.toString()));
-  //VPackSlice target;
   return _vertexGetter->getSingleVertex(edge, sourceVertexId, depth, targetVertexId);
-  //targetVertexId = StringRef{target};
-  //return res;
 }

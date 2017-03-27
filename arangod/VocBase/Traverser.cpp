@@ -89,19 +89,6 @@ bool Traverser::VertexGetter::getVertex(VPackSlice edge, std::vector<StringRef>&
   return true;
 }
 
-bool Traverser::VertexGetter::getSingleVertex(VPackSlice edge,
-                                              VPackSlice cmp,
-                                              uint64_t depth,
-                                              VPackSlice& result) {
-  VPackSlice from = transaction::helpers::extractFromFromDocument(edge);
-  if (from != cmp) {
-    result = from;
-  } else {
-    result = transaction::helpers::extractToFromDocument(edge);
-  }
-  return _traverser->vertexMatchesConditions(result, depth);
-}
-
 bool Traverser::VertexGetter::getSingleVertex(arangodb::velocypack::Slice edge, StringRef cmp,
                                               uint64_t depth, StringRef& result) {
   VPackSlice resSlice;
@@ -111,7 +98,7 @@ bool Traverser::VertexGetter::getSingleVertex(arangodb::velocypack::Slice edge, 
   } else {
     resSlice = transaction::helpers::extractToFromDocument(edge);
   }
-  result = StringRef(resSlice);
+  result = _traverser->traverserCache()->persistString(StringRef(resSlice));
   return _traverser->vertexMatchesConditions(resSlice, depth);
 }
 
@@ -143,28 +130,6 @@ bool Traverser::UniqueVertexGetter::getVertex(VPackSlice edge, std::vector<Strin
   return true;
 }
 
-bool Traverser::UniqueVertexGetter::getSingleVertex(
-  VPackSlice edge, VPackSlice cmp, uint64_t depth, VPackSlice& result) {
-  result = transaction::helpers::extractFromFromDocument(edge);
-
-  if (cmp == result) {
-    result = transaction::helpers::extractToFromDocument(edge);
-  }
-  
-  TRI_ASSERT(result.isString());
-  StringRef toAddStr = _traverser->traverserCache()->persistString(StringRef(result));
-  // First check if we visited it. If not, then mark
-  if (_returnedVertices.find(toAddStr) != _returnedVertices.end()) {
-    // This vertex is not unique.
-    ++_traverser->_filteredPaths;
-    return false;
-  } else {
-    _returnedVertices.emplace(toAddStr);
-  }
-
-  return _traverser->vertexMatchesConditions(result, depth);
-}
-
 bool Traverser::UniqueVertexGetter::getSingleVertex(arangodb::velocypack::Slice edge, StringRef cmp,
                                               uint64_t depth, StringRef& result) {
   VPackSlice resSlice = transaction::helpers::extractFromFromDocument(edge);
@@ -174,16 +139,15 @@ bool Traverser::UniqueVertexGetter::getSingleVertex(arangodb::velocypack::Slice 
   }
   TRI_ASSERT(resSlice.isString());
   
-  StringRef toAddStr = _traverser->traverserCache()->persistString(StringRef(resSlice));
+  result = _traverser->traverserCache()->persistString(StringRef(resSlice));
   // First check if we visited it. If not, then mark
-  if (_returnedVertices.find(toAddStr) != _returnedVertices.end()) {
+  if (_returnedVertices.find(result) != _returnedVertices.end()) {
     // This vertex is not unique.
     ++_traverser->_filteredPaths;
     return false;
   } else {
-    _returnedVertices.emplace(toAddStr);
+    _returnedVertices.emplace(result);
   }
-  result = StringRef(resSlice);
   return _traverser->vertexMatchesConditions(resSlice, depth);
 }
 

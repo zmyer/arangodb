@@ -94,19 +94,6 @@ bool ClusterTraverser::getVertex(VPackSlice edge,
   return res;
 }
 
-bool ClusterTraverser::getSingleVertex(VPackSlice edge, VPackSlice comp,
-                                       uint64_t depth, VPackSlice& result) {
-  bool res = _vertexGetter->getSingleVertex(edge, comp, depth, result);
-  if (res) {
-    TRI_ASSERT(result.isString());
-    if (_vertices.find(StringRef(result)) == _vertices.end()) {
-      // Vertex not yet cached. Prepare it.
-      _verticesToFetch.emplace(result);
-    }
-  }
-  return res;
-}
-
 bool ClusterTraverser::getSingleVertex(arangodb::velocypack::Slice edge, StringRef const sourceVertexId,
                      uint64_t depth, StringRef& targetVertexId) {
   bool res = _vertexGetter->getSingleVertex(edge, sourceVertexId, depth, targetVertexId);

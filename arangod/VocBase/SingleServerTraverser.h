@@ -96,10 +96,6 @@ class SingleServerTraverser final : public Traverser {
 
   /// @brief Function to load the other sides vertex of an edge
   ///        Returns true if the vertex passes filtering conditions
-
-  bool getSingleVertex(arangodb::velocypack::Slice, arangodb::velocypack::Slice,
-                       uint64_t depth, arangodb::velocypack::Slice&) override;
-
   bool getSingleVertex(arangodb::velocypack::Slice edge,
                        arangodb::StringRef const sourceVertexId,
                        uint64_t depth,

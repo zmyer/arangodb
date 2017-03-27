@@ -196,10 +196,6 @@ class Traverser {
     virtual bool getVertex(arangodb::velocypack::Slice,
                            std::vector<arangodb::StringRef>&);
 
-    virtual bool getSingleVertex(arangodb::velocypack::Slice,
-                                 arangodb::velocypack::Slice, uint64_t,
-                                 arangodb::velocypack::Slice&);
-    
     virtual bool getSingleVertex(arangodb::velocypack::Slice, StringRef,
                                  uint64_t, StringRef&);
 
@@ -223,10 +219,6 @@ class Traverser {
     bool getVertex(arangodb::velocypack::Slice,
                    std::vector<arangodb::StringRef>&) override;
 
-    bool getSingleVertex(arangodb::velocypack::Slice,
-                         arangodb::velocypack::Slice, uint64_t,
-                         arangodb::velocypack::Slice&) override;
-    
     bool getSingleVertex(arangodb::velocypack::Slice, StringRef,
                          uint64_t, StringRef&) override;
 
@@ -287,19 +279,10 @@ class Traverser {
 
   /// @brief Function to load the other sides vertex of an edge
   ///        Returns true if the vertex passes filtering conditions
-
-  virtual bool getSingleVertex(arangodb::velocypack::Slice,
-                               arangodb::velocypack::Slice, uint64_t,
-                               arangodb::velocypack::Slice&) = 0;
-
   virtual bool getSingleVertex(arangodb::velocypack::Slice edge,
                                arangodb::StringRef const sourceVertexId,
                                uint64_t depth,
-                               arangodb::StringRef& targetVertexId) {
-    // TODO This is the new version has to be build for all classes!!
-    TRI_ASSERT(false);
-    return false;
-  };
+                               arangodb::StringRef& targetVertexId) = 0;
  
  public:
  
