@@ -60,15 +60,14 @@ struct DMIDValue {
 
 struct DMIDMessage {
   DMIDMessage() {}
-  DMIDMessage(PregelID const& pid, float const& val)
-      : senderId(pid), weight(val) {}
+  DMIDMessage(PregelID const& pid, float val) : senderId(pid), weight(val) {}
 
   DMIDMessage(PregelID const& sender, PregelID const& leader)
       : senderId(sender), leaderId(leader) {}
 
   PregelID senderId;
   PregelID leaderId;
-  float weight;
+  float weight = 0;
 };
 
 /// A counter for counting unique vertex IDs using a HyperLogLog sketch.
@@ -116,7 +115,7 @@ struct SenderMessageFormat : public MessageFormat<SenderMessage<T>> {
   SenderMessageFormat() {}
   void unwrapValue(VPackSlice s, SenderMessage<T>& senderVal) const override {
     VPackArrayIterator array(s);
-    senderVal.senderId.shard = (*array).getUInt();
+    senderVal.senderId.shard = (PregelShard) ((*array).getUInt());
     senderVal.senderId.key = (*(++array)).copyString();
     senderVal.value = (*(++array)).getNumber<T>();
   }
