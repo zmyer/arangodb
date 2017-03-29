@@ -33,13 +33,13 @@
 #include <velocypack/velocypack-aliases.h>
 
 using ClusterEdgeCursor = arangodb::traverser::ClusterEdgeCursor;
+using StringRef = arangodb::StringRef;
 
 ClusterEdgeCursor::ClusterEdgeCursor(StringRef vertexId, uint64_t depth,
                                      arangodb::traverser::ClusterTraverser* traverser)
     : _position(0), _resolver(traverser->_trx->resolver()), _traverser(traverser) {
       transaction::BuilderLeaser leased(traverser->_trx);
       
-#warning fix copying by adding overloaded method?
       transaction::BuilderLeaser b(traverser->_trx);
       b->add(VPackValuePair(vertexId.data(), vertexId.length(), VPackValueType::String));
 
@@ -53,7 +53,6 @@ ClusterEdgeCursor::ClusterEdgeCursor(StringRef vertexId, uint64_t depth,
 
 bool ClusterEdgeCursor::next(std::function<void(StringRef const&,
                                                 VPackSlice, size_t)> callback) {
-#warning FIXME Is the edgeList guaranteed to succeed?
   if (_position < _edgeList.size()) {
     VPackSlice edge = _edgeList[_position];
     std::string eid = transaction::helpers::extractIdString(_resolver, edge, VPackSlice());
@@ -67,7 +66,6 @@ bool ClusterEdgeCursor::next(std::function<void(StringRef const&,
 
 void ClusterEdgeCursor::readAll(std::function<void(StringRef const&,
                                                 VPackSlice, size_t&)> callback) {
-#warning FIXME Is the edgeList guaranteed to succeed?
   for (auto const& edge : _edgeList) {
     std::string eid = transaction::helpers::extractIdString(_resolver, edge, VPackSlice());
     StringRef persId = _traverser->traverserCache()->persistString(StringRef(eid));

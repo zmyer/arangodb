@@ -54,9 +54,6 @@ TraverserCache::TraverserCache(transaction::Methods* trx)
 
 TraverserCache::~TraverserCache() {
   auto cacheManager = CacheManagerFeature::MANAGER;
-  // TODO REMOVE ME
-  LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Traverser-Cache used in total "
-                                          << _cache->size();
   cacheManager->destroyCache(_cache);
 }
 
@@ -68,7 +65,11 @@ cache::Finding TraverserCache::lookup(StringRef idString) {
   VPackValueLength keySize = idString.length();
   void const* key = idString.data();
   //uint32_t keySize = static_cast<uint32_t>(idString.byteSize());
+<<<<<<< HEAD
   return _cache->find(key, keySize);
+=======
+  return _cache->find(key, (uint32_t)keySize);
+>>>>>>> bd4a2eb6b6cbf3971d31b5bd809cebf9c0098c1e
 }
 
 VPackSlice TraverserCache::lookupInCollection(StringRef id) {
@@ -101,7 +102,11 @@ VPackSlice TraverserCache::lookupInCollection(StringRef id) {
   void const* resVal = result.begin();
   uint64_t resValSize = static_cast<uint64_t>(result.byteSize());
   std::unique_ptr<cache::CachedValue> value(
+<<<<<<< HEAD
       cache::CachedValue::construct(key, keySize, resVal, resValSize));
+=======
+      cache::CachedValue::construct(key, (uint32_t)keySize, resVal, resValSize));
+>>>>>>> bd4a2eb6b6cbf3971d31b5bd809cebf9c0098c1e
 
   if (value) {
     bool success = _cache->insert(value.get());
@@ -143,15 +148,23 @@ aql::AqlValue TraverserCache::fetchAqlResult(StringRef idString) {
 
 void TraverserCache::insertDocument(StringRef idString, arangodb::velocypack::Slice const& document) {
   auto finding = lookup(idString);
+<<<<<<< HEAD
 #warning TODO always write updated document?
+=======
+>>>>>>> bd4a2eb6b6cbf3971d31b5bd809cebf9c0098c1e
   if (!finding.found()) {
     VPackValueLength keySize = idString.length();
     void const* key = idString.data();
     
     void const* resVal = document.begin();
     uint64_t resValSize = static_cast<uint64_t>(document.byteSize());
+<<<<<<< HEAD
     std::unique_ptr<cache::CachedValue> value(
                                               cache::CachedValue::construct(key, keySize, resVal, resValSize));
+=======
+    std::unique_ptr<cache::CachedValue> value(cache::CachedValue::construct(key, (uint32_t)keySize,
+                                                                            resVal, resValSize));
+>>>>>>> bd4a2eb6b6cbf3971d31b5bd809cebf9c0098c1e
     
     if (value) {
       bool success = _cache->insert(value.get());
