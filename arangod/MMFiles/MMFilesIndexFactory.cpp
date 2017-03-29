@@ -404,7 +404,7 @@ std::shared_ptr<Index> MMFilesIndexFactory::prepareIndexFromSlice(
         THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL,
                                        "cannot create edge index");
       }
-      newIdx.reset(new arangodb::MMFilesEdgeIndex(iid, col));
+      newIdx.reset(new arangodb::MMFilesEdgeIndex(iid, col, StaticStrings::FromString));
       break;
     }
     case arangodb::Index::TRI_IDX_TYPE_GEO1_INDEX:
@@ -445,6 +445,8 @@ void MMFilesIndexFactory::fillSystemIndexes(
   // create edges index
   if (col->type() == TRI_COL_TYPE_EDGE) {
     systemIndexes.emplace_back(
-        std::make_shared<arangodb::MMFilesEdgeIndex>(1, col));
+        std::make_shared<arangodb::MMFilesEdgeIndex>(1, col, StaticStrings::FromString));
+    systemIndexes.emplace_back(
+        std::make_shared<arangodb::MMFilesEdgeIndex>(2, col, StaticStrings::ToString));
   }
 }

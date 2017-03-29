@@ -38,10 +38,9 @@ using namespace arangodb;
 MMFilesEdgeIndexIterator::MMFilesEdgeIndexIterator(LogicalCollection* collection, transaction::Methods* trx,
                                      ManagedDocumentResult* mmdr,
                                      arangodb::MMFilesEdgeIndex const* index,
-                                     TRI_MMFilesEdgeIndexHash_t const* indexImpl,
                                      std::unique_ptr<VPackBuilder>& keys)
     : IndexIterator(collection, trx, mmdr, index),
-      _index(indexImpl),
+      _index(index),
       _keys(keys.get()),
       _iterator(_keys->slice()),
       _posInBuffer(0),

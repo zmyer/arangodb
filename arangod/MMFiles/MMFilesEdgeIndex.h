@@ -45,10 +45,11 @@ typedef arangodb::basics::AssocMulti<arangodb::velocypack::Slice, MMFilesSimpleI
 class IndexIterator;
 
 class MMFilesEdgeIndex final : public Index {
+  friend class MMFilesEdgeIndexIterator;
  public:
   MMFilesEdgeIndex() = delete;
 
-  MMFilesEdgeIndex(TRI_idx_iid_t, arangodb::LogicalCollection*);
+  MMFilesEdgeIndex(TRI_idx_iid_t, arangodb::LogicalCollection*, std::string const&);
 
   ~MMFilesEdgeIndex();
 
@@ -110,6 +111,24 @@ class MMFilesEdgeIndex final : public Index {
                             arangodb::velocypack::Builder&) const override;
 
  private:
+  // This functions should only be called by the EdgeIndexIterator
+
+  // Find at most limit many element for the given slice and fill
+  // them into buffer
+  void lookupByKey(IndexLookupContext* context,
+                   arangodb::velocypack::Slice* key,
+                   std::vector<MMFilesSimpleIndexElement>& buffer,
+                   size_t limit) const;
+
+  // Find at most limit many elements after the given element.
+  // All returned elements are guaranteed to have the same
+  // indexed value as the given one.
+  void lookupByKeyContinue(IndexLookupContext* context,
+                           MMFilesSimpleIndexElement const& lastElement,
+                           std::vector<MMFilesSimpleIndexElement>& buffer,
+                           size_t limit) const;
+
+ private:
   /// @brief create the iterator
   IndexIterator* createEqIterator(transaction::Methods*,
                                   ManagedDocumentResult*,
@@ -125,15 +144,11 @@ class MMFilesEdgeIndex final : public Index {
   void handleValNode(VPackBuilder* keys,
                      arangodb::aql::AstNode const* valNode) const;
 
-  MMFilesSimpleIndexElement buildFromElement(TRI_voc_rid_t, arangodb::velocypack::Slice const& doc) const;
-  MMFilesSimpleIndexElement buildToElement(TRI_voc_rid_t, arangodb::velocypack::Slice const& doc) const;
+  MMFilesSimpleIndexElement buildElement(TRI_voc_rid_t, arangodb::velocypack::Slice const& doc) const;
 
  private:
-  /// @brief the hash table for _from
-  TRI_MMFilesEdgeIndexHash_t* _edgesFrom;
-
-  /// @brief the hash table for _to
-  TRI_MMFilesEdgeIndexHash_t* _edgesTo;
+  /// @brief the hash table for the edges
+  TRI_MMFilesEdgeIndexHash_t* _edges;
 
   /// @brief number of buckets effectively used by the index
   size_t _numBuckets;

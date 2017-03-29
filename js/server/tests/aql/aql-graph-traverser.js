@@ -3097,8 +3097,11 @@ function optimizeNonVertexCentricIndexesSuite () {
     tearDown: () => {
       // After each test get rid of all superflous indexes.
       var idxs = db[en].getIndexes();
-      for (let i = 2; i < idxs.length; ++i) {
-        db[en].dropIndex(idxs[i].id);
+      for (let i = 0; i < idxs.length; ++i) {
+        try {
+          db[en].dropIndex(idxs[i].id);
+        } catch (e) {
+        }
       }
     },
 

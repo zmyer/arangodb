@@ -36,15 +36,11 @@ namespace arangodb {
 
 class MMFilesEdgeIndex;
   
-typedef arangodb::basics::AssocMulti<arangodb::velocypack::Slice, MMFilesSimpleIndexElement,
-                                     uint32_t, false> TRI_MMFilesEdgeIndexHash_t;
-
 class MMFilesEdgeIndexIterator final : public IndexIterator {
  public:
   MMFilesEdgeIndexIterator(LogicalCollection* collection, transaction::Methods* trx,
                     ManagedDocumentResult* mmdr,
                     arangodb::MMFilesEdgeIndex const* index,
-                    TRI_MMFilesEdgeIndexHash_t const* indexImpl,
                     std::unique_ptr<VPackBuilder>& keys);
 
   ~MMFilesEdgeIndexIterator();
@@ -56,7 +52,7 @@ class MMFilesEdgeIndexIterator final : public IndexIterator {
   void reset() override;
 
  private:
-  TRI_MMFilesEdgeIndexHash_t const* _index;
+  arangodb::MMFilesEdgeIndex const* _index;
   std::unique_ptr<arangodb::velocypack::Builder> _keys;
   arangodb::velocypack::ArrayIterator _iterator;
   std::vector<MMFilesSimpleIndexElement> _buffer;
