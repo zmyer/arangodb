@@ -390,6 +390,9 @@ TraverserOptions::TraverserOptions(arangodb::aql::Query* query, VPackSlice info,
   TRI_ASSERT(uniqueEdges != TraverserOptions::UniquenessLevel::GLOBAL);
   TRI_ASSERT(uniqueVertices != TraverserOptions::UniquenessLevel::GLOBAL ||
              useBreadthFirst);
+
+  // We are in cluster case now. Should be ok to setup the traverser with document cache
+  activateCache(true);
 }
 
 TraverserOptions::TraverserOptions(TraverserOptions const& other)
