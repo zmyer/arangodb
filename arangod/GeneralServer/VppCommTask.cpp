@@ -222,7 +222,7 @@ VppCommTask::ChunkHeader VppCommTask::readChunkHeader() {
   cursor += sizeof(header._messageID);
 
   // extract total len of message
-  if (_protocolVersion == ProtocolVersion::VPP_1_1 ||
+  if (_protocolVersion == ProtocolVersion::VST_1_1 ||
       (header._isFirst && header._chunk > 1)) {
     header._messageLength = readLittleEndian64bit(cursor);
     cursor += sizeof(header._messageLength);

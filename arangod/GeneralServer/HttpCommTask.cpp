@@ -274,7 +274,7 @@ bool HttpCommTask::processRead(double startTime) {
          std::memcmp(_readBuffer.c_str(), "VST/1.1\r\n\r\n", 11) == 0)) {
       LOG_TOPIC(TRACE, Logger::COMMUNICATION) << "switching from HTTP to VST";
       ProtocolVersion protocolVersion = _readBuffer.c_str()[6] == '0' 
-          ? ProtocolVersion::VPP_1_0 : ProtocolVersion::VPP_1_1;
+          ? ProtocolVersion::VST_1_0 : ProtocolVersion::VST_1_1;
       _abandoned = true;
       cancelKeepAlive();
       std::shared_ptr<GeneralCommTask> commTask;
