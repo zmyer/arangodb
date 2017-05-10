@@ -180,18 +180,35 @@ void VppCommTask::addResponse(VppResponse* response, RequestStatistics* stat) {
       << "\"," << Logger::FIXED(totalTime, 6);
 }
 
+static uint32_t readLittleEndian32bit(char const* p) {
+  return (static_cast<uint32_t>(static_cast<uint8_t>(p[3])) << 24) |
+         (static_cast<uint32_t>(static_cast<uint8_t>(p[2])) << 16) |
+         (static_cast<uint32_t>(static_cast<uint8_t>(p[1])) << 8) |
+         (static_cast<uint32_t>(static_cast<uint8_t>(p[0])));
+}
+
+static uint64_t readLittleEndian64bit(char const* p) {
+  return (static_cast<uint64_t>(static_cast<uint8_t>(p[7])) << 56) |
+         (static_cast<uint64_t>(static_cast<uint8_t>(p[6])) << 48) |
+         (static_cast<uint64_t>(static_cast<uint8_t>(p[5])) << 40) |
+         (static_cast<uint64_t>(static_cast<uint8_t>(p[4])) << 32) |
+         (static_cast<uint64_t>(static_cast<uint8_t>(p[3])) << 24) |
+         (static_cast<uint64_t>(static_cast<uint8_t>(p[2])) << 16) |
+         (static_cast<uint64_t>(static_cast<uint8_t>(p[1])) << 8) |
+         (static_cast<uint64_t>(static_cast<uint8_t>(p[0])));
+}
+
 VppCommTask::ChunkHeader VppCommTask::readChunkHeader() {
   VppCommTask::ChunkHeader header;
 
   auto cursor = _readBuffer.begin() + _processReadVariables._readBufferOffset;
 
-  std::memcpy(&header._chunkLength, cursor, sizeof(header._chunkLength));
+  header._chunkLength = readLittleEndian32bit(cursor);
   LOG_TOPIC(TRACE, Logger::COMMUNICATION) << "chunkLength: "
                                           << header._chunkLength;
   cursor += sizeof(header._chunkLength);
 
-  uint32_t chunkX;
-  std::memcpy(&chunkX, cursor, sizeof(chunkX));
+  uint32_t chunkX = readLittleEndian32bit(cursor);
   cursor += sizeof(chunkX);
 
   header._isFirst = chunkX & 0x1;
@@ -199,17 +216,18 @@ VppCommTask::ChunkHeader VppCommTask::readChunkHeader() {
   header._chunk = chunkX >> 1;
   LOG_TOPIC(TRACE, Logger::COMMUNICATION) << "chunk: " << header._chunk;
 
-  std::memcpy(&header._messageID, cursor, sizeof(header._messageID));
+  header._messageID = readLittleEndian64bit(cursor);
   LOG_TOPIC(TRACE, Logger::COMMUNICATION) << "message id: "
                                           << header._messageID;
   cursor += sizeof(header._messageID);
 
   // extract total len of message
-  if (header._isFirst && header._chunk > 1) {
-    std::memcpy(&header._messageLength, cursor, sizeof(header._messageLength));
+  if (_protocolVersion == ProtocolVersion::VPP_1_1 ||
+      (header._isFirst && header._chunk > 1)) {
+    header._messageLength = readLittleEndian64bit(cursor);
     cursor += sizeof(header._messageLength);
   } else {
-    header._messageLength = 0;  // not needed
+    header._messageLength = 0;  // not needed for old protocol
   }
 
   header._headerLength = std::distance(
