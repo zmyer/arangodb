@@ -21,7 +21,7 @@
 /// @author Jan Christoph Uhde
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "VppCommTask.h"
+#include "VstCommTask.h"
 
 #include <iostream>
 #include <limits>
