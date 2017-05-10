@@ -99,7 +99,7 @@ std::string Endpoint::unifiedForm(std::string const& specification) {
   }
 
   if (StringUtils::isPrefix(copy, "vst+")) {
-    protocol = TransportType::VPP;
+    protocol = TransportType::VST;
     prefix = "vst+";
     copy = copy.substr(4);
   }
@@ -141,7 +141,7 @@ std::string Endpoint::unifiedForm(std::string const& specification) {
     found = temp.find("]", 1);
     if (found != std::string::npos && found > 2 && found + 1 == temp.size()) {
       // hostname only (e.g. [address])
-      if (protocol == TransportType::VPP) {
+      if (protocol == TransportType::VST) {
         return prefix + copy + ":" +
                StringUtils::itoa(EndpointIp::_defaultPortVpp);
       } else {
@@ -337,7 +337,7 @@ std::string const Endpoint::defaultEndpoint(TransportType type) {
       return "http+tcp://" + std::string(EndpointIp::_defaultHost) + ":" +
              StringUtils::itoa(EndpointIp::_defaultPortHttp);
 
-    case TransportType::VPP:
+    case TransportType::VST:
       return "vst+tcp://" + std::string(EndpointIp::_defaultHost) + ":" +
              StringUtils::itoa(EndpointIp::_defaultPortVpp);
 
@@ -403,7 +403,7 @@ std::ostream& operator<<(std::ostream& stream,
     case arangodb::Endpoint::TransportType::HTTP:
       stream << "http";
       break;
-    case arangodb::Endpoint::TransportType::VPP:
+    case arangodb::Endpoint::TransportType::VST:
       stream << "vst";
       break;
   }

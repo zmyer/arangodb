@@ -60,7 +60,7 @@ static std::string buildSpecification(Endpoint::DomainType domainType,
     case Endpoint::TransportType::HTTP:
       specification = "http+";
       break;
-    case Endpoint::TransportType::VPP:
+    case Endpoint::TransportType::VST:
       specification = "vst+";
       break;
   }

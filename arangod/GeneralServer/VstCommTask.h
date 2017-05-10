@@ -45,20 +45,20 @@ class VstCommTask : public GeneralCommTask {
               ConnectionInfo&&, double timeout, ProtocolVersion protocolVersion,
               bool skipSocketInit = false);
 
-  // convert from GeneralResponse to vppResponse ad dispatch request to class
+  // convert from GeneralResponse to VstResponse ad dispatch request to class
   // internal addResponse
   void addResponse(GeneralResponse* response, RequestStatistics* stat) override {
-    VppResponse* vppResponse = dynamic_cast<VppResponse*>(response);
+    VstResponse* vstResponse = dynamic_cast<VstResponse*>(response);
 
-    if (vppResponse == nullptr) {
+    if (vstResponse == nullptr) {
       throw std::logic_error("invalid response or response Type");
     }
 
-    addResponse(vppResponse, stat);
+    addResponse(vstResponse, stat);
   };
 
   arangodb::Endpoint::TransportType transportType() override {
-    return arangodb::Endpoint::TransportType::VPP;
+    return arangodb::Endpoint::TransportType::VST;
   };
 
  protected:
@@ -72,7 +72,7 @@ class VstCommTask : public GeneralCommTask {
   void handleAuthentication(VPackSlice const& header, uint64_t messageId);
 
   void handleSimpleError(rest::ResponseCode code, uint64_t id) override {
-    VppResponse response(code, id);
+    VstResponse response(code, id);
     addResponse(&response, nullptr);
   }
 
@@ -87,7 +87,7 @@ class VstCommTask : public GeneralCommTask {
   // request handling aborts prematurely
   void closeTask(rest::ResponseCode code = rest::ResponseCode::SERVER_ERROR);
 
-  void addResponse(VppResponse*, RequestStatistics* stat);
+  void addResponse(VstResponse*, RequestStatistics* stat);
   rest::ResponseCode authenticateRequest(GeneralRequest* request);
 
  private:
@@ -135,11 +135,11 @@ class VstCommTask : public GeneralCommTask {
   void replyToIncompleteMessages();
 
   boost::optional<bool> getMessageFromSingleChunk(
-      ChunkHeader const& chunkHeader, VppInputMessage& message, bool& doExecute,
+      ChunkHeader const& chunkHeader, VstInputMessage& message, bool& doExecute,
       char const* vpackBegin, char const* chunkEnd);
 
   boost::optional<bool> getMessageFromMultiChunks(
-      ChunkHeader const& chunkHeader, VppInputMessage& message, bool& doExecute,
+      ChunkHeader const& chunkHeader, VstInputMessage& message, bool& doExecute,
       char const* vpackBegin, char const* chunkEnd);
 
   std::string _authenticatedUser;

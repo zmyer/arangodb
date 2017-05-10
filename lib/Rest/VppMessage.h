@@ -36,21 +36,21 @@
 namespace arangodb {
 namespace rest {
 
-struct VppInputMessage {
-  VppInputMessage() : _buffer(), _id(0), _payloadAmount(0), _payload() {}
+struct VstInputMessage {
+  VstInputMessage() : _buffer(), _id(0), _payloadAmount(0), _payload() {}
 
   // cppcheck-suppress *
-  VppInputMessage(uint64_t id, VPackBuffer<uint8_t>&& buff,
+  VstInputMessage(uint64_t id, VPackBuffer<uint8_t>&& buff,
                   std::size_t amount = 1)
       : _buffer(std::move(buff)), _id(id), _payloadAmount(amount) {
     init();
   }
 
   // no copy
-  VppInputMessage(VppInputMessage const& other) = delete;
+  VstInputMessage(VstInputMessage const& other) = delete;
 
   // just move
-  VppInputMessage(VppInputMessage&& other) 
+  VstInputMessage(VstInputMessage&& other) 
       : _buffer(std::move(other._buffer)), _id(other._id), _payloadAmount(other._payloadAmount) {
     init();
   }

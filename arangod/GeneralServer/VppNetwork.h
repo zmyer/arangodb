@@ -259,7 +259,7 @@ inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
   }
 
   if (compress) {
-    // use some function to calculate the worst case lenght
+    // use some function to calculate the worst case length
     preliminaryPayloadLength = uncompressedPayloadLength;
   } else {
     payloadLength = uncompressedPayloadLength;
@@ -273,7 +273,7 @@ inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
   } else if (compress &&
              preliminaryPayloadLength <
                  maxChunkBytes - chunkHeaderLength(false)) {
-    throw std::logic_error("no implemented");
+    throw std::logic_error("not implemented");
     // one chunk compressed
   } else {
     //// here we enter the domain of multichunck
@@ -287,10 +287,10 @@ inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
         << "VstCommTask: there are slices that do not fit into a single "
            "totalMessageLength or compression is enabled";
     // we have big slices that do not fit into single chunks
-    // now we will build one big buffer ans split it into pieces
+    // now we will build one big buffer and split it into pieces
 
     // reseve buffer
-    auto vppPayload = std::make_unique<basics::StringBuffer>(
+    auto vstPayload = std::make_unique<basics::StringBuffer>(
         TRI_UNKNOWN_MEM_ZONE, uncompressedPayloadLength, false);
 
     // fill buffer
@@ -298,13 +298,13 @@ inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
       try{
         LOG_TOPIC(TRACE, Logger::COMMUNICATION) << slice.toJson() << " , " << slice.byteSize();
       } catch(...){}
-      vppPayload->appendText(slice.startAs<char>(), slice.byteSize());
+      vstPayload->appendText(slice.startAs<char>(), slice.byteSize());
     }
 
     if (compress) {
-      // compress uncompressedVppPayload -> vppPayload
-      auto uncommpressedVppPayload = std::move(vppPayload);
-      vppPayload = std::make_unique<basics::StringBuffer>(
+      // compress uncompressedVstPayload -> vstPayload
+      auto uncommpressedVstPayload = std::move(vstPayload);
+      vstPayload = std::make_unique<basics::StringBuffer>(
           TRI_UNKNOWN_MEM_ZONE, preliminaryPayloadLength, false);
       // do compression
       throw std::logic_error("no implemented");
@@ -313,7 +313,7 @@ inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
 
     // create chunks
     (void)payloadLength;
-    send_many(rv, id, maxChunkBytes, std::move(vppPayload),
+    send_many(rv, id, maxChunkBytes, std::move(vstPayload),
               uncompressedPayloadLength);
   }
   return rv;

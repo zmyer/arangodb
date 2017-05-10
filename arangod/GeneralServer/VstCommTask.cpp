@@ -99,7 +99,7 @@ VstCommTask::VstCommTask(EventLoop loop, GeneralServer* server,
   _readBuffer.reserve(_bufferLength);
 }
 
-void VstCommTask::addResponse(VppResponse* response, RequestStatistics* stat) {
+void VstCommTask::addResponse(VstResponse* response, RequestStatistics* stat) {
   VPackMessageNoOwnBuffer response_message = response->prepareForNetwork();
   uint64_t const id = response_message._id;
 
@@ -135,7 +135,7 @@ void VstCommTask::addResponse(VppResponse* response, RequestStatistics* stat) {
   static uint32_t const chunkSize =
       arangodb::application_features::ApplicationServer::getFeature<
           ServerFeature>("Server")
-          ->vppMaxSize();
+          ->vstMaxSize();
 
   // set some sensible maxchunk size and compression
   auto buffers = createChunkForNetwork(slices, id, chunkSize, false);
@@ -145,7 +145,7 @@ void VstCommTask::addResponse(VppResponse* response, RequestStatistics* stat) {
                                                      Logger::REQUESTS)) {
     LOG_TOPIC(TRACE, Logger::REQUESTS)
         << "\"vst-request-statistics\",\"" << (void*)this << "\",\""
-        << VppRequest::translateVersion(_protocolVersion) << "\","
+        << VstRequest::translateVersion(_protocolVersion) << "\","
         << static_cast<int>(response->responseCode()) << ","
         << _connectionInfo.clientAddress << "\"," << stat->timingsCsv();
   }
@@ -175,7 +175,7 @@ void VstCommTask::addResponse(VppResponse* response, RequestStatistics* stat) {
   LOG_TOPIC(INFO, Logger::REQUESTS)
       << "\"vst-request-end\",\"" << (void*)this << "/" << id << "\",\""
       << _connectionInfo.clientAddress << "\",\""
-      << VppRequest::translateVersion(_protocolVersion) << "\","
+      << VstRequest::translateVersion(_protocolVersion) << "\","
       << static_cast<int>(response->responseCode()) << ","
       << "\"," << Logger::FIXED(totalTime, 6);
 }
@@ -302,7 +302,7 @@ bool VstCommTask::processRead(double startTime) {
   auto vpackBegin = chunkBegin + chunkHeader._headerLength;
   bool doExecute = false;
   bool read_maybe_only_part_of_buffer = false;
-  VppInputMessage message;  // filled in CASE 1 or CASE 2b
+  VstInputMessage message;  // filled in CASE 1 or CASE 2b
 
   if (chunkHeader._isFirst) {
     // create agent for new messages
@@ -365,7 +365,7 @@ bool VstCommTask::processRead(double startTime) {
       handleAuthentication(header, chunkHeader._messageID);
     } else {
       // the handler will take ownersip of this pointer
-      std::unique_ptr<VppRequest> request(new VppRequest(
+      std::unique_ptr<VstRequest> request(new VstRequest(
           _connectionInfo, std::move(message), chunkHeader._messageID));
       GeneralServerFeature::HANDLER_FACTORY->setRequestContext(request.get());
       request->setUser(_authenticatedUser);
@@ -398,7 +398,7 @@ bool VstCommTask::processRead(double startTime) {
           request->setClientTaskId(_taskId);
           _protocolVersion = request->protocolVersion();
 
-          std::unique_ptr<VppResponse> response(new VppResponse(
+          std::unique_ptr<VstResponse> response(new VstResponse(
               rest::ResponseCode::SERVER_ERROR, chunkHeader._messageID));
           response->setContentTypeRequested(request->contentTypeResponse());
           executeRequest(std::move(request), std::move(response));
@@ -455,14 +455,14 @@ rest::ResponseCode VstCommTask::authenticateRequest(GeneralRequest* request) {
 std::unique_ptr<GeneralResponse> VstCommTask::createResponse(
     rest::ResponseCode responseCode, uint64_t messageId) {
   return std::unique_ptr<GeneralResponse>(
-      new VppResponse(responseCode, messageId));
+      new VstResponse(responseCode, messageId));
 }
 
 void VstCommTask::handleSimpleError(rest::ResponseCode responseCode,
                                     int errorNum,
                                     std::string const& errorMessage,
                                     uint64_t messageId) {
-  VppResponse response(responseCode, messageId);
+  VstResponse response(responseCode, messageId);
 
   VPackBuilder builder;
   builder.openObject();
@@ -481,7 +481,7 @@ void VstCommTask::handleSimpleError(rest::ResponseCode responseCode,
 }
 
 boost::optional<bool> VstCommTask::getMessageFromSingleChunk(
-    ChunkHeader const& chunkHeader, VppInputMessage& message, bool& doExecute,
+    ChunkHeader const& chunkHeader, VstInputMessage& message, bool& doExecute,
     char const* vpackBegin, char const* chunkEnd) {
   // add agent for this new message
 
@@ -517,7 +517,7 @@ boost::optional<bool> VstCommTask::getMessageFromSingleChunk(
 }
 
 boost::optional<bool> VstCommTask::getMessageFromMultiChunks(
-    ChunkHeader const& chunkHeader, VppInputMessage& message, bool& doExecute,
+    ChunkHeader const& chunkHeader, VstInputMessage& message, bool& doExecute,
     char const* vpackBegin, char const* chunkEnd) {
   // CASE 2:  message is in multiple chunks
   auto incompleteMessageItr = _incompleteMessages.find(chunkHeader._messageID);

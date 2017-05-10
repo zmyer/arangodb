@@ -38,12 +38,12 @@ class GeneralCommTask;
 
 using rest::VPackMessageNoOwnBuffer;
 
-class VppResponse : public GeneralResponse {
+class VstResponse : public GeneralResponse {
   friend class rest::GeneralCommTask;
   friend class rest::VstCommTask;
   friend class RestBatchHandler;  // TODO must be removed
 
-  VppResponse(ResponseCode code, uint64_t id);
+  VstResponse(ResponseCode code, uint64_t id);
 
  public:
   static bool HIDE_PRODUCT_HEADER;
@@ -52,7 +52,7 @@ class VppResponse : public GeneralResponse {
   virtual uint64_t messageId() const override { return _messageId; }
   void reset(ResponseCode code) final;
   virtual arangodb::Endpoint::TransportType transportType() override {
-    return arangodb::Endpoint::TransportType::VPP;
+    return arangodb::Endpoint::TransportType::VST;
   };
 
   VPackMessageNoOwnBuffer prepareForNetwork();
