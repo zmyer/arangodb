@@ -42,6 +42,13 @@ class LogicalCollection;
 class RocksDBComparator;
 
 class RocksDBIndex : public Index {
+
+ protected:
+   // This is the number of distinct elements the index estimator can reliably store
+   // This correlates directly with the memmory of the estimator:
+   // memmory == ESTIMATOR_SIZE * 6 bytes
+  static uint64_t const ESTIMATOR_SIZE;
+
  protected:
   RocksDBIndex(TRI_idx_iid_t, LogicalCollection*,
                std::vector<std::vector<arangodb::basics::AttributeName>> const&
