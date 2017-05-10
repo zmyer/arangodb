@@ -32,7 +32,7 @@ namespace arangodb {
 class RestBatchHandler;
 
 namespace rest {
-class VppCommTask;
+class VstCommTask;
 class GeneralCommTask;
 }
 
@@ -40,7 +40,7 @@ using rest::VPackMessageNoOwnBuffer;
 
 class VppResponse : public GeneralResponse {
   friend class rest::GeneralCommTask;
-  friend class rest::VppCommTask;
+  friend class rest::VstCommTask;
   friend class RestBatchHandler;  // TODO must be removed
 
   VppResponse(ResponseCode code, uint64_t id);

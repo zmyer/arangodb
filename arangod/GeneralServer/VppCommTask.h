@@ -39,9 +39,9 @@ class AuthenticationFeature;
 
 namespace rest {
 
-class VppCommTask : public GeneralCommTask {
+class VstCommTask : public GeneralCommTask {
  public:
-  VppCommTask(EventLoop, GeneralServer*, std::unique_ptr<Socket> socket,
+  VstCommTask(EventLoop, GeneralServer*, std::unique_ptr<Socket> socket,
               ConnectionInfo&&, double timeout, ProtocolVersion protocolVersion,
               bool skipSocketInit = false);
 

@@ -278,13 +278,13 @@ inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
   } else {
     //// here we enter the domain of multichunck
     LOG_TOPIC(DEBUG, Logger::COMMUNICATION)
-        << "VppCommTask: sending multichunk message";
+        << "VstCommTask: sending multichunk message";
 
     // test if we have smaller slices that fit into chunks when there is
     // no compression - optimization
 
     LOG_TOPIC(DEBUG, Logger::COMMUNICATION)
-        << "VppCommTask: there are slices that do not fit into a single "
+        << "VstCommTask: there are slices that do not fit into a single "
            "totalMessageLength or compression is enabled";
     // we have big slices that do not fit into single chunks
     // now we will build one big buffer ans split it into pieces

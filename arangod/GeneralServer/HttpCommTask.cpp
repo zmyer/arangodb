@@ -278,7 +278,7 @@ bool HttpCommTask::processRead(double startTime) {
       _abandoned = true;
       cancelKeepAlive();
       std::shared_ptr<GeneralCommTask> commTask;
-      commTask = std::make_shared<VppCommTask>(
+      commTask = std::make_shared<VstCommTask>(
           _loop, _server, std::move(_peer), std::move(_connectionInfo),
           GeneralServerFeature::keepAliveTimeout(), 
           protocolVersion, /*skipSocketInit*/ true);

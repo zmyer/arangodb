@@ -41,7 +41,7 @@ class RestBatchHandler;
 
 namespace rest {
 class GeneralCommTask;
-class VppCommTask;
+class VstCommTask;
 // class VppsCommTask;
 }
 
@@ -53,7 +53,7 @@ struct Options;
 using rest::VppInputMessage;
 
 class VppRequest final : public GeneralRequest {
-  friend class rest::VppCommTask;
+  friend class rest::VstCommTask;
   // friend class rest::VppsCommTask;
   friend class rest::GeneralCommTask;
   friend class RestBatchHandler;  // TODO must be removed
