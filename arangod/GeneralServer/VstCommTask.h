@@ -21,8 +21,8 @@
 /// @author Jan Christoph Uhde
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef ARANGOD_GENERAL_SERVER_VPP_COMM_TASK_H
-#define ARANGOD_GENERAL_SERVER_VPP_COMM_TASK_H 1
+#ifndef ARANGOD_GENERAL_SERVER_VST_COMM_TASK_H
+#define ARANGOD_GENERAL_SERVER_VST_COMM_TASK_H 1
 
 #include "GeneralServer/GeneralCommTask.h"
 
