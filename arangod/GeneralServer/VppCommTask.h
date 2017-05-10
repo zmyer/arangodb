@@ -42,7 +42,8 @@ namespace rest {
 class VppCommTask : public GeneralCommTask {
  public:
   VppCommTask(EventLoop, GeneralServer*, std::unique_ptr<Socket> socket,
-              ConnectionInfo&&, double timeout, bool skipSocketInit = false);
+              ConnectionInfo&&, double timeout, ProtocolVersion protocolVersion,
+              bool skipSocketInit = false);
 
   // convert from GeneralResponse to vppResponse ad dispatch request to class
   // internal addResponse
@@ -143,6 +144,7 @@ class VppCommTask : public GeneralCommTask {
 
   std::string _authenticatedUser;
   AuthenticationFeature* _authentication;
+  ProtocolVersion _protocolVersion;
 };
 }
 }

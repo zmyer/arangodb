@@ -81,12 +81,14 @@ inline std::size_t validateAndCount(char const* vpStart,
 
 VppCommTask::VppCommTask(EventLoop loop, GeneralServer* server,
                          std::unique_ptr<Socket> socket, ConnectionInfo&& info,
-                         double timeout, bool skipInit)
+                         double timeout, ProtocolVersion protocolVersion,
+                         bool skipInit)
     : Task(loop, "VppCommTask"),
       GeneralCommTask(loop, server, std::move(socket), std::move(info), timeout,
                       skipInit),
       _authenticatedUser(),
-      _authentication(nullptr) {
+      _authentication(nullptr),
+      _protocolVersion(protocolVersion) {
   _authentication = application_features::ApplicationServer::getFeature<
       AuthenticationFeature>("Authentication");
   TRI_ASSERT(_authentication != nullptr);

@@ -270,14 +270,18 @@ bool HttpCommTask::processRead(double startTime) {
     }
 
     if (_readBuffer.length() >= 11 &&
-        std::memcmp(_readBuffer.c_str(), "VST/1.0\r\n\r\n", 11) == 0) {
+        (std::memcmp(_readBuffer.c_str(), "VST/1.0\r\n\r\n", 11) == 0 ||
+         std::memcmp(_readBuffer.c_str(), "VST/1.1\r\n\r\n", 11) == 0)) {
       LOG_TOPIC(TRACE, Logger::COMMUNICATION) << "switching from HTTP to VST";
+      ProtocolVersion protocolVersion = _readBuffer.c_str()[6] == '0' 
+          ? ProtocolVersion::VPP_1_0 : ProtocolVersion::VPP_1_1;
       _abandoned = true;
       cancelKeepAlive();
       std::shared_ptr<GeneralCommTask> commTask;
       commTask = std::make_shared<VppCommTask>(
           _loop, _server, std::move(_peer), std::move(_connectionInfo),
-          GeneralServerFeature::keepAliveTimeout(), /*skipSocketInit*/ true);
+          GeneralServerFeature::keepAliveTimeout(), 
+          protocolVersion, /*skipSocketInit*/ true);
       commTask->addToReadBuffer(_readBuffer.c_str() + 11,
                                 _readBuffer.length() - 11);
       commTask->processRead(startTime);
