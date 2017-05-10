@@ -221,9 +221,6 @@ Endpoint* Endpoint::factory(const Endpoint::EndpointType type,
   if (StringUtils::isPrefix(copy, "http+")) {
     protocol = TransportType::HTTP;
     copy = copy.substr(5);
-  } else if (StringUtils::isPrefix(copy, "vst+")) {
-    protocol = TransportType::VPP;
-    copy = copy.substr(4);
   } else {
     // invalid protocol
     return nullptr;
@@ -407,7 +404,7 @@ std::ostream& operator<<(std::ostream& stream,
       stream << "http";
       break;
     case arangodb::Endpoint::TransportType::VPP:
-      stream << "vsp";
+      stream << "vst";
       break;
   }
   return stream;
