@@ -48,10 +48,10 @@ std::size_t appendToBuffer(basics::StringBuffer* buffer, T& value) {
   return len;
 }
 
-inline constexpr std::size_t chunkHeaderLength(bool firstOfMany) {
+inline constexpr std::size_t chunkHeaderLength(bool sendTotalLen) {
   // chunkLength uint32 , chunkX uint32 , id uint64 , messageLength unit64
   return sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t) +
-         (firstOfMany ? sizeof(uint64_t) : 0);
+         (sendTotalLen ? sizeof(uint64_t) : 0);
 }
 
 // Send Message Created from Slices
@@ -59,23 +59,23 @@ inline constexpr std::size_t chunkHeaderLength(bool firstOfMany) {
 // working version of single chunk message creation
 inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkDetail(
     std::vector<VPackSlice> const& slices, bool isFirstChunk, uint32_t chunk,
-    uint64_t id, uint64_t totalMessageLength = 0) {
+    uint64_t id, ProtocolVersion protocolVersion,
+    uint64_t totalMessageLength) {
   using basics::StringBuffer;
-  bool firstOfMany = false;
 
-  // if we have more than one chunk and the chunk is the first
-  // then we are sending the first in a series. if this condition
-  // is true we also send extra 8 bytes for the messageLength
-  // (length of all VPackData)
-  if (isFirstChunk && chunk > 1) {
-    firstOfMany = true;
-  }
+  bool sendTotalLen = protocolVersion != ProtocolVersion::VST_1_0 ||
+                      (isFirstChunk && chunk > 1);
+  // if we speak VST_1_0 and have more than one chunk and the chunk
+  // is the first then we are sending the first in a series. if this
+  // condition is true we also send extra 8 bytes for the messageLength
+  // (length of all VPackData). In later versions we always send the
+  // total length.
 
   // build chunkX -- see VelocyStream Documentaion
   chunk <<= 1;
   chunk |= isFirstChunk ? 0x1 : 0x0;
 
-  // get the lenght of VPack data
+  // get the length of VPack data
   uint32_t dataLength = 0;
   for (auto& slice : slices) {
     // TODO: is a 32bit value sufficient for all Slices here?
@@ -84,7 +84,7 @@ inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkDetail(
 
   // calculate length of current chunk
   uint32_t chunkLength =
-      dataLength + static_cast<uint32_t>(chunkHeaderLength(firstOfMany));
+      dataLength + static_cast<uint32_t>(chunkHeaderLength(sendTotalLen));
 
   auto buffer =
       std::make_unique<StringBuffer>(TRI_UNKNOWN_MEM_ZONE, chunkLength, false);
@@ -94,7 +94,7 @@ inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkDetail(
   appendToBuffer(buffer.get(), chunk);
   appendToBuffer(buffer.get(), id);
 
-  if (firstOfMany) {
+  if (sendTotalLen) {
     appendToBuffer(buffer.get(), totalMessageLength);
   }
 
@@ -109,46 +109,21 @@ inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkDetail(
   return buffer;
 }
 
-//  slices, isFirstChunk, chunk, id, totalMessageLength
-inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkSingle(
-    std::vector<VPackSlice> const& slices, uint64_t id) {
-  return createChunkForNetworkDetail(slices, true, 1, id, 0 /*unused*/);
-}
-
-// This method does not respect the max chunksize instead it avoids copying
-// by moving slices into the createion functions - This is not acceptable for
-// big slices
-//
-// inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkMultiFirst(
-//    std::vector<VPackSlice> const& slices, uint64_t id, uint32_t
-//    numberOfChunks,
-//    uint32_t totalMessageLength) {
-//  return createChunkForNetworkDetail(slices, true, numberOfChunks, id,
-//                                     totalMessageLength);
-//}
-//
-// inline std::unique_ptr<basics::StringBuffer>
-// createChunkForNetworkMultiFollow(
-//    std::vector<VPackSlice> const& slices, uint64_t id, uint32_t chunkNumber,
-//    uint32_t totalMessageLength) {
-//  return createChunkForNetworkDetail(slices, false, chunkNumber, id, 0);
-//}
-
 // helper functions for sending chunks when given a string buffer as input
 // working version of single chunk message creation
 inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkDetail(
     char const* data, std::size_t begin, std::size_t end, bool isFirstChunk,
-    uint32_t chunk, uint64_t id, uint64_t totalMessageLength = 0) {
+    uint32_t chunk, uint64_t id, ProtocolVersion protocolVersion,
+    uint64_t totalMessageLength) {
   using basics::StringBuffer;
-  bool firstOfMany = false;
 
-  // if we have more than one chunk and the chunk is the first
-  // then we are sending the first in a series. if this condition
-  // is true we also send extra 8 bytes for the messageLength
-  // (length of all VPackData)
-  if (isFirstChunk && chunk > 1) {
-    firstOfMany = true;
-  }
+  bool sendTotalLen = protocolVersion != ProtocolVersion::VST_1_0 ||
+                      (isFirstChunk && chunk > 1);
+  // if we speak VST_1_0 and have more than one chunk and the chunk
+  // is the first then we are sending the first in a series. if this
+  // condition is true we also send extra 8 bytes for the messageLength
+  // (length of all VPackData). In later versions we always send the
+  // total length.
 
   // build chunkX -- see VelocyStream Documentaion
   chunk <<= 1;
@@ -159,7 +134,7 @@ inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkDetail(
 
   // calculate length of current chunk
   uint32_t chunkLength =
-      dataLength + static_cast<uint32_t>(chunkHeaderLength(firstOfMany));
+      dataLength + static_cast<uint32_t>(chunkHeaderLength(sendTotalLen));
 
   auto buffer =
       std::make_unique<StringBuffer>(TRI_UNKNOWN_MEM_ZONE, chunkLength, false);
@@ -168,7 +143,7 @@ inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkDetail(
   appendToBuffer(buffer.get(), chunk);
   appendToBuffer(buffer.get(), id);
 
-  if (firstOfMany) {
+  if (sendTotalLen) {
     appendToBuffer(buffer.get(), totalMessageLength);
   }
 
@@ -177,27 +152,14 @@ inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkDetail(
   return buffer;
 }
 
-inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkMultiFirst(
-    char const* data, std::size_t begin, std::size_t end, uint64_t id,
-    uint32_t numberOfChunks, uint64_t totalMessageLength) {
-  return createChunkForNetworkDetail(data, begin, end, true, numberOfChunks, id,
-                                     totalMessageLength);
-}
-
-inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkMultiFollow(
-    char const* data, std::size_t begin, std::size_t end, uint64_t id,
-    uint32_t chunkNumber) {
-  return createChunkForNetworkDetail(data, begin, end, false, chunkNumber, id,
-                                     0);
-}
-
 // this function will be called when we send multiple compressed
 // or uncompressed chunks
 inline void send_many(
     std::vector<std::unique_ptr<basics::StringBuffer>>& resultVecRef,
     uint64_t id, std::size_t maxChunkBytes,
     std::unique_ptr<basics::StringBuffer> completeMessage,
-    std::size_t uncompressedCompleteMessageLength) {
+    std::size_t uncompressedCompleteMessageLength,
+    ProtocolVersion protocolVersion) {
   uint64_t totalLen = completeMessage->length();
   std::size_t offsetBegin = 0;
   std::size_t offsetEnd = maxChunkBytes - chunkHeaderLength(true);
@@ -205,7 +167,7 @@ inline void send_many(
   std::size_t maxBytes = maxChunkBytes - chunkHeaderLength(false);
 
   uint32_t numberOfChunks = 1;
-  {  // calcuate the number of chunks taht will be send
+  {  // calculate the number of chunks that will be send
     std::size_t bytesToSend = totalLen - maxChunkBytes +
                               chunkHeaderLength(true);  // data for first chunk
     while (bytesToSend >= maxBytes) {
@@ -219,8 +181,9 @@ inline void send_many(
 
   // send first
   resultVecRef.push_back(
-      createChunkForNetworkMultiFirst(completeMessage->c_str(), offsetBegin,
-                                      offsetEnd, id, numberOfChunks, totalLen));
+      createChunkForNetworkDetail(completeMessage->c_str(), offsetBegin,
+                                  offsetEnd, true, numberOfChunks, id,
+                                  protocolVersion, totalLen));
 
   std::uint32_t chunkNumber = 0;
   while (offsetEnd + maxBytes <= totalLen) {
@@ -228,13 +191,15 @@ inline void send_many(
     offsetBegin = offsetEnd;
     offsetEnd += maxBytes;
     chunkNumber++;
-    resultVecRef.push_back(createChunkForNetworkMultiFollow(
-        completeMessage->c_str(), offsetBegin, offsetEnd, id, chunkNumber));
+    resultVecRef.push_back(createChunkForNetworkDetail(
+        completeMessage->c_str(), offsetBegin, offsetEnd, false, chunkNumber,
+        id, protocolVersion, totalLen));
   }
 
   if (offsetEnd < totalLen) {
-    resultVecRef.push_back(createChunkForNetworkMultiFollow(
-        completeMessage->c_str(), offsetEnd, totalLen, id, ++chunkNumber));
+    resultVecRef.push_back(createChunkForNetworkDetail(
+        completeMessage->c_str(), offsetEnd, totalLen, false, ++chunkNumber,
+        id, protocolVersion, totalLen));
   }
 
   return;
@@ -243,7 +208,8 @@ inline void send_many(
 // this function will be called by client code
 inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
     std::vector<VPackSlice> const& slices, uint64_t id,
-    std::size_t maxChunkBytes, bool compress = false) {
+    std::size_t maxChunkBytes, ProtocolVersion protocolVersion,
+    bool compress = false) {
   /// variables used in this function
   std::size_t uncompressedPayloadLength = 0;
   // worst case len in case of compression
@@ -265,10 +231,14 @@ inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
     payloadLength = uncompressedPayloadLength;
   }
 
+  bool sendTotalLen = protocolVersion != ProtocolVersion::VST_1_0;
+  size_t chl = chunkHeaderLength(sendTotalLen);
+
   if (!compress &&
-      uncompressedPayloadLength < maxChunkBytes - chunkHeaderLength(false)) {
+      uncompressedPayloadLength < maxChunkBytes - chl) {
     // one chunk uncompressed
-    rv.push_back(createChunkForNetworkSingle(slices, id));
+    rv.push_back(createChunkForNetworkDetail(slices, true, 1, id,
+                 protocolVersion, chl + uncompressedPayloadLength));
     return rv;
   } else if (compress &&
              preliminaryPayloadLength <
@@ -314,7 +284,7 @@ inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
     // create chunks
     (void)payloadLength;
     send_many(rv, id, maxChunkBytes, std::move(vstPayload),
-              uncompressedPayloadLength);
+              uncompressedPayloadLength, protocolVersion);
   }
   return rv;
 }

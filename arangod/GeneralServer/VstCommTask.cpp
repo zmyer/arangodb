@@ -138,7 +138,8 @@ void VstCommTask::addResponse(VstResponse* response, RequestStatistics* stat) {
           ->vstMaxSize();
 
   // set some sensible maxchunk size and compression
-  auto buffers = createChunkForNetwork(slices, id, chunkSize, false);
+  auto buffers = createChunkForNetwork(slices, id, chunkSize, _protocolVersion,
+                                       false);
   double const totalTime = RequestStatistics::ELAPSED_SINCE_READ_START(stat);
 
   if (stat != nullptr && arangodb::Logger::isEnabled(arangodb::LogLevel::TRACE,
