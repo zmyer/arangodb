@@ -26,7 +26,7 @@
 
 #include "Basics/StringBuffer.h"
 #include "Rest/GeneralResponse.h"
-#include "Rest/VppMessage.h"
+#include "Rest/VstMessage.h"
 
 namespace arangodb {
 class RestBatchHandler;

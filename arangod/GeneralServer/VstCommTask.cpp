@@ -37,7 +37,7 @@
 #include "GeneralServer/GeneralServerFeature.h"
 #include "GeneralServer/RestHandler.h"
 #include "GeneralServer/RestHandlerFactory.h"
-#include "GeneralServer/VppNetwork.h"
+#include "GeneralServer/VstNetwork.h"
 #include "Logger/LoggerFeature.h"
 #include "Meta/conversion.h"
 #include "RestServer/ServerFeature.h"

@@ -22,7 +22,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "VppRequest.h"
-#include "VppMessage.h"
+#include "VstMessage.h"
 
 #include <velocypack/Builder.h>
 #include <velocypack/Iterator.h>

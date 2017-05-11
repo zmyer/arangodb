@@ -29,7 +29,7 @@
 #include <boost/optional.hpp>
 #include <stdexcept>
 
-#include "lib/Rest/VppMessage.h"
+#include "lib/Rest/VstMessage.h"
 #include "lib/Rest/VppRequest.h"
 #include "lib/Rest/VppResponse.h"
 

@@ -27,7 +27,7 @@
 
 #include "Endpoint/ConnectionInfo.h"
 #include "Rest/GeneralRequest.h"
-#include "Rest/VppMessage.h"
+#include "Rest/VstMessage.h"
 
 #include <velocypack/Buffer.h>
 #include <velocypack/Builder.h>
