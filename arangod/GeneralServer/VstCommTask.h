@@ -30,8 +30,8 @@
 #include <stdexcept>
 
 #include "lib/Rest/VstMessage.h"
-#include "lib/Rest/VppRequest.h"
-#include "lib/Rest/VppResponse.h"
+#include "lib/Rest/VstRequest.h"
+#include "lib/Rest/VstResponse.h"
 
 namespace arangodb {
 

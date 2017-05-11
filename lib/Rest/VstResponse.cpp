@@ -22,7 +22,7 @@
 /// @author Achim Brandt
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "VppResponse.h"
+#include "VstResponse.h"
 
 #include <velocypack/Builder.h>
 #include <velocypack/Dumper.h>
