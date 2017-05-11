@@ -35,7 +35,7 @@
 #include "Basics/VPackStringBufferAdapter.h"
 #include "Basics/tri-strings.h"
 #include "Meta/conversion.h"
-#include "Rest/VppRequest.h"
+#include "Rest/VstRequest.h"
 
 using namespace arangodb;
 using namespace arangodb::basics;

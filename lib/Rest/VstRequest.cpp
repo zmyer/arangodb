@@ -21,7 +21,7 @@
 /// @author Jan Christoph Uhde
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "VppRequest.h"
+#include "VstRequest.h"
 #include "VstMessage.h"
 
 #include <velocypack/Builder.h>
