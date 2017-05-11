@@ -22,8 +22,8 @@
 /// @author Achim Brandt
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef ARANGODB_REST_VPP_REQUEST_H
-#define ARANGODB_REST_VPP_REQUEST_H 1
+#ifndef ARANGODB_REST_VST_REQUEST_H
+#define ARANGODB_REST_VST_REQUEST_H 1
 
 #include "Endpoint/ConnectionInfo.h"
 #include "Rest/GeneralRequest.h"

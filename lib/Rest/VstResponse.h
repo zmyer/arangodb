@@ -21,8 +21,8 @@
 /// @author Jan Christoph Uhde
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef ARANGODB_REST_VPP_RESPONSE_H
-#define ARANGODB_REST_VPP_RESPONSE_H 1
+#ifndef ARANGODB_REST_VST_RESPONSE_H
+#define ARANGODB_REST_VST_RESPONSE_H 1
 
 #include "Basics/StringBuffer.h"
 #include "Rest/GeneralResponse.h"
