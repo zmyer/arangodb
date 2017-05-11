@@ -165,11 +165,11 @@ class RocksDBCuckooIndexEstimator {
     rocksutils::uint64ToPersistent(serialized, _niceSize);
     rocksutils::uint64ToPersistent(serialized, _logSize);
 
-    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Serialize: " << std::hex << serialized;
     // Add the data blob
     char* last = (&serialized.back()) + 1;
-    std::memcpy(last, _allocBase, _allocSize);
-    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Serialize: " << std::hex << std::string(_allocBase, _allocSize);
+    // Size is as follows: nrOfBuckets * SlotsPerBucket * SlotSize
+    TRI_ASSERT((_size * _slotSize * SlotsPerBucket) <= _allocSize);
+    std::memcpy(last, _base, (_size * _slotSize * SlotsPerBucket));
   }
 
   double computeEstimate() {
@@ -482,8 +482,9 @@ class RocksDBCuckooIndexEstimator {
     deriveSizesAndAlloc();
 
     // Insert the raw data
-    std::memcpy(_allocBase, current, _allocSize);
-    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Deserialized: " << std::hex << std::string(_allocBase, _allocSize);
+    // Size is as follows: nrOfBuckets * SlotsPerBucket * SlotSize
+    TRI_ASSERT((_size * _slotSize * SlotsPerBucket) <= _allocSize);
+    std::memcpy(_base, current, (_size * _slotSize * SlotsPerBucket));
   }
 
   void initializeDefault() {
