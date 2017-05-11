@@ -111,6 +111,9 @@ RocksDBKey RocksDBKey::ReplicationApplierConfig(TRI_voc_tick_t databaseId) {
   return RocksDBKey(RocksDBEntryType::ReplicationApplierConfig, databaseId);
 }
 
+RocksDBKey RocksDBKey::IndexEstimateValue(uint64_t collectionObjectId) {
+  return RocksDBKey(RocksDBEntryType::IndexEstimateValue, collectionObjectId);
+}
 // ========================= Member methods ===========================
 
 RocksDBEntryType RocksDBKey::type(RocksDBKey const& key) {
@@ -218,6 +221,7 @@ RocksDBKey::RocksDBKey(RocksDBEntryType type, uint64_t first)
   switch (_type) {
     case RocksDBEntryType::Database:
     case RocksDBEntryType::CounterValue:
+    case RocksDBEntryType::IndexEstimateValue:
     case RocksDBEntryType::ReplicationApplierConfig: {
       size_t length = sizeof(char) + sizeof(uint64_t);
       _buffer.reserve(length);

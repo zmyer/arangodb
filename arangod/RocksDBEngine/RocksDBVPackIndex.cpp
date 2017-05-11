@@ -1466,3 +1466,12 @@ int RocksDBVPackIndex::cleanup() {
   db->CompactRange(opts, &b, &e);
   return TRI_ERROR_NO_ERROR;
 }
+
+void RocksDBVPackIndex::serializeEstimate(std::string& output) const {
+  if (!_unique) {
+    TRI_ASSERT(_estimator != nullptr);
+    // We always have indexId followed by the estimator internal output.
+    rocksutils::uint64ToPersistent(output, id());
+    _estimator->serialize(output);
+  }
+}

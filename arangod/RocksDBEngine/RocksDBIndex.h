@@ -94,6 +94,8 @@ class RocksDBIndex : public Index {
   void createCache();
   void disableCache();
 
+  virtual void serializeEstimate(std::string& output) const;
+
  protected:
   inline bool useCache() const { return (_useCache && _cachePresent); }
 

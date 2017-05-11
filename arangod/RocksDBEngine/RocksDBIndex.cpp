@@ -144,3 +144,6 @@ int RocksDBIndex::drop() {
   return TRI_ERROR_NO_ERROR;
 }
 
+void RocksDBIndex::serializeEstimate(std::string&) const {
+  // All indexes that do not have an estimator do not serialize anything.
+}

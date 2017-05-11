@@ -27,6 +27,7 @@
 #include "Basics/Common.h"
 #include "Basics/fasthash.h"
 #include "Basics/ReadLocker.h"
+#include "Basics/StringRef.h"
 #include "Basics/WriteLocker.h"
 
 #include "Logger/Logger.h"
@@ -120,7 +121,7 @@ class RocksDBCuckooIndexEstimator {
     initializeDefault();
   }
 
-  RocksDBCuckooIndexEstimator(std::string const& serialized)
+  RocksDBCuckooIndexEstimator(arangodb::StringRef const& serialized)
       : _randState(0x2636283625154737ULL),
         _slotSize(2 * sizeof(uint16_t)),  // Sort out offsets and alignments
         _nrUsed(0),
@@ -151,7 +152,6 @@ class RocksDBCuckooIndexEstimator {
       delete;
 
   void serialize(std::string& serialized) const {
-    TRI_ASSERT(serialized.empty());
     serialized.reserve(sizeof(SerializeFormat) + sizeof(_size) + sizeof(_nrUsed) + sizeof(_nrCuckood) + sizeof(_nrTotal) + sizeof(_niceSize) + sizeof(_logSize) + _allocSize); 
 
     // This format is always hard coded and the serialisation has to support
@@ -467,7 +467,7 @@ class RocksDBCuckooIndexEstimator {
     return static_cast<uint8_t>((_randState >> 37) & 0xff);
   }
 
-  void deserializeUncompressed(std::string const& serialized) {
+  void deserializeUncompressed(arangodb::StringRef const& serialized) {
     char const* current = serialized.data();
     TRI_ASSERT(*current == SerializeFormat::NOCOMPRESSION);
     current++; // Skip format char

@@ -191,6 +191,8 @@ class RocksDBCollection final : public PhysicalCollection {
 
   bool hasGeoIndex() { return _hasGeoIndex; }
 
+  void serializeIndexEstimates(std::string&) const;
+
  private:
   /// @brief return engine-specific figures
   void figuresSpecific(

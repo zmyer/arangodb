@@ -28,10 +28,13 @@
 #include "Basics/VelocyPackHelper.h"
 #include "Basics/WriteLocker.h"
 #include "Logger/Logger.h"
+#include "RestServer/DatabaseFeature.h"
+#include "RocksDBEngine/RocksDBCollection.h"
 #include "RocksDBEngine/RocksDBCommon.h"
 #include "RocksDBEngine/RocksDBKey.h"
 #include "RocksDBEngine/RocksDBKeyBounds.h"
 #include "RocksDBEngine/RocksDBValue.h"
+#include "StorageEngine/EngineSelectorFeature.h"
 #include "VocBase/ticks.h"
 
 #include <rocksdb/utilities/transaction_db.h>
@@ -239,6 +242,51 @@ Result RocksDBCounterManager::sync(bool force) {
     LOG_TOPIC(WARN, Logger::ENGINES) << "writing settings failed";
     rtrx->Rollback();
     return rocksutils::convertStatus(s);
+  }
+
+  // Now persist the index estimates:
+  { 
+    auto engine = static_cast<RocksDBEngine*>(EngineSelectorFeature::ENGINE);
+    TRI_ASSERT(engine != nullptr);
+    for (auto const& pair : copy) {
+      auto dbColPair = engine->mapObjectToCollection(pair.first);
+      auto dbfeature = DatabaseFeature::DATABASE;
+      TRI_ASSERT(dbfeature != nullptr);
+      auto vocbase = dbfeature->useDatabase(dbColPair.first);
+      TRI_ASSERT(vocbase != nullptr);
+      if (vocbase == nullptr) {
+        // Bad state, we have references to a database that is not known anymore.
+        // However let's just skip in production. Not allowed to crash.
+        // If we cannot find this infos during recovery we can either recompute
+        // or start fresh.
+        continue;
+      }
+      auto collection = vocbase->lookupCollection(dbColPair.second);
+      TRI_ASSERT(collection != nullptr);
+      if (vocbase == nullptr) {
+        // Bad state, we have references to a collection that is not known anymore.
+        // However let's just skip in production. Not allowed to crash.
+        // If we cannot find this infos during recovery we can either recompute
+        // or start fresh.
+        continue;
+      }
+      std::string estimateSerialisation;
+      auto rocksCollection = static_cast<RocksDBCollection*>(collection->getPhysical());
+      TRI_ASSERT(rocksCollection != nullptr);
+      rocksCollection->serializeIndexEstimates(estimateSerialisation);
+      if (!estimateSerialisation.empty()) {
+        RocksDBKey key = RocksDBKey::IndexEstimateValue(rocksCollection->objectId());
+        rocksdb::Slice value(estimateSerialisation);
+
+        rocksdb::Status s = rtrx->Put(key.string(), value);
+
+        if (!s.ok()) {
+          LOG_TOPIC(WARN, Logger::ENGINES) << "writing index estimates failed";
+          rtrx->Rollback();
+          return rocksutils::convertStatus(s);
+        }
+      }
+    }
   }
 
   // we have to commit all counters in one batch

@@ -27,6 +27,7 @@
 
 
 #include "Basics/Common.h"
+#include "Basics/StringRef.h"
 #include "catch.hpp"
 
 #include "RocksDBEngine/RocksDBCuckooIndexEstimator.h"
@@ -92,8 +93,9 @@ SECTION("test_serialize_deserialize") {
   }
 
   est.serialize(serialization);
+  StringRef ref(serialization);
 
-  RocksDBCuckooIndexEstimator<uint64_t> copy(serialization);
+  RocksDBCuckooIndexEstimator<uint64_t> copy(ref);
 
   // After serialisation => deserialisation
   // both estimates have to be identical

@@ -222,6 +222,8 @@ class RocksDBVPackIndex : public RocksDBIndex {
                         std::vector<VPackSlice>& sliceStack,
                         std::vector<uint64_t>& hashes);
 
+  void serializeEstimate(std::string& output) const override;
+
  private:
   std::unique_ptr<FixedSizeAllocator> _allocator;
 

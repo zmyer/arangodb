@@ -543,6 +543,7 @@ bool RocksDBCollection::dropIndex(TRI_idx_iid_t iid) {
   // TODO: need to protect _indexes with an RW-lock!!
   for (auto index : getIndexes()) {
     RocksDBIndex* cindex = static_cast<RocksDBIndex*>(index.get());
+    TRI_ASSERT(cindex != nullptr);
 
     if (iid == cindex->id()) {
       int rv = cindex->drop();
@@ -1792,4 +1793,12 @@ void RocksDBCollection::estimateSize(velocypack::Builder& builder) {
   builder.close();
   builder.add("total", VPackValue(total));
   builder.close();
+}
+
+void RocksDBCollection::serializeIndexEstimates(std::string& output) const {
+  for (auto index : getIndexes()) {
+    RocksDBIndex* cindex = static_cast<RocksDBIndex*>(index.get());
+    TRI_ASSERT(cindex != nullptr);
+    cindex->serializeEstimate(output);
+  }
 }
