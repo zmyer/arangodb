@@ -208,50 +208,31 @@ inline void send_many(
 // this function will be called by client code
 inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
     std::vector<VPackSlice> const& slices, uint64_t id,
-    std::size_t maxChunkBytes, ProtocolVersion protocolVersion,
-    bool compress = false) {
+    std::size_t maxChunkBytes, ProtocolVersion protocolVersion) {
   /// variables used in this function
-  std::size_t uncompressedPayloadLength = 0;
-  // worst case len in case of compression
-  std::size_t preliminaryPayloadLength = 0;
-  // std::size_t compressedPayloadLength = 0;
-  std::size_t payloadLength = 0;  // compressed or uncompressed
+  std::size_t payloadLength = 0;
 
   std::vector<std::unique_ptr<basics::StringBuffer>> rv;
 
   // find out the uncompressed payload length
   for (auto const& slice : slices) {
-    uncompressedPayloadLength += slice.byteSize();
-  }
-
-  if (compress) {
-    // use some function to calculate the worst case length
-    preliminaryPayloadLength = uncompressedPayloadLength;
-  } else {
-    payloadLength = uncompressedPayloadLength;
+    payloadLength += slice.byteSize();
   }
 
   bool sendTotalLen = protocolVersion != ProtocolVersion::VST_1_0;
   size_t chl = chunkHeaderLength(sendTotalLen);
 
-  if (!compress &&
-      uncompressedPayloadLength < maxChunkBytes - chl) {
+  if (payloadLength < maxChunkBytes - chl) {
     // one chunk uncompressed
     rv.push_back(createChunkForNetworkDetail(slices, true, 1, id,
-                 protocolVersion, chl + uncompressedPayloadLength));
+                 protocolVersion, chl + payloadLength));
     return rv;
-  } else if (compress &&
-             preliminaryPayloadLength <
-                 maxChunkBytes - chunkHeaderLength(false)) {
-    throw std::logic_error("not implemented");
-    // one chunk compressed
   } else {
-    //// here we enter the domain of multichunck
+    // here we enter the domain of multichunck
     LOG_TOPIC(DEBUG, Logger::COMMUNICATION)
         << "VstCommTask: sending multichunk message";
 
-    // test if we have smaller slices that fit into chunks when there is
-    // no compression - optimization
+    // TODO: test if we have smaller slices that fit into chunks
 
     LOG_TOPIC(DEBUG, Logger::COMMUNICATION)
         << "VstCommTask: there are slices that do not fit into a single "
@@ -259,9 +240,9 @@ inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
     // we have big slices that do not fit into single chunks
     // now we will build one big buffer and split it into pieces
 
-    // reseve buffer
+    // reserve buffer
     auto vstPayload = std::make_unique<basics::StringBuffer>(
-        TRI_UNKNOWN_MEM_ZONE, uncompressedPayloadLength, false);
+        TRI_UNKNOWN_MEM_ZONE, payloadLength, false);
 
     // fill buffer
     for (auto const& slice : slices) {
@@ -271,20 +252,9 @@ inline std::vector<std::unique_ptr<basics::StringBuffer>> createChunkForNetwork(
       vstPayload->appendText(slice.startAs<char>(), slice.byteSize());
     }
 
-    if (compress) {
-      // compress uncompressedVstPayload -> vstPayload
-      auto uncommpressedVstPayload = std::move(vstPayload);
-      vstPayload = std::make_unique<basics::StringBuffer>(
-          TRI_UNKNOWN_MEM_ZONE, preliminaryPayloadLength, false);
-      // do compression
-      throw std::logic_error("no implemented");
-      // payloadLength = compressedPayloadLength;
-    }
-
     // create chunks
-    (void)payloadLength;
     send_many(rv, id, maxChunkBytes, std::move(vstPayload),
-              uncompressedPayloadLength, protocolVersion);
+              payloadLength, protocolVersion);
   }
   return rv;
 }
