@@ -396,7 +396,6 @@ bool VstCommTask::processRead(double startTime) {
               chunkHeader._messageID);
         } else {
           request->setClientTaskId(_taskId);
-          _protocolVersion = request->protocolVersion();
 
           std::unique_ptr<VstResponse> response(new VstResponse(
               rest::ResponseCode::SERVER_ERROR, chunkHeader._messageID));
