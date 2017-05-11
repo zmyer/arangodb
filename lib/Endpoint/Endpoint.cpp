@@ -143,7 +143,7 @@ std::string Endpoint::unifiedForm(std::string const& specification) {
       // hostname only (e.g. [address])
       if (protocol == TransportType::VST) {
         return prefix + copy + ":" +
-               StringUtils::itoa(EndpointIp::_defaultPortVpp);
+               StringUtils::itoa(EndpointIp::_defaultPortVst);
       } else {
         return prefix + copy + ":" +
                StringUtils::itoa(EndpointIp::_defaultPortHttp);
@@ -172,7 +172,7 @@ std::string Endpoint::unifiedForm(std::string const& specification) {
     return prefix + copy + ":" +
            StringUtils::itoa(EndpointIp::_defaultPortHttp);
   } else {
-    return prefix + copy + ":" + StringUtils::itoa(EndpointIp::_defaultPortVpp);
+    return prefix + copy + ":" + StringUtils::itoa(EndpointIp::_defaultPortVst);
   }
 }
 
@@ -268,7 +268,7 @@ Endpoint* Endpoint::factory(const Endpoint::EndpointType type,
   copy = copy.substr(6);
   uint16_t defaultPort = (protocol == TransportType::HTTP)
                              ? EndpointIp::_defaultPortHttp
-                             : EndpointIp::_defaultPortVpp;
+                             : EndpointIp::_defaultPortVst;
 
   size_t found;
 
@@ -339,7 +339,7 @@ std::string const Endpoint::defaultEndpoint(TransportType type) {
 
     case TransportType::VST:
       return "vst+tcp://" + std::string(EndpointIp::_defaultHost) + ":" +
-             StringUtils::itoa(EndpointIp::_defaultPortVpp);
+             StringUtils::itoa(EndpointIp::_defaultPortVst);
 
     default: {
       THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL,
