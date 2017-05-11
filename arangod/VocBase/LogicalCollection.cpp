@@ -582,7 +582,7 @@ std::unique_ptr<FollowerInfo> const& LogicalCollection::followers() const {
 void LogicalCollection::setDeleted(bool newValue) { _isDeleted = newValue; }
 
 // SECTION: Indexes
-std::vector<std::shared_ptr<arangodb::Index>> const&
+std::vector<std::shared_ptr<arangodb::Index>>
 LogicalCollection::getIndexes() const {
   return getPhysical()->getIndexes();
 }
@@ -1158,12 +1158,6 @@ bool LogicalCollection::readDocument(transaction::Methods* trx,
                                      DocumentIdentifierToken const& token,
                                      ManagedDocumentResult& result) {
   return getPhysical()->readDocument(trx, token, result);
-}
-
-bool LogicalCollection::readDocumentConditional(
-    transaction::Methods* trx, DocumentIdentifierToken const& token,
-    TRI_voc_tick_t maxTick, ManagedDocumentResult& result) {
-  return getPhysical()->readDocumentConditional(trx, token, maxTick, result);
 }
 
 /// @brief a method to skip certain documents in AQL write operations,

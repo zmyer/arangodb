@@ -24,15 +24,19 @@
 #include "RocksDBIndex.h"
 #include "Basics/VelocyPackHelper.h"
 #include "Cache/CacheManagerFeature.h"
+#include "Cache/TransactionalCache.h"
 #include "Cache/Common.h"
 #include "Cache/Manager.h"
+#include "RocksDBEngine/RocksDBCommon.h"
 #include "RocksDBEngine/RocksDBComparator.h"
 #include "RocksDBEngine/RocksDBEngine.h"
+#include "RocksDBEngine/RocksDBTransactionState.h"
 #include "StorageEngine/EngineSelectorFeature.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ticks.h"
 
 using namespace arangodb;
+using namespace arangodb::rocksutils;
 
 // This is the number of distinct elements the index estimator can reliably store
 // This correlates directly with the memmory of the estimator:
@@ -43,29 +47,40 @@ uint64_t const arangodb::RocksDBIndex::ESTIMATOR_SIZE = 4096;
 RocksDBIndex::RocksDBIndex(
     TRI_idx_iid_t id, LogicalCollection* collection,
     std::vector<std::vector<arangodb::basics::AttributeName>> const& attributes,
-    bool unique, bool sparse, uint64_t objectId)
+    bool unique, bool sparse, uint64_t objectId, bool useCache)
     : Index(id, collection, attributes, unique, sparse),
       _objectId((objectId != 0) ? objectId : TRI_NewTickServer()),
       _cmp(static_cast<RocksDBEngine*>(EngineSelectorFeature::ENGINE)->cmp()),
       _cache(nullptr),
       _cachePresent(false),
-      _useCache(false) {}
+      _useCache(useCache) {
+  if (_useCache) {
+    //LOG_TOPIC(ERR, Logger::FIXME) << "creating cache";
+    createCache();
+  } else {
+    //LOG_TOPIC(ERR, Logger::FIXME) << "not creating cache";
+  }
+
+}
 
 RocksDBIndex::RocksDBIndex(TRI_idx_iid_t id, LogicalCollection* collection,
-                           VPackSlice const& info)
+                           VPackSlice const& info,bool useCache)
     : Index(id, collection, info),
       _objectId(basics::VelocyPackHelper::stringUInt64(info.get("objectId"))),
       _cmp(static_cast<RocksDBEngine*>(EngineSelectorFeature::ENGINE)->cmp()),
       _cache(nullptr),
       _cachePresent(false),
-      _useCache(false) {
+      _useCache(useCache) {
   if (_objectId == 0) {
     _objectId = TRI_NewTickServer();
+  }
+  if (_useCache) {
+    createCache();
   }
 }
 
 RocksDBIndex::~RocksDBIndex() {
-  if (_useCache && _cachePresent) {
+  if (useCache()) {
     try {
       TRI_ASSERT(_cache != nullptr);
       TRI_ASSERT(CacheManagerFeature::MANAGER != nullptr);
@@ -75,14 +90,14 @@ RocksDBIndex::~RocksDBIndex() {
   }
 }
 
-void RocksDBIndex::load() {
-  if (_useCache) {
-    createCache();
-  }
+void RocksDBIndex::toVelocyPackFigures(VPackBuilder& builder) const {
+  TRI_ASSERT(builder.isOpenObject());
+  builder.add("cacheSize", VPackValue(useCache() ? _cache->size() : 0));
 }
 
 int RocksDBIndex::unload() {
-  if (_useCache && _cachePresent) {
+  if (useCache()) {
+    //LOG_TOPIC(ERR, Logger::FIXME) << "unload cache";
     disableCache();
     TRI_ASSERT(!_cachePresent);
   }
@@ -102,16 +117,18 @@ void RocksDBIndex::toVelocyPack(VPackBuilder& builder, bool withFigures,
 
 void RocksDBIndex::createCache() {
   if (!_useCache || _cachePresent) {
-    // we should not get here if we do not need the cache
+    // we leave this if we do not need the cache
     // or if cache already created
     return;
   }
 
+  TRI_ASSERT(_useCache);
   TRI_ASSERT(_cache.get() == nullptr);
   TRI_ASSERT(CacheManagerFeature::MANAGER != nullptr);
   _cache = CacheManagerFeature::MANAGER->createCache(
       cache::CacheType::Transactional);
   _cachePresent = (_cache.get() != nullptr);
+  TRI_ASSERT(_useCache);
 }
 
 void RocksDBIndex::disableCache() {
@@ -126,6 +143,7 @@ void RocksDBIndex::disableCache() {
   CacheManagerFeature::MANAGER->destroyCache(_cache);
   _cache.reset();
   _cachePresent = false;
+  TRI_ASSERT(_useCache);
 }
 
 int RocksDBIndex::drop() {
@@ -146,4 +164,80 @@ int RocksDBIndex::drop() {
 
 void RocksDBIndex::serializeEstimate(std::string&) const {
   // All indexes that do not have an estimator do not serialize anything.
+}
+
+void RocksDBIndex::truncate(transaction::Methods* trx) {
+  RocksDBTransactionState* state = rocksutils::toRocksTransactionState(trx);
+  rocksdb::Transaction* rtrx = state->rocksTransaction();
+  RocksDBKeyBounds indexBounds = getBounds();
+
+  rocksdb::ReadOptions options = state->readOptions();
+  options.iterate_upper_bound = &(indexBounds.end());
+
+  std::unique_ptr<rocksdb::Iterator> iter(rtrx->GetIterator(options));
+  iter->Seek(indexBounds.start());
+
+  while (iter->Valid()) {
+    rocksdb::Status s = rtrx->Delete(iter->key());
+    if (!s.ok()) {
+      auto converted = convertStatus(s);
+      THROW_ARANGO_EXCEPTION(converted);
+    }
+
+    Result r = postprocessRemove(trx, iter->key(), iter->value());
+    if (!r.ok()) {
+      THROW_ARANGO_EXCEPTION(r);
+    }
+
+    iter->Next();
+  }
+}
+
+Result RocksDBIndex::postprocessRemove(transaction::Methods* trx,
+                                       rocksdb::Slice const& key,
+                                      rocksdb::Slice const& value) {
+  return {TRI_ERROR_NO_ERROR};
+}
+
+
+// blacklist given key from transactional cache
+void RocksDBIndex::blackListKey(char const* data, std::size_t len){
+  if (useCache()) {
+    TRI_ASSERT(_cache != nullptr);
+    bool blacklisted = false;
+    uint64_t attempts = 0;
+    while (!blacklisted) {
+      blacklisted = _cache->blacklist(data, (uint32_t)len);
+      if (attempts++ % 10 == 0) {
+        if (_cache->isShutdown()) {
+          disableCache();
+          break;
+        }
+      }
+    }
+  }
+}
+
+RocksDBKeyBounds RocksDBIndex::getBounds() const {
+  switch (type()) {
+    case RocksDBIndex::TRI_IDX_TYPE_PRIMARY_INDEX:
+      return RocksDBKeyBounds::PrimaryIndex(objectId());
+    case RocksDBIndex::TRI_IDX_TYPE_EDGE_INDEX:
+      return RocksDBKeyBounds::EdgeIndex(objectId());
+    case RocksDBIndex::TRI_IDX_TYPE_HASH_INDEX:
+    case RocksDBIndex::TRI_IDX_TYPE_SKIPLIST_INDEX:
+    case RocksDBIndex::TRI_IDX_TYPE_PERSISTENT_INDEX:
+      if (unique()) {
+        return RocksDBKeyBounds::UniqueIndex(objectId());
+      }
+      return RocksDBKeyBounds::IndexEntries(objectId());
+    case RocksDBIndex::TRI_IDX_TYPE_FULLTEXT_INDEX:
+      return RocksDBKeyBounds::FulltextIndex(objectId());
+    case RocksDBIndex::TRI_IDX_TYPE_GEO1_INDEX:
+    case RocksDBIndex::TRI_IDX_TYPE_GEO2_INDEX:
+      return RocksDBKeyBounds::GeoIndex(objectId());
+    case RocksDBIndex::TRI_IDX_TYPE_UNKNOWN:
+    default:
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_NOT_IMPLEMENTED);
+  }
 }

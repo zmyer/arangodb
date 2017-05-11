@@ -1845,6 +1845,7 @@ int ClusterInfo::ensureIndexCoordinator(
       errorMsg += trx.toJson();
       errorMsg += "ClientId: " + result._clientId + " ";
       errorMsg += " ResultCode: " + std::to_string(result.errorCode()) + " ";
+      errorMsg += " HttpCode: " + std::to_string(result.httpCode()) + " ";
       errorMsg += std::string(__FILE__) + ":" + std::to_string(__LINE__);
       resultBuilder = *resBuilder;
     }
@@ -2143,12 +2144,11 @@ void ClusterInfo::loadServers() {
       result.slice()[0].get(
         std::vector<std::string>(
           {AgencyCommManager::path(), "Target", "MapUniqueToShortID"}));
-    
+
     if (serversRegistered.isObject()) {
       decltype(_servers) newServers;
       decltype(_serverAliases) newAliases;
       
-      size_t i = 0;
       for (auto const& res : VPackObjectIterator(serversRegistered)) {
         velocypack::Slice slice = res.value;
         
@@ -2157,15 +2157,17 @@ void ClusterInfo::loadServers() {
             arangodb::basics::VelocyPackHelper::getStringValue(
               slice, "endpoint", "");
           
-          velocypack::Slice aslice;
+          std::string serverId = res.key.copyString();
           try {
-            aslice = serversAliases.valueAt(i++);
+            velocypack::Slice serverSlice;
+            serverSlice = serversAliases.get(serverId);
+            
             std::string alias =
               arangodb::basics::VelocyPackHelper::getStringValue(
-                aslice, "ShortName", "");
-            newAliases.emplace(std::make_pair(alias, res.key.copyString()));
+                serverSlice, "ShortName", "");
+            newAliases.emplace(std::make_pair(alias, serverId));
           } catch (...) {}
-          newServers.emplace(std::make_pair(res.key.copyString(), server));
+          newServers.emplace(std::make_pair(serverId, server));
         }
       }
       

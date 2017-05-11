@@ -28,6 +28,7 @@
 #include "Basics/Common.h"
 #include "Indexes/Index.h"
 #include "RocksDBEngine/RocksDBKeyBounds.h"
+#include <rocksdb/status.h>
 
 namespace rocksdb {
 class WriteBatch;
@@ -53,13 +54,14 @@ class RocksDBIndex : public Index {
   RocksDBIndex(TRI_idx_iid_t, LogicalCollection*,
                std::vector<std::vector<arangodb::basics::AttributeName>> const&
                    attributes,
-               bool unique, bool sparse, uint64_t objectId = 0);
+               bool unique, bool sparse, uint64_t objectId = 0, bool useCache = false);
 
   RocksDBIndex(TRI_idx_iid_t, LogicalCollection*,
-               arangodb::velocypack::Slice const&);
+               arangodb::velocypack::Slice const&, bool useCache = false);
 
  public:
   ~RocksDBIndex();
+  void toVelocyPackFigures(VPackBuilder& builder) const override;
 
   uint64_t objectId() const { return _objectId; }
 
@@ -73,13 +75,13 @@ class RocksDBIndex : public Index {
 
   int unload() override;
 
+  virtual void truncate(transaction::Methods*);
+
   /// @brief provides a size hint for the index
   int sizeHint(transaction::Methods* /*trx*/, size_t /*size*/) override final {
     // nothing to do here
     return TRI_ERROR_NO_ERROR;
   }
-
-  void load();
 
   /// insert index elements into the specified write batch. Should be used
   /// as an optimization for the non transactional fillIndex method
@@ -88,7 +90,7 @@ class RocksDBIndex : public Index {
 
   /// remove index elements and put it in the specified write batch. Should be
   /// used as an optimization for the non transactional fillIndex method
-  virtual int removeRaw(rocksdb::WriteBatch*, TRI_voc_rid_t,
+  virtual int removeRaw(rocksdb::WriteBatchWithIndex*, TRI_voc_rid_t,
                         arangodb::velocypack::Slice const&) = 0;
 
   void createCache();
@@ -97,7 +99,18 @@ class RocksDBIndex : public Index {
   virtual void serializeEstimate(std::string& output) const;
 
  protected:
+  // Will be called during truncate to allow the index to update selectivity
+  // estimates, blacklist keys, etc.
+  virtual Result postprocessRemove(transaction::Methods* trx,
+                                   rocksdb::Slice const& key, rocksdb::Slice const& value);
+
   inline bool useCache() const { return (_useCache && _cachePresent); }
+  void blackListKey(char const* data, std::size_t len);
+  void blackListKey(StringRef& ref){
+    blackListKey(ref.data(), ref.size());
+  };
+
+  RocksDBKeyBounds getBounds() const;
 
  protected:
   uint64_t _objectId;

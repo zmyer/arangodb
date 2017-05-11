@@ -93,7 +93,6 @@ class RocksDBAllIndexIterator final : public IndexIterator {
   void seek(StringRef const& key);
 
  private:
-  RocksDBComparator const* _cmp;
   bool const _reverse;
   std::unique_ptr<rocksdb::Iterator> _iterator;
   RocksDBKeyBounds _bounds;
@@ -180,7 +179,7 @@ class RocksDBPrimaryIndex final : public RocksDBIndex {
              arangodb::velocypack::Slice const&, bool isRollback) override;
 
   /// optimization for truncateNoTrx, never called in fillIndex
-  int removeRaw(rocksdb::WriteBatch*, TRI_voc_rid_t,
+  int removeRaw(rocksdb::WriteBatchWithIndex*, TRI_voc_rid_t,
                 arangodb::velocypack::Slice const&) override;
 
   int drop() override;
@@ -211,6 +210,10 @@ class RocksDBPrimaryIndex final : public RocksDBIndex {
       std::function<bool(DocumentIdentifierToken const&)> callback) const;
 
   int cleanup() override;
+
+ protected:
+  Result postprocessRemove(transaction::Methods* trx, rocksdb::Slice const& key,
+                           rocksdb::Slice const& value) override;
 
  private:
   /// @brief create the iterator, for a single attribute, IN operator

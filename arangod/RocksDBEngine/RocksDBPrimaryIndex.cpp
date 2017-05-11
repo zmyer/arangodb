@@ -116,7 +116,6 @@ RocksDBAllIndexIterator::RocksDBAllIndexIterator(
     LogicalCollection* collection, transaction::Methods* trx,
     ManagedDocumentResult* mmdr, RocksDBPrimaryIndex const* index, bool reverse)
     : IndexIterator(collection, trx, mmdr, index),
-      _cmp(index->_cmp),
       _reverse(reverse),
       _bounds(RocksDBKeyBounds::PrimaryIndex(index->objectId())) {
   // acquire rocksdb transaction
@@ -298,9 +297,13 @@ RocksDBPrimaryIndex::RocksDBPrimaryIndex(
                        {{arangodb::basics::AttributeName(
                            StaticStrings::KeyString, false)}}),
                    true, false,
-                   basics::VelocyPackHelper::stringUInt64(info, "objectId")) {
-  if (_objectId != 0 && !ServerState::instance()->isCoordinator()) {
-    _useCache = true;
+                   basics::VelocyPackHelper::stringUInt64(info, "objectId")
+                   ,!ServerState::instance()->isCoordinator() /*useCache*/
+                   ) {
+  TRI_ASSERT(_objectId != 0);
+  if (_objectId == 0 ) {
+    //disableCache
+    _useCache = false;
   }
 }
 
@@ -417,24 +420,7 @@ int RocksDBPrimaryIndex::insert(transaction::Methods* trx,
     return TRI_ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED;
   }
 
-  if (useCache()) {
-    TRI_ASSERT(_cache != nullptr);
-    // blacklist from cache
-    bool blacklisted = false;
-    uint64_t attempts = 0;
-    while (!blacklisted) {
-      blacklisted = _cache->blacklist(
-          key.string().data(), static_cast<uint32_t>(key.string().size()));
-      attempts++;
-      if (attempts > 10) {
-        if (_cache->isShutdown()) {
-          disableCache();
-          break;
-        }
-        attempts = 0;
-      }
-    }
-  }
+  blackListKey(key.string().data(), static_cast<uint32_t>(key.string().size()));
 
   auto status = rtrx->Put(key.string(), value.string());
   if (!status.ok()) {
@@ -458,24 +444,7 @@ int RocksDBPrimaryIndex::remove(transaction::Methods* trx,
   auto key = RocksDBKey::PrimaryIndexValue(
       _objectId, StringRef(slice.get(StaticStrings::KeyString)));
 
-  if (useCache()) {
-    TRI_ASSERT(_cache != nullptr);
-    // blacklist from cache
-    bool blacklisted = false;
-    uint64_t attempts = 0;
-    while (!blacklisted) {
-      blacklisted = _cache->blacklist(
-          key.string().data(), static_cast<uint32_t>(key.string().size()));
-      attempts++;
-      if (attempts > 10) {
-        if (_cache->isShutdown()) {
-          disableCache();
-          break;
-        }
-        attempts = 0;
-      }
-    }
-  }
+  blackListKey(key.string().data(), static_cast<uint32_t>(key.string().size()));
 
   // acquire rocksdb transaction
   RocksDBTransactionState* state = rocksutils::toRocksTransactionState(trx);
@@ -489,12 +458,9 @@ int RocksDBPrimaryIndex::remove(transaction::Methods* trx,
 }
 
 /// optimization for truncateNoTrx, never called in fillIndex
-int RocksDBPrimaryIndex::removeRaw(rocksdb::WriteBatch* batch, TRI_voc_rid_t,
-                                   VPackSlice const& slice) {
-  auto key = RocksDBKey::PrimaryIndexValue(
-      _objectId, StringRef(slice.get(StaticStrings::KeyString)));
-  batch->Delete(key.string());
-  return TRI_ERROR_NO_ERROR;
+int RocksDBPrimaryIndex::removeRaw(rocksdb::WriteBatchWithIndex*, TRI_voc_rid_t,
+                                   VPackSlice const&) {
+  THROW_ARANGO_EXCEPTION(TRI_ERROR_NOT_IMPLEMENTED);
 }
 
 /// @brief called when the index is dropped
@@ -591,6 +557,13 @@ void RocksDBPrimaryIndex::invokeOnAllElements(
   };
   while (cursor->next(cb, 1000) && cnt) {
   }
+}
+
+Result RocksDBPrimaryIndex::postprocessRemove(transaction::Methods* trx,
+                                              rocksdb::Slice const& key,
+                                              rocksdb::Slice const& value) {
+  blackListKey(key.data(), key.size());
+  return {TRI_ERROR_NO_ERROR};
 }
 
 /// @brief create the iterator, for a single attribute, IN operator

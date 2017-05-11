@@ -120,10 +120,6 @@ RocksDBEntryType RocksDBKey::type(RocksDBKey const& key) {
   return type(key._buffer.data(), key._buffer.size());
 }
 
-RocksDBEntryType RocksDBKey::type(rocksdb::Slice const& slice) {
-  return type(slice.data(), slice.size());
-}
-
 uint64_t RocksDBKey::counterObjectId(rocksdb::Slice const& s) {
   TRI_ASSERT(s.size() >= (sizeof(char) + sizeof(uint64_t)));
   return uint64FromPersistent(s.data() + sizeof(char));
@@ -197,7 +193,7 @@ std::pair<bool, int32_t> RocksDBKey::geoValues(rocksdb::Slice const& slice) {
   RocksDBEntryType type = static_cast<RocksDBEntryType>(*slice.data());
   TRI_ASSERT(type == RocksDBEntryType::GeoIndexValue);
   uint64_t val = uint64FromPersistent(slice.data() + sizeof(char) + sizeof(uint64_t));
-  bool isSlot = val & 0xFFU;// lowest byte is 0xFF if true
+  bool isSlot = (bool)(val & 0xFFU);// lowest byte is 0xFF if true
   return std::pair<bool, int32_t>(isSlot, (val >> 32));
 }
 
@@ -354,12 +350,6 @@ RocksDBKey::RocksDBKey(RocksDBEntryType type, uint64_t first,
 }
 
 // ====================== Private Methods ==========================
-
-RocksDBEntryType RocksDBKey::type(char const* data, size_t size) {
-  TRI_ASSERT(data != nullptr);
-  TRI_ASSERT(size >= sizeof(char));
-  return static_cast<RocksDBEntryType>(data[0]);
-}
 
 TRI_voc_tick_t RocksDBKey::databaseId(char const* data, size_t size) {
   TRI_ASSERT(data != nullptr);

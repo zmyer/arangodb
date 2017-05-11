@@ -178,7 +178,7 @@ class LogicalCollection {
       std::function<bool(DocumentIdentifierToken const&)> callback);
 
   // SECTION: Indexes
-  std::vector<std::shared_ptr<Index>> const& getIndexes() const;
+  std::vector<std::shared_ptr<Index>> getIndexes() const;
 
   void getIndexesVPack(velocypack::Builder&, bool,
                        bool forPersistence = false) const;
@@ -276,11 +276,6 @@ class LogicalCollection {
   bool readDocument(transaction::Methods* trx,
                     DocumentIdentifierToken const& token,
                     ManagedDocumentResult& result);
-
-  bool readDocumentConditional(transaction::Methods* trx,
-                               DocumentIdentifierToken const& token,
-                               TRI_voc_tick_t maxTick,
-                               ManagedDocumentResult& result);
 
   /// @brief Persist the connected physical collection.
   ///        This should be called AFTER the collection is successfully

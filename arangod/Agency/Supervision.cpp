@@ -52,6 +52,7 @@ Supervision::Supervision()
   _transient("Transient"),
   _frequency(1.),
   _gracePeriod(5.),
+  _okThreshold(1.5),
   _jobId(0),
   _jobIdMax(0),
   _selfShutdown(false),
@@ -102,12 +103,12 @@ void Supervision::upgradeZero(Builder& builder) {
       { VPackObjectBuilder o(&builder);
         builder.add(VPackValue(failedServersPrefix));
         { VPackObjectBuilder oo(&builder);
-          try {
+          if (fails.length() > 0) {
             for (auto const& fail : VPackArrayIterator(fails)) {
               builder.add(VPackValue(fail.copyString()));
               { VPackObjectBuilder ooo(&builder); }
             }
-          } catch (...) {}
+          }
         }
       }
     }
@@ -147,7 +148,6 @@ void Supervision::upgradeAgency() {
 
 // Check all DB servers, guarded above doChecks
 std::vector<check_t> Supervision::checkDBServers() {
-
   std::vector<check_t> ret;
   auto const& machinesPlanned = _snapshot(planDBServersPrefix).children();
   auto const& serversRegistered =
@@ -161,10 +161,12 @@ std::vector<check_t> Supervision::checkDBServers() {
   }
   
   for (auto const& machine : machinesPlanned) {
-    std::string lastHeartbeatTime, lastHeartbeatAcked, lastHeartbeatStatus,
+    constexpr char never[] = "1970-01-01T00:00:00Z";
+    
+    std::string lastHeartbeatStatus, lastHeartbeatAcked, lastHeartbeatTime,
       lastStatus, heartbeatTime, heartbeatStatus, serverID(machine.first),
       shortName("Unknown");
-    bool good(false), reportPersistent(false),
+    bool reportPersistent(false),
       sync(_transient.has(syncPrefix + serverID));
     
     todelete.erase(
@@ -181,11 +183,9 @@ std::vector<check_t> Supervision::checkDBServers() {
       lastHeartbeatStatus =
         _transient(healthPrefix + serverID + "/LastHeartbeatStatus").toJson();
       lastStatus = _transient(healthPrefix + serverID + "/Status").toJson();
-      if (lastHeartbeatTime != heartbeatTime) {  // Update
-        good = true;
-      }
-    } 
-
+    } else {
+      heartbeatTime = std::string(never);
+    }
     auto report = std::make_shared<Builder>();
     
     { VPackArrayBuilder transaction(report.get());
@@ -218,52 +218,53 @@ std::vector<check_t> Supervision::checkDBServers() {
             reportPersistent = true;
           }
           
-          if (good) {
-            
-            if (lastStatus != Supervision::HEALTH_STATUS_GOOD) {
-              reportPersistent = true;
-            }
+          // we do have some kind of resolution problem here. we should switch to
+          // the time containing ms fragments as well
+          if (lastHeartbeatTime != heartbeatTime) {
+            lastHeartbeatAcked = timepointToString(std::chrono::system_clock::now());
             report->add(
               "LastHeartbeatAcked",
-              VPackValue(timepointToString(std::chrono::system_clock::now())));
-            report->add("Status", VPackValue(Supervision::HEALTH_STATUS_GOOD));
-            
-            std::string failedServerPath = failedServersPrefix + "/" + serverID;
-            if (_snapshot.exists(failedServerPath).size() == 3) {
-              Builder del;
-              { VPackArrayBuilder c(&del);
-                { VPackObjectBuilder cc(&del);
-                  del.add(VPackValue(failedServerPath));
-                  { VPackObjectBuilder ccc(&del);
-                    del.add("op", VPackValue("delete")); }}}
-              singleWriteTransaction(_agent, del);
-            }
-            
+              VPackValue(lastHeartbeatAcked));
+          }
+          std::string newStatus;
+          // don't trust in the beginning. compare in next round with the ack time we set now
+          if (lastHeartbeatAcked.empty()) {
+            newStatus = Supervision::HEALTH_STATUS_BAD;
           } else {
+            auto elapsed = std::chrono::duration<double>(std::chrono::system_clock::now() - stringToTimepoint(lastHeartbeatAcked));
+
+            // maybe we should add some extra safety here? currently a server can go
+            // from good to failed straight away. maybe enfore that we need at least 1 BAD tick?
+            if (elapsed.count() <= _okThreshold) {
+              newStatus = Supervision::HEALTH_STATUS_GOOD;
+            } else if (elapsed.count() <= _gracePeriod) {
+              newStatus = Supervision::HEALTH_STATUS_BAD;
+            } else {
+              newStatus = Supervision::HEALTH_STATUS_FAILED;
+            }
+          }
+
+          if (newStatus != lastStatus) {
+            reportPersistent = true;
+            report->add("Status", VPackValue(newStatus));
             
-            auto elapsed = std::chrono::duration<double>(
-              std::chrono::system_clock::now() -
-              stringToTimepoint(lastHeartbeatAcked));
-            
-            if (elapsed.count() > _gracePeriod) {
-              if (lastStatus == Supervision::HEALTH_STATUS_BAD) {
-                reportPersistent = true;
-                report->add(
-                  "Status", VPackValue(Supervision::HEALTH_STATUS_FAILED));
+            if (newStatus == Supervision::HEALTH_STATUS_GOOD) {
+              std::string failedServerPath = failedServersPrefix + "/" + serverID;
+              if (_snapshot.exists(failedServerPath).size() == 3) {
+                Builder del;
+                { VPackArrayBuilder c(&del);
+                  { VPackObjectBuilder cc(&del);
+                    del.add(VPackValue(failedServerPath));
+                    { VPackObjectBuilder ccc(&del);
+                      del.add("op", VPackValue("delete")); }}}
+                singleWriteTransaction(_agent, del);
+              }
+            } else if (newStatus == Supervision::HEALTH_STATUS_FAILED) {
                 envelope = std::make_shared<VPackBuilder>();
                 FailedServer(_snapshot, _agent, std::to_string(_jobId++),
                              "supervision", serverID).create(envelope);
-              }
-            } else {
-              if (lastStatus != Supervision::HEALTH_STATUS_BAD) {
-                reportPersistent = true;
-                report->add(
-                  "Status", VPackValue(Supervision::HEALTH_STATUS_BAD));
-              }
             }
-            
           }
-          
         } // Supervision/Health
         
         if (envelope != nullptr) { // Failed server operation
@@ -316,9 +317,9 @@ std::vector<check_t> Supervision::checkCoordinators() {
       _snapshot(currentServersRegisteredPrefix).children();
   
   std::string currentFoxxmaster;
-  try {
+  if (_snapshot.has(foxxmaster)) {
     currentFoxxmaster = _snapshot(foxxmaster).getString();
-  } catch (...) {}
+  }
 
   std::string goodServerId;
   bool foxxmasterOk = false;
@@ -461,10 +462,13 @@ bool Supervision::updateSnapshot() {
     return false;
   }
   
-  try {
+  if (_agent->readDB().has(_agencyPrefix)) {
     _snapshot = _agent->readDB().get(_agencyPrefix);
+  }
+  
+  if (_agent->transient().has(_agencyPrefix)) {
     _transient = _agent->transient().get(_agencyPrefix);
-  } catch (...) {}
+  } 
   
   return true;
   
@@ -555,24 +559,15 @@ void Supervision::run() {
 
 // Guarded by caller
 bool Supervision::isShuttingDown() {
-  try {
-    return _snapshot("/Shutdown").getBool();
-  } catch (...) {
-    return false;
-  }
+  return (_snapshot.has("Shutdown") && _snapshot("Shutdown").isBool()) ?
+    _snapshot("/Shutdown").getBool() : false;
 }
 
 // Guarded by caller
 std::string Supervision::serverHealth(std::string const& serverName) {
-  try {
-    std::string const serverStatus(healthPrefix + serverName + "/Status");
-    auto const status = _snapshot(serverStatus).getString();
-    return status;
-  } catch (...) {
-    LOG_TOPIC(WARN, Logger::SUPERVISION)
-      << "Couldn't read server health status for server " << serverName;
-    return "";
-  }
+  std::string const serverStatus(healthPrefix + serverName + "/Status");
+  return (_snapshot.has(serverStatus)) ?
+    _snapshot(serverStatus).getString() : std::string();
 }
 
 // Guarded by caller
@@ -658,9 +653,9 @@ void Supervision::enforceReplication() {
       auto const& col = *(col_.second);
       
       size_t replicationFactor;
-      try {
-        replicationFactor = col("replicationFactor").slice().getUInt();
-      } catch (std::exception const&) {
+      if (col.has("replicationFactor") && col("replicationFactor").isUInt()) {
+        replicationFactor = col("replicationFactor").getUInt();
+      } else {
         LOG_TOPIC(DEBUG, Logger::SUPERVISION)
           << "no replicationFactor entry in " << col.toJson();
         continue;
@@ -777,11 +772,13 @@ void Supervision::shrinkCluster() {
   auto availServers = Job::availableServers(_snapshot);
 
   size_t targetNumDBServers;
-  try {
-    targetNumDBServers = _snapshot("/Target/NumberOfDBServers").getUInt();
-  } catch (std::exception const& e) {
+  std::string const NDBServers ("/Target/NumberOfDBServers");
+  
+  if (_snapshot.has(NDBServers) && _snapshot(NDBServers).isUInt()) {
+    targetNumDBServers = _snapshot(NDBServers).getUInt();
+  } else {
     LOG_TOPIC(TRACE, Logger::SUPERVISION)
-        << "Targeted number of DB servers not set yet: " << e.what();
+      << "Targeted number of DB servers not set yet";
     return;
   }
 
@@ -790,7 +787,7 @@ void Supervision::shrinkCluster() {
     // Minimum 1 DB server must remain
     if (availServers.size() == 1) {
       LOG_TOPIC(DEBUG, Logger::SUPERVISION)
-          << "Only one db server left for operation";
+        << "Only one db server left for operation";
       return;
     }
 
@@ -810,15 +807,17 @@ void Supervision::shrinkCluster() {
     auto const& databases = _snapshot(planColPrefix).children();
     for (auto const& database : databases) {
       for (auto const& collptr : database.second->children()) {
-        try {
-          uint64_t replFact = (*collptr.second)("replicationFactor").getUInt();
+        auto const& node = *collptr.second;
+        if (node.has("replicationFactor") &&
+            node("replicationFactor").isUInt()) {
+          auto replFact = node("replicationFactor").getUInt();
           if (replFact > maxReplFact) {
             maxReplFact = replFact;
           }
-        } catch (std::exception const& e) {
+        } else {
           LOG_TOPIC(WARN, Logger::SUPERVISION)
             << "Cannot retrieve replication factor for collection "
-            << collptr.first << ": " << e.what();
+            << collptr.first;
           return;
         }
       }
@@ -835,7 +834,7 @@ void Supervision::shrinkCluster() {
           availServers.size() > targetNumDBServers) {
         // Sort servers by name
         std::sort(availServers.begin(), availServers.end());
-
+        
         // Schedule last server for cleanout
         CleanOutServer(_snapshot, _agent, std::to_string(_jobId++),
                        "supervision", availServers.back()).run();

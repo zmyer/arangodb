@@ -25,6 +25,7 @@
 #define ARANGOD_VOCBASE_PHYSICAL_COLLECTION_H 1
 
 #include "Basics/Common.h"
+#include "Basics/ReadWriteLock.h"
 #include "VocBase/voc-types.h"
 
 #include <velocypack/Builder.h>
@@ -84,11 +85,6 @@ class PhysicalCollection {
   /// @brief opens an existing collection
   virtual void open(bool ignoreErrors) = 0;
 
-  /// @brief iterate all markers of a collection on load
-  virtual int iterateMarkersOnLoad(transaction::Methods* trx) = 0;
-
-  virtual bool isFullyCollected() const = 0;
-
   void drop();
 
   ////////////////////////////////////
@@ -104,7 +100,7 @@ class PhysicalCollection {
   /// @brief Find index by iid
   std::shared_ptr<Index> lookupIndex(TRI_idx_iid_t) const;
 
-  std::vector<std::shared_ptr<Index>> const& getIndexes() const;
+  std::vector<std::shared_ptr<Index>> getIndexes() const;
 
   void getIndexesVPack(velocypack::Builder&, bool,
                        bool forPersistence = false) const;
@@ -143,11 +139,6 @@ class PhysicalCollection {
   virtual bool readDocument(transaction::Methods* trx,
                             DocumentIdentifierToken const& token,
                             ManagedDocumentResult& result) = 0;
-
-  virtual bool readDocumentConditional(transaction::Methods* trx,
-                                       DocumentIdentifierToken const& token,
-                                       TRI_voc_tick_t maxTick,
-                                       ManagedDocumentResult& result) = 0;
 
   virtual int insert(arangodb::transaction::Methods* trx,
                      arangodb::velocypack::Slice const newSlice,
@@ -231,6 +222,7 @@ class PhysicalCollection {
  protected:
   LogicalCollection* _logicalCollection;
 
+  mutable basics::ReadWriteLock _indexesLock;
   std::vector<std::shared_ptr<Index>> _indexes;
 };
 
