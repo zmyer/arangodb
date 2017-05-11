@@ -26,6 +26,8 @@
 
 #include "Basics/Common.h"
 #include "Basics/fasthash.h"
+#include "Basics/ReadLocker.h"
+#include "Basics/WriteLocker.h"
 
 #include "Logger/Logger.h"
 #include "RocksDBEngine/RocksDBCommon.h"
@@ -194,7 +196,10 @@ class RocksDBCuckooIndexEstimator {
     uint64_t hash2 = _hasherPosFingerprint(pos1, fingerprint);
     uint64_t pos2 = hashToPos(hash2);
     bool found = false;
-    findSlotNoCuckoo(pos1, pos2, fingerprint, found);
+    {
+      READ_LOCKER(guard, _bucketLock);
+      findSlotNoCuckoo(pos1, pos2, fingerprint, found);
+    }
     return found;
   }
 
@@ -216,18 +221,21 @@ class RocksDBCuckooIndexEstimator {
     uint64_t hash2 = _hasherPosFingerprint(pos1, fingerprint);
     uint64_t pos2 = hashToPos(hash2);
 
-    Slot slot = findSlotCuckoo(pos1, pos2, fingerprint);
-    if (slot.isEmpty()) {
-      // Free slot insert ourself.
-      *slot.fingerprint() = fingerprint;
-      *slot.counter() = 1;  // We are the first element
-      _nrUsed++;
-    } else {
-      TRI_ASSERT(slot.isEqual(fingerprint));
-      // TODO replace with constant uint16_t max
-      if (*slot.counter() < 65536) {
-        // just to avoid overflow...
-        (*slot.counter())++;
+    {
+      WRITE_LOCKER(guard, _bucketLock);
+      Slot slot = findSlotCuckoo(pos1, pos2, fingerprint);
+      if (slot.isEmpty()) {
+        // Free slot insert ourself.
+        *slot.fingerprint() = fingerprint;
+        *slot.counter() = 1;  // We are the first element
+        _nrUsed++;
+      } else {
+        TRI_ASSERT(slot.isEqual(fingerprint));
+        // TODO replace with constant uint16_t max
+        if (*slot.counter() < 65536) {
+          // just to avoid overflow...
+          (*slot.counter())++;
+        }
       }
     }
     _nrTotal++;
@@ -249,17 +257,20 @@ class RocksDBCuckooIndexEstimator {
 
     bool found = false;
     _nrTotal--;
-    Slot slot = findSlotNoCuckoo(pos1, pos2, fingerprint, found);
-    if (found) {
-      if (*slot.counter() <= 1) {
-        // We remove the last one of those, free slot
-        slot.reset();
-        _nrUsed--;
-      } else {
-        // Just decrease the counter
-        (*slot.counter())--;
+    {
+      WRITE_LOCKER(guard, _bucketLock);
+      Slot slot = findSlotNoCuckoo(pos1, pos2, fingerprint, found);
+      if (found) {
+        if (*slot.counter() <= 1) {
+          // We remove the last one of those, free slot
+          slot.reset();
+          _nrUsed--;
+        } else {
+          // Just decrease the counter
+          (*slot.counter())--;
+        }
+        return true;
       }
-      return true;
     }
     // If we get here we assume that the element was once inserted, but removed
     // by cuckoo
@@ -534,8 +545,6 @@ class RocksDBCuckooIndexEstimator {
   uint64_t _allocSize;  // number of allocated bytes,
                         // == _size * SlotsPerBucket * _slotSize + 64
   char* _base;          // pointer to allocated space, 64-byte aligned
-  char _tmpFileName[L_tmpnam + 1];
-  int _tmpFile;
   char* _allocBase;     // base of original allocation
   uint64_t _nrUsed;     // number of pairs stored in the table
   uint64_t _nrCuckood;  // number of elements that have been removed by cuckoo
@@ -545,7 +554,8 @@ class RocksDBCuckooIndexEstimator {
   HashKey _hasherKey;        // Instance to compute the first hash function
   Fingerprint _fingerprint;  // Instance to compute a fingerprint of a key
   HashShort _hasherShort;    // Instance to compute the second hash function
-  CompKey _compKey;          // Instance to compare keys
+
+  arangodb::basics::ReadWriteLock mutable _bucketLock;
 };
 
 }  // namespace arangodb
