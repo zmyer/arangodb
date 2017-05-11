@@ -21,8 +21,8 @@
 /// @author Jan Christoph Uhde
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef ARANGOD_VPP_NETWORK_H
-#define ARANGOD_VPP_NETWORK_H 1
+#ifndef ARANGOD_VST_NETWORK_H
+#define ARANGOD_VST_NETWORK_H 1
 
 #include "Basics/StringBuffer.h"
 #include "Basics/VelocyPackHelper.h"

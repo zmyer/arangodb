@@ -21,8 +21,8 @@
 /// @author Jan Christoph Uhde
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef ARANGODB_REST_VPP_MESSAGE_H
-#define ARANGODB_REST_VPP_MESSAGE_H 1
+#ifndef ARANGODB_REST_VST_MESSAGE_H
+#define ARANGODB_REST_VST_MESSAGE_H 1
 
 #include <velocypack/Buffer.h>
 #include <velocypack/Options.h>
