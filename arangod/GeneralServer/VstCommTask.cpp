@@ -250,7 +250,7 @@ void VstCommTask::handleAuthentication(VPackSlice const& header,
     std::string user;
 
     std::string encryption = header.at(2).copyString();
-    if (encryption != "plain") {
+    if (encryption != "jwt") {
       user = header.at(3).copyString();
       std::string pass = header.at(4).copyString();
       auth = basics::StringUtils::encodeBase64(user + ":" + pass);
