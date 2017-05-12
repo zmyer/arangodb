@@ -241,21 +241,30 @@ bool VstCommTask::isChunkComplete(char* start) {
 
 void VstCommTask::handleAuthentication(VPackSlice const& header,
                                        uint64_t messageId) {
-  // std::string encryption = header.at(2).copyString();
-  std::string user = header.at(3).copyString();
-  std::string pass = header.at(4).copyString();
-
   bool authOk = false;
   if (!_authentication->isEnabled()) {
     authOk = true;
   } else {
-    auto auth = basics::StringUtils::encodeBase64(user + ":" + pass);
+    std::string auth;
+    AuthInfo::AuthType authType;
+    std::string user;
+
+    std::string encryption = header.at(2).copyString();
+    if (encryption != "plain") {
+      user = header.at(3).copyString();
+      std::string pass = header.at(4).copyString();
+      auth = basics::StringUtils::encodeBase64(user + ":" + pass);
+      authType = AuthInfo::AuthType::BASIC;
+    } else {   // doing JWT
+      auth = header.at(3).copyString();
+      authType = AuthInfo::AuthType::JWT;
+    }
     AuthResult result = _authentication->authInfo()->checkAuthentication(
-        AuthInfo::AuthType::BASIC, auth);
+        authType, auth);
 
     authOk = result._authorized;
     if (authOk) {
-      _authenticatedUser = std::move(user);
+      _authenticatedUser = std::move(result._username);
     }
   }
 
@@ -348,7 +357,7 @@ bool VstCommTask::processRead(double startTime) {
     if (type == 1000) {
       handleAuthentication(header, chunkHeader._messageID);
     } else {
-      // the handler will take ownersip of this pointer
+      // the handler will take ownership of this pointer
       std::unique_ptr<VstRequest> request(new VstRequest(
           _connectionInfo, std::move(message), chunkHeader._messageID));
       GeneralServerFeature::HANDLER_FACTORY->setRequestContext(request.get());
