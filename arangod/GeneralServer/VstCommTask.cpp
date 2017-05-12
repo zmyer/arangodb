@@ -97,6 +97,10 @@ VstCommTask::VstCommTask(EventLoop loop, GeneralServer* server,
 
   // ATTENTION <- this is required so we do not lose information during a resize
   _readBuffer.reserve(_bufferLength);
+
+  _maxChunkSize = arangodb::application_features::ApplicationServer::getFeature<
+      ServerFeature>("Server")
+      ->vstMaxSize();
 }
 
 void VstCommTask::addResponse(VstResponse* response, RequestStatistics* stat) {
@@ -116,29 +120,9 @@ void VstCommTask::addResponse(VstResponse* response, RequestStatistics* stat) {
     }
   }
 
-#if 0
-  // don't print by default because at this place the toJson() may
-  // invoke the custom type handler, which is not present here
-
-  LOG_TOPIC(DEBUG, Logger::COMMUNICATION) << "VstCommTask: "
-                                          << "created response:";
-  for (auto const& slice : slices) {
-    try {
-      LOG_TOPIC(DEBUG, Logger::COMMUNICATION) << slice.toJson();
-    } catch (arangodb::velocypack::Exception const& e) {
-    }
-    LOG_TOPIC(DEBUG, Logger::COMMUNICATION) << "--";
-  }
-  LOG_TOPIC(DEBUG, Logger::COMMUNICATION) << "response -- end";
-#endif
-
-  static uint32_t const chunkSize =
-      arangodb::application_features::ApplicationServer::getFeature<
-          ServerFeature>("Server")
-          ->vstMaxSize();
-
   // set some sensible maxchunk size and compression
-  auto buffers = createChunkForNetwork(slices, id, chunkSize, _protocolVersion);
+  auto buffers = createChunkForNetwork(slices, id, _maxChunkSize,
+                                       _protocolVersion);
   double const totalTime = RequestStatistics::ELAPSED_SINCE_READ_START(stat);
 
   if (stat != nullptr && arangodb::Logger::isEnabled(arangodb::LogLevel::TRACE,

@@ -145,6 +145,7 @@ class VstCommTask : public GeneralCommTask {
   std::string _authenticatedUser;
   AuthenticationFeature* _authentication;
   ProtocolVersion _protocolVersion;
+  uint32_t _maxChunkSize;
 };
 }
 }
