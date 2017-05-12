@@ -305,15 +305,14 @@ bool VstCommTask::processRead(double startTime) {
 
   if (chunkHeader._isFirst && chunkHeader._chunk == 1) {
     // CASE 1: message is in one chunk
-    if (auto rv = getMessageFromSingleChunk(chunkHeader, message, doExecute,
-                                            vpackBegin, chunkEnd)) {
-      return *rv;  // the optional will only contain false or boost::none
-                   // so the execution will contine if a message is complete
+    if (!getMessageFromSingleChunk(chunkHeader, message, doExecute,
+                                   vpackBegin, chunkEnd)) {
+      return false;
     }
   } else {
-    if (auto rv = getMessageFromMultiChunks(chunkHeader, message, doExecute,
-                                            vpackBegin, chunkEnd)) {
-      return *rv;
+    if (!getMessageFromMultiChunks(chunkHeader, message, doExecute,
+                                   vpackBegin, chunkEnd)) {
+      return false;
     }
   }
 
@@ -472,7 +471,9 @@ void VstCommTask::handleSimpleError(rest::ResponseCode responseCode,
   }
 }
 
-boost::optional<bool> VstCommTask::getMessageFromSingleChunk(
+// Returns true if and only if there was no error, if false is returned,
+// the connection is closed
+bool VstCommTask::getMessageFromSingleChunk(
     ChunkHeader const& chunkHeader, VstInputMessage& message, bool& doExecute,
     char const* vpackBegin, char const* chunkEnd) {
   // add agent for this new message
@@ -505,10 +506,12 @@ boost::optional<bool> VstCommTask::getMessageFromSingleChunk(
   message.set(chunkHeader._messageID, std::move(buffer), payloads);  // fixme
 
   doExecute = true;
-  return boost::none;
+  return true;
 }
 
-boost::optional<bool> VstCommTask::getMessageFromMultiChunks(
+// Returns true if and only if there was no error, if false is returned,
+// the connection is closed
+bool VstCommTask::getMessageFromMultiChunks(
     ChunkHeader const& chunkHeader, VstInputMessage& message, bool& doExecute,
     char const* vpackBegin, char const* chunkEnd) {
   // CASE 2:  message is in multiple chunks
@@ -599,5 +602,5 @@ boost::optional<bool> VstCommTask::getMessageFromMultiChunks(
         << "VstCommTask: "
         << "chunk does not complete a message";
   }
-  return boost::none;
+  return true;
 }

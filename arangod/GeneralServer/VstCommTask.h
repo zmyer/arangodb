@@ -26,7 +26,6 @@
 
 #include "GeneralServer/GeneralCommTask.h"
 
-#include <boost/optional.hpp>
 #include <stdexcept>
 
 #include "lib/Rest/VstMessage.h"
@@ -134,11 +133,15 @@ class VstCommTask : public GeneralCommTask {
   ChunkHeader readChunkHeader();  // sub-function of processRead
   void replyToIncompleteMessages();
 
-  boost::optional<bool> getMessageFromSingleChunk(
+  // Returns true if and only if there was no error, if false is returned,
+  // the connection is closed
+  bool getMessageFromSingleChunk(
       ChunkHeader const& chunkHeader, VstInputMessage& message, bool& doExecute,
       char const* vpackBegin, char const* chunkEnd);
 
-  boost::optional<bool> getMessageFromMultiChunks(
+  // Returns true if and only if there was no error, if false is returned,
+  // the connection is closed
+  bool getMessageFromMultiChunks(
       ChunkHeader const& chunkHeader, VstInputMessage& message, bool& doExecute,
       char const* vpackBegin, char const* chunkEnd);
 
