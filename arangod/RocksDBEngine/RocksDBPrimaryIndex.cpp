@@ -248,7 +248,6 @@ RocksDBAnyIndexIterator::RocksDBAnyIndexIterator(
     } else {
       off = _total - (off + 1);
       _iterator->SeekForPrev(_bounds.end());
-      LOG_TOPIC(ERR, Logger::FIXME) << "ANY. XXX: " << _iterator->Valid() << " FOR " << std::string(_bounds.end().data(), _bounds.end().size());
       while (_iterator->Valid() && off-- > 0) {
         _iterator->Prev();
       }
@@ -298,14 +297,9 @@ RocksDBPrimaryIndex::RocksDBPrimaryIndex(
                        {{arangodb::basics::AttributeName(
                            StaticStrings::KeyString, false)}}),
                    true, false,
-                   basics::VelocyPackHelper::stringUInt64(info, "objectId")
-                   ,!ServerState::instance()->isCoordinator() /*useCache*/
-                   ) {
+                   basics::VelocyPackHelper::stringUInt64(info, "objectId"),
+                   !ServerState::instance()->isCoordinator() /*useCache*/) {
   TRI_ASSERT(_objectId != 0);
-  if (_objectId == 0 ) {
-    //disableCache
-    _useCache = false;
-  }
 }
 
 RocksDBPrimaryIndex::~RocksDBPrimaryIndex() {}
@@ -558,6 +552,13 @@ void RocksDBPrimaryIndex::invokeOnAllElements(
   };
   while (cursor->next(cb, 1000) && cnt) {
   }
+}
+
+Result RocksDBPrimaryIndex::postprocessRemove(transaction::Methods* trx,
+                                              rocksdb::Slice const& key,
+                                              rocksdb::Slice const& value) {
+  blackListKey(key.data(), key.size());
+  return {TRI_ERROR_NO_ERROR};
 }
 
 /// @brief create the iterator, for a single attribute, IN operator

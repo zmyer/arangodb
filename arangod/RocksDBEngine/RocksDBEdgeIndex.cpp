@@ -68,8 +68,8 @@ RocksDBEdgeIndexIterator::RocksDBEdgeIndexIterator(
       _bounds(RocksDBKeyBounds::EdgeIndex(0)),
       _doUpdateBounds(true),
       _useCache(useCache),
-      _cache(cache)
-{
+      _cache(cache),
+      _cacheValueSize(0) {
   keys.release();  // now we have ownership for _keys
   TRI_ASSERT(_keys->slice().isArray());
   RocksDBTransactionState* state = rocksutils::toRocksTransactionState(_trx);
@@ -130,7 +130,7 @@ bool RocksDBEdgeIndexIterator::next(TokenCallback const& cb, size_t limit) {
         foundInCache = true;
       } else {
         // try to find cached value
-        auto f = _cache->find(fromTo.data(),fromTo.size());
+        auto f = _cache->find(fromTo.data(), (uint32_t)fromTo.size());
         foundInCache = f.found();
         if (foundInCache) {
           VPackSlice cachedPrimaryKeys(f.value()->value());
@@ -607,4 +607,12 @@ int RocksDBEdgeIndex::cleanup() {
   rocksdb::Slice b = bounds.start(), e = bounds.end();
   db->CompactRange(opts, &b, &e);
   return TRI_ERROR_NO_ERROR;
+}
+
+Result RocksDBEdgeIndex::postprocessRemove(transaction::Methods* trx,
+                                              rocksdb::Slice const& key,
+                                              rocksdb::Slice const& value) {
+  //blacklist keys during truncate
+  blackListKey(key.data(), key.size());
+  return {TRI_ERROR_NO_ERROR};
 }
