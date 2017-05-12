@@ -227,6 +227,8 @@ protected:
 
   void serializeEstimate(std::string& output) const override;
 
+  bool deserializeEstimate(arangodb::StringRef const input) override;
+
  private:
   std::unique_ptr<FixedSizeAllocator> _allocator;
 

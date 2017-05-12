@@ -89,6 +89,8 @@ class RocksDBCounterManager {
 
   void readSettings();
 
+  void readIndexEstimates();
+
  protected:
   struct CMValue {
     /// ArangoDB transaction ID

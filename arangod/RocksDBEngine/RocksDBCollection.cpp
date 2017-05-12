@@ -1341,6 +1341,9 @@ arangodb::Result RocksDBCollection::fillIndexes(
     // Simon: Don't think so
     db->Write(writeOpts, removeBatch.GetWriteBatch());
   }
+  if (numDocsWritten > 0) {
+    _needToPersistIndexEstimates = true;
+  }
 
   return r;
 }
@@ -1425,6 +1428,7 @@ RocksDBOperationResult RocksDBCollection::insertDocument(
     if (waitForSync) {
       trx->state()->waitForSync(true);
     }
+    _needToPersistIndexEstimates = true;
   }
 
   return res;
@@ -1477,6 +1481,7 @@ RocksDBOperationResult RocksDBCollection::removeDocument(
     if (waitForSync) {
       trx->state()->waitForSync(true);
     }
+    _needToPersistIndexEstimates = true;
   }
 
   return res;
@@ -1740,9 +1745,58 @@ void RocksDBCollection::estimateSize(velocypack::Builder& builder) {
 }
 
 void RocksDBCollection::serializeIndexEstimates(std::string& output) const {
+  if (!_needToPersistIndexEstimates) {
+    return;
+  }
+  _needToPersistIndexEstimates = false;
   for (auto index : getIndexes()) {
     RocksDBIndex* cindex = static_cast<RocksDBIndex*>(index.get());
     TRI_ASSERT(cindex != nullptr);
     cindex->serializeEstimate(output);
   }
+}
+
+void RocksDBCollection::deserializeIndexEstimates(StringRef const input) {
+  if (input.empty()) {
+    return;
+  }
+  char const* current = input.begin();
+  size_t charsLeft = input.size();
+  size_t uintSize = sizeof(uint64_t);
+  while (current < input.end()) {
+    if (charsLeft < 2 * uintSize) {
+      // Somehow invalid state
+      recalculateIndexEstimates();
+      return;
+    }
+    auto iid = static_cast<TRI_idx_iid_t>(uint64FromPersistent(current));
+    current += uintSize;
+    uint64_t length = uint64FromPersistent(current);
+    current += uintSize;
+    charsLeft -= 2 * uintSize;
+    if (length > charsLeft) {
+      // We have persistet an invalid format
+      // Recalculate instead
+      recalculateIndexEstimates();
+      return;
+    }
+    auto index = PhysicalCollection::lookupIndex(iid);
+    if (index != nullptr) {
+      RocksDBIndex* cindex = static_cast<RocksDBIndex*>(index.get());
+      TRI_ASSERT(cindex != nullptr);
+      // NOTE This call adjusts current and charsLeft
+      if (!cindex->deserializeEstimate(StringRef(current, length))) {
+        // We are not able to deserialize the indexes from storage.
+        // Recalculate the estimate.
+        recalculateIndexEstimates();
+        return;
+      }
+    }
+    current += length;
+    charsLeft -= length;
+  }
+}
+
+void RocksDBCollection::recalculateIndexEstimates() {
+  THROW_ARANGO_EXCEPTION(TRI_ERROR_NOT_YET_IMPLEMENTED);
 }

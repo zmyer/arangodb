@@ -98,6 +98,8 @@ class RocksDBIndex : public Index {
 
   virtual void serializeEstimate(std::string& output) const;
 
+  virtual bool deserializeEstimate(arangodb::StringRef const);
+
  protected:
   // Will be called during truncate to allow the index to update selectivity
   // estimates, blacklist keys, etc.

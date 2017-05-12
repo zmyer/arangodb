@@ -25,10 +25,10 @@
 #define ARANGOD_ROCKSDB_ROCKSDB_INDEX_ESTIMATOR_H 1
 
 #include "Basics/Common.h"
-#include "Basics/fasthash.h"
 #include "Basics/ReadLocker.h"
 #include "Basics/StringRef.h"
 #include "Basics/WriteLocker.h"
+#include "Basics/fasthash.h"
 
 #include "Logger/Logger.h"
 #include "RocksDBEngine/RocksDBCommon.h"
@@ -97,10 +97,11 @@ class RocksDBCuckooIndexEstimator {
   };
 
   enum SerializeFormat : char {
-    // To describe this format we use | as a seperator for readability, but it is NOT a printed character in the serialized string
+    // To describe this format we use | as a seperator for readability, but it
+    // is NOT a printed character in the serialized string
     // NOCOMPRESSION: type|size|nrUsed|nrCuckood|nrTotal|niceSize|logSize|base
     NOCOMPRESSION = '0'
-  
+
   };
 
  public:
@@ -109,7 +110,7 @@ class RocksDBCuckooIndexEstimator {
         _slotSize(2 * sizeof(uint16_t)),  // Sort out offsets and alignments
         _nrUsed(0),
         _nrCuckood(0),
-        _nrTotal(0), 
+        _nrTotal(0),
         _maxRounds(16) {
     // Inflate size so that we have some padding to avoid failure
     size *= 2.0;
@@ -121,7 +122,7 @@ class RocksDBCuckooIndexEstimator {
     initializeDefault();
   }
 
-  RocksDBCuckooIndexEstimator(arangodb::StringRef const& serialized)
+  RocksDBCuckooIndexEstimator(arangodb::StringRef const serialized)
       : _randState(0x2636283625154737ULL),
         _slotSize(2 * sizeof(uint16_t)),  // Sort out offsets and alignments
         _nrUsed(0),
@@ -152,7 +153,14 @@ class RocksDBCuckooIndexEstimator {
       delete;
 
   void serialize(std::string& serialized) const {
-    serialized.reserve(sizeof(SerializeFormat) + sizeof(_size) + sizeof(_nrUsed) + sizeof(_nrCuckood) + sizeof(_nrTotal) + sizeof(_niceSize) + sizeof(_logSize) + _allocSize); 
+    uint64_t serialLength =
+        (sizeof(SerializeFormat) + sizeof(_size) + sizeof(_nrUsed) +
+         sizeof(_nrCuckood) + sizeof(_nrTotal) + sizeof(_niceSize) +
+         sizeof(_logSize) + (_size * _slotSize * SlotsPerBucket));
+
+    serialized.reserve(sizeof(uint64_t) + serialLength);
+    // We always prepend the length, so parsing is easier
+    rocksutils::uint64ToPersistent(serialized, serialLength);
 
     // This format is always hard coded and the serialisation has to support
     // older formats
@@ -168,10 +176,13 @@ class RocksDBCuckooIndexEstimator {
     rocksutils::uint64ToPersistent(serialized, _logSize);
 
     // Add the data blob
-    char* last = (&serialized.back()) + 1;
     // Size is as follows: nrOfBuckets * SlotsPerBucket * SlotSize
     TRI_ASSERT((_size * _slotSize * SlotsPerBucket) <= _allocSize);
-    std::memcpy(last, _base, (_size * _slotSize * SlotsPerBucket));
+    
+    for (uint64_t i = 0; i < (_size * _slotSize * SlotsPerBucket) / sizeof(uint16_t);
+         ++i) {
+      rocksutils::uint16ToPersistent(serialized, *(reinterpret_cast<uint16_t*>(_base + i * 2)));
+    }
   }
 
   double computeEstimate() {
@@ -468,9 +479,13 @@ class RocksDBCuckooIndexEstimator {
   }
 
   void deserializeUncompressed(arangodb::StringRef const& serialized) {
+    // Assert that we have at least the member variables
+    TRI_ASSERT(serialized.size() >= (sizeof(SerializeFormat) + sizeof(_size) + sizeof(_nrUsed) +
+                                     sizeof(_nrCuckood) + sizeof(_nrTotal) + sizeof(_niceSize) +
+                                     sizeof(_logSize) ));
     char const* current = serialized.data();
     TRI_ASSERT(*current == SerializeFormat::NOCOMPRESSION);
-    current++; // Skip format char
+    current++;  // Skip format char
 
     _size = rocksutils::uint64FromPersistent(current);
     current += sizeof(_size);
@@ -492,10 +507,21 @@ class RocksDBCuckooIndexEstimator {
 
     deriveSizesAndAlloc();
 
+
+    // Validate that we have enough data in the serialized format.
+    TRI_ASSERT(serialized.size() ==
+               (sizeof(SerializeFormat) + sizeof(_size) + sizeof(_nrUsed) +
+                sizeof(_nrCuckood) + sizeof(_nrTotal) + sizeof(_niceSize) +
+                sizeof(_logSize) + (_size * _slotSize * SlotsPerBucket)));
+
     // Insert the raw data
     // Size is as follows: nrOfBuckets * SlotsPerBucket * SlotSize
     TRI_ASSERT((_size * _slotSize * SlotsPerBucket) <= _allocSize);
-    std::memcpy(_base, current, (_size * _slotSize * SlotsPerBucket));
+
+    for (uint64_t i = 0; i < (_size * _slotSize * SlotsPerBucket) / sizeof(uint16_t);
+         ++i) {
+      *(reinterpret_cast<uint16_t*>(_base + i * 2)) = rocksutils::uint16FromPersistent(current + (i * sizeof(uint16_t)));
+    }
   }
 
   void initializeDefault() {

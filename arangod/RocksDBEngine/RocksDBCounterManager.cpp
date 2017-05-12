@@ -23,6 +23,7 @@
 
 #include "RocksDBCounterManager.h"
 
+#include "ApplicationFeatures/ApplicationServer.h"
 #include "Basics/ReadLocker.h"
 #include "Basics/StringUtils.h"
 #include "Basics/VelocyPackHelper.h"
@@ -47,6 +48,7 @@
 #include <velocypack/velocypack-aliases.h>
 
 using namespace arangodb;
+using namespace arangodb::application_features;
 
 RocksDBCounterManager::CMValue::CMValue(VPackSlice const& slice)
     : _sequenceNum(0), _count(0), _revisionId(0) {
@@ -246,11 +248,14 @@ Result RocksDBCounterManager::sync(bool force) {
 
   // Now persist the index estimates:
   { 
-    auto engine = static_cast<RocksDBEngine*>(EngineSelectorFeature::ENGINE);
-    TRI_ASSERT(engine != nullptr);
     for (auto const& pair : copy) {
-      auto dbColPair = engine->mapObjectToCollection(pair.first);
-      auto dbfeature = DatabaseFeature::DATABASE;
+      auto dbColPair = rocksutils::mapObjectToCollection(pair.first);
+      if (dbColPair.second == 0 && dbColPair.first == 0) {
+        // collection with this objectID not known.Skip.
+        continue;
+      }
+      auto dbfeature =
+          ApplicationServer::getFeature<DatabaseFeature>("Database");
       TRI_ASSERT(dbfeature != nullptr);
       auto vocbase = dbfeature->useDatabase(dbColPair.first);
       TRI_ASSERT(vocbase != nullptr);
@@ -263,7 +268,7 @@ Result RocksDBCounterManager::sync(bool force) {
       }
       auto collection = vocbase->lookupCollection(dbColPair.second);
       TRI_ASSERT(collection != nullptr);
-      if (vocbase == nullptr) {
+      if (collection == nullptr) {
         // Bad state, we have references to a collection that is not known anymore.
         // However let's just skip in production. Not allowed to crash.
         // If we cannot find this infos during recovery we can either recompute
@@ -277,7 +282,6 @@ Result RocksDBCounterManager::sync(bool force) {
       if (!estimateSerialisation.empty()) {
         RocksDBKey key = RocksDBKey::IndexEstimateValue(rocksCollection->objectId());
         rocksdb::Slice value(estimateSerialisation);
-
         rocksdb::Status s = rtrx->Put(key.string(), value);
 
         if (!s.ok()) {

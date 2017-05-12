@@ -166,6 +166,13 @@ void RocksDBIndex::serializeEstimate(std::string&) const {
   // All indexes that do not have an estimator do not serialize anything.
 }
 
+bool RocksDBIndex::deserializeEstimate(StringRef const) {
+  // All indexes that do not have an estimator do not deserialize anything.
+  // So the estimate is always recreatable.
+  // We do not advance anything here.
+  return true;
+}
+
 void RocksDBIndex::truncate(transaction::Methods* trx) {
   RocksDBTransactionState* state = rocksutils::toRocksTransactionState(trx);
   rocksdb::Transaction* rtrx = state->rocksTransaction();

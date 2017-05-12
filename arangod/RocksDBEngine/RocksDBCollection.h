@@ -182,6 +182,9 @@ class RocksDBCollection final : public PhysicalCollection {
   bool hasGeoIndex() { return _hasGeoIndex; }
 
   void serializeIndexEstimates(std::string&) const;
+  void deserializeIndexEstimates(arangodb::StringRef const);
+
+  void recalculateIndexEstimates();
 
  private:
   /// @brief return engine-specific figures
@@ -223,6 +226,7 @@ class RocksDBCollection final : public PhysicalCollection {
   uint64_t const _objectId;  // rocksdb-specific object id for collection
   std::atomic<uint64_t> _numberDocuments;
   std::atomic<TRI_voc_rid_t> _revisionId;
+  mutable std::atomic<bool> _needToPersistIndexEstimates;
 
   /// upgrade write locks to exclusive locks if this flag is set
   bool _hasGeoIndex;

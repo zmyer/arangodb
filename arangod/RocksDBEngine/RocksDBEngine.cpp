@@ -290,6 +290,21 @@ void RocksDBEngine::stop() {
     return;
   }
   replicationManager()->dropAll();
+    
+  if (_backgroundThread) {
+    // stop the press
+    _backgroundThread->beginShutdown();
+    
+    if (_counterManager) {
+      _counterManager->sync(true);
+    }
+
+    // wait until background thread stops
+    while (_backgroundThread->isRunning()) {
+      usleep(10000);
+    }
+    _backgroundThread.reset();
+  }
 }
 
 void RocksDBEngine::unprepare() {
@@ -298,15 +313,6 @@ void RocksDBEngine::unprepare() {
   }
 
   if (_db) {
-    if (_backgroundThread && _backgroundThread->isRunning()) {
-      // stop the press
-      _backgroundThread->beginShutdown();
-      _backgroundThread.reset();
-    }
-    if (_counterManager) {
-      _counterManager->sync(true);
-    }
-
     // now prune all obsolete WAL files
     determinePrunableWalFiles(0);
     pruneWalFiles();
@@ -1207,6 +1213,9 @@ TRI_vocbase_t* RocksDBEngine::openExistingDatabase(TRI_voc_tick_t id,
     VPackSlice slice = builder.slice();
     TRI_ASSERT(slice.isArray());
 
+    auto db = rocksutils::globalRocksDB();
+    auto opts = rocksdb::ReadOptions();
+
     for (auto const& it : VPackArrayIterator(slice)) {
       // we found a collection that is still active
       TRI_ASSERT(!it.get("id").isNone() || !it.get("cid").isNone());
@@ -1221,6 +1230,17 @@ TRI_vocbase_t* RocksDBEngine::openExistingDatabase(TRI_voc_tick_t id,
       auto physical =
           static_cast<RocksDBCollection*>(collection->getPhysical());
       TRI_ASSERT(physical != nullptr);
+
+      {
+        auto key = RocksDBKey::IndexEstimateValue(physical->objectId());
+        auto value = RocksDBValue::Empty(RocksDBEntryType::IndexEstimateValue);
+        auto s = db->Get(opts, key.string(), value.buffer());
+        if (s.ok()) {
+          // This collection has registered index estimates.
+          StringRef estimateSerialisation(value.buffer()->data(), value.buffer()->size());
+          physical->deserializeIndexEstimates(estimateSerialisation);
+        }
+      }
 
       LOG_TOPIC(DEBUG, arangodb::Logger::FIXME)
           << "added document collection '" << collection->name() << "'";

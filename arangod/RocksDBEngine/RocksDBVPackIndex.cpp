@@ -165,8 +165,9 @@ RocksDBVPackIndex::RocksDBVPackIndex(TRI_idx_iid_t iid,
       _useExpansion(false),
       _allowPartialIndex(true),
       _estimator(nullptr) {
-  if (!_unique) {
+  if (!_unique && !ServerState::instance()->isCoordinator()) {
     // We activate the estimator for all non unique-indexes.
+    // And only on DBServers
     _estimator = std::make_unique<RocksDBCuckooIndexEstimator<uint64_t>>(RocksDBIndex::ESTIMATOR_SIZE);
     TRI_ASSERT(_estimator != nullptr);
   }
@@ -1463,12 +1464,32 @@ int RocksDBVPackIndex::cleanup() {
 
 
 void RocksDBVPackIndex::serializeEstimate(std::string& output) const {
+  TRI_ASSERT(!ServerState::instance()->isCoordinator());
   if (!_unique) {
     TRI_ASSERT(_estimator != nullptr);
     // We always have indexId followed by the estimator internal output.
     rocksutils::uint64ToPersistent(output, id());
     _estimator->serialize(output);
   }
+}
+
+bool RocksDBVPackIndex::deserializeEstimate(StringRef const input) {
+  TRI_ASSERT(!ServerState::instance()->isCoordinator());
+  if (_unique) {
+    return true;
+  }
+  // We simply drop the current estimator and create a new one.
+  // We are than save for resizing issues in our _estimator format
+  // and will use the old size.
+  try {
+    _estimator = std::make_unique<RocksDBCuckooIndexEstimator<uint64_t>>(input);
+    TRI_ASSERT(_estimator != nullptr);
+  } catch (...) {
+    // Unable to recreate the index for some reason. We have to recompute from scratch
+    return false;
+  }
+
+  return true;
 }
 
 Result RocksDBVPackIndex::postprocessRemove(transaction::Methods* trx,

@@ -93,7 +93,16 @@ SECTION("test_serialize_deserialize") {
   }
 
   est.serialize(serialization);
-  StringRef ref(serialization);
+
+  // Test that the serialization first reports the correct length
+  uint64_t length = serialization.size();
+  length -= sizeof(uint64_t);
+  uint64_t persLength = rocksutils::uint64FromPersistent(serialization.data());
+  CHECK(persLength == length);
+
+  // We first have an uint64_t representing the length.
+  // This has to be extracted BEFORE initialisation.
+  StringRef ref(serialization.data() + sizeof(uint64_t), persLength);
 
   RocksDBCuckooIndexEstimator<uint64_t> copy(ref);
 
