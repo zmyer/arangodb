@@ -367,7 +367,8 @@ bool VstCommTask::processRead(double startTime) {
       if (_authentication->isEnabled()) {  // only check authorization if
                                            // authentication is enabled
         std::string const& path = request->requestPath();
-        if (!StringUtils::isPrefix(path, "/_open/")) {
+        if (!StringUtils::isPrefix(path, "/_open/") &&
+            !StringUtils::isPrefix(path, "/_api/user/")) {
           std::string const& dbname = request->databaseName();
           if (!(_authenticatedUser.empty() && dbname.empty())) {
             level = _authentication->canUseDatabase(_authenticatedUser, dbname);
