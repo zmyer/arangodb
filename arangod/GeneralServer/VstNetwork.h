@@ -39,13 +39,11 @@
 namespace arangodb {
 
 template <typename T>
-std::size_t appendToBuffer(basics::StringBuffer* buffer, T& value) {
-  constexpr std::size_t len = sizeof(T);
-  char charArray[len];
-  char const* charPtr = charArray;
-  std::memcpy(&charArray, &value, len);
-  buffer->appendText(charPtr, len);
-  return len;
+void appendLittleEndian(basics::StringBuffer* buffer, T v) {
+  for (size_t i = 0; i < sizeof(T); ++i) {
+    buffer->appendChar(static_cast<char>(v & 0xffu));
+    v >>= 8;
+  }
 }
 
 inline constexpr std::size_t chunkHeaderLength(bool sendTotalLen) {
@@ -90,12 +88,12 @@ inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkDetail(
       std::make_unique<StringBuffer>(TRI_UNKNOWN_MEM_ZONE, chunkLength, false);
 
   LOG_TOPIC(TRACE, Logger::COMMUNICATION) << "chunkLength: " << chunkLength;
-  appendToBuffer(buffer.get(), chunkLength);
-  appendToBuffer(buffer.get(), chunk);
-  appendToBuffer(buffer.get(), id);
+  appendLittleEndian(buffer.get(), chunkLength);
+  appendLittleEndian(buffer.get(), chunk);
+  appendLittleEndian(buffer.get(), id);
 
   if (sendTotalLen) {
-    appendToBuffer(buffer.get(), totalMessageLength);
+    appendLittleEndian(buffer.get(), totalMessageLength);
   }
 
   // append data in slices
@@ -139,12 +137,12 @@ inline std::unique_ptr<basics::StringBuffer> createChunkForNetworkDetail(
   auto buffer =
       std::make_unique<StringBuffer>(TRI_UNKNOWN_MEM_ZONE, chunkLength, false);
 
-  appendToBuffer(buffer.get(), chunkLength);
-  appendToBuffer(buffer.get(), chunk);
-  appendToBuffer(buffer.get(), id);
+  appendLittleEndian(buffer.get(), chunkLength);
+  appendLittleEndian(buffer.get(), chunk);
+  appendLittleEndian(buffer.get(), id);
 
   if (sendTotalLen) {
-    appendToBuffer(buffer.get(), totalMessageLength);
+    appendLittleEndian(buffer.get(), totalMessageLength);
   }
 
   buffer->appendText(data + begin, dataLength);
