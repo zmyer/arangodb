@@ -34,6 +34,7 @@
 #include "RocksDBEngine/RocksDBCollection.h"
 #include "RocksDBEngine/RocksDBCommon.h"
 #include "RocksDBEngine/RocksDBComparator.h"
+#include "RocksDBEngine/RocksDBCounterManager.h"
 #include "RocksDBEngine/RocksDBPrimaryIndex.h"
 #include "RocksDBEngine/RocksDBToken.h"
 #include "RocksDBEngine/RocksDBTransactionState.h"
@@ -1467,28 +1468,28 @@ void RocksDBVPackIndex::serializeEstimate(std::string& output) const {
   TRI_ASSERT(!ServerState::instance()->isCoordinator());
   if (!_unique) {
     TRI_ASSERT(_estimator != nullptr);
-    // We always have indexId followed by the estimator internal output.
-    rocksutils::uint64ToPersistent(output, id());
     _estimator->serialize(output);
   }
 }
 
-bool RocksDBVPackIndex::deserializeEstimate(StringRef const input) {
+bool RocksDBVPackIndex::deserializeEstimate(RocksDBCounterManager* mgr) {
   TRI_ASSERT(!ServerState::instance()->isCoordinator());
   if (_unique) {
     return true;
   }
-  // We simply drop the current estimator and create a new one.
+  // We simply drop the current estimator and steal the one from recovery
   // We are than save for resizing issues in our _estimator format
   // and will use the old size.
-  try {
-    _estimator = std::make_unique<RocksDBCuckooIndexEstimator<uint64_t>>(input);
-    TRI_ASSERT(_estimator != nullptr);
-  } catch (...) {
-    // Unable to recreate the index for some reason. We have to recompute from scratch
+
+  TRI_ASSERT(mgr != nullptr);
+  auto tmp =  mgr->stealIndexEstimator(_objectId);
+  if (tmp == nullptr) {
+    // We expected to receive a stored index estimate, however we got none.
+    // We use the freshly created estimator but have to recompute it.
     return false;
   }
-
+  _estimator.swap(tmp);
+  TRI_ASSERT(_estimator != nullptr);
   return true;
 }
 

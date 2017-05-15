@@ -32,6 +32,7 @@
 #include "RestServer/DatabaseFeature.h"
 #include "RocksDBEngine/RocksDBCollection.h"
 #include "RocksDBEngine/RocksDBCommon.h"
+#include "RocksDBEngine/RocksDBCuckooIndexEstimator.h"
 #include "RocksDBEngine/RocksDBKey.h"
 #include "RocksDBEngine/RocksDBKeyBounds.h"
 #include "RocksDBEngine/RocksDBValue.h"
@@ -79,6 +80,7 @@ void RocksDBCounterManager::CMValue::serialize(VPackBuilder& b) const {
 RocksDBCounterManager::RocksDBCounterManager(rocksdb::DB* db)
     : _syncing(false), _db(db) {
   readSettings();
+  readIndexEstimates();
 
   readCounterValues();
   if (!_counters.empty()) {
@@ -140,7 +142,8 @@ void RocksDBCounterManager::updateCounter(uint64_t objectId,
   }
 }
 
-arangodb::Result RocksDBCounterManager::setAbsoluteCounter(uint64_t objectId, uint64_t value) {
+arangodb::Result RocksDBCounterManager::setAbsoluteCounter(uint64_t objectId,
+                                                           uint64_t value) {
   arangodb::Result res;
   WRITE_LOCKER(guard, _rwLock);
   auto it = _counters.find(objectId);
@@ -224,7 +227,7 @@ Result RocksDBCounterManager::sync(bool force) {
       return rocksutils::convertStatus(s);
     }
   }
-    
+
   // now write global settings
   b.clear();
   b.openObject();
@@ -247,7 +250,7 @@ Result RocksDBCounterManager::sync(bool force) {
   }
 
   // Now persist the index estimates:
-  { 
+  {
     for (auto const& pair : copy) {
       auto dbColPair = rocksutils::mapObjectToCollection(pair.first);
       if (dbColPair.second == 0 && dbColPair.first == 0) {
@@ -260,7 +263,8 @@ Result RocksDBCounterManager::sync(bool force) {
       auto vocbase = dbfeature->useDatabase(dbColPair.first);
       TRI_ASSERT(vocbase != nullptr);
       if (vocbase == nullptr) {
-        // Bad state, we have references to a database that is not known anymore.
+        // Bad state, we have references to a database that is not known
+        // anymore.
         // However let's just skip in production. Not allowed to crash.
         // If we cannot find this infos during recovery we can either recompute
         // or start fresh.
@@ -269,26 +273,20 @@ Result RocksDBCounterManager::sync(bool force) {
       auto collection = vocbase->lookupCollection(dbColPair.second);
       TRI_ASSERT(collection != nullptr);
       if (collection == nullptr) {
-        // Bad state, we have references to a collection that is not known anymore.
+        // Bad state, we have references to a collection that is not known
+        // anymore.
         // However let's just skip in production. Not allowed to crash.
         // If we cannot find this infos during recovery we can either recompute
         // or start fresh.
         continue;
       }
       std::string estimateSerialisation;
-      auto rocksCollection = static_cast<RocksDBCollection*>(collection->getPhysical());
+      auto rocksCollection =
+          static_cast<RocksDBCollection*>(collection->getPhysical());
       TRI_ASSERT(rocksCollection != nullptr);
-      rocksCollection->serializeIndexEstimates(estimateSerialisation);
-      if (!estimateSerialisation.empty()) {
-        RocksDBKey key = RocksDBKey::IndexEstimateValue(rocksCollection->objectId());
-        rocksdb::Slice value(estimateSerialisation);
-        rocksdb::Status s = rtrx->Put(key.string(), value);
-
-        if (!s.ok()) {
-          LOG_TOPIC(WARN, Logger::ENGINES) << "writing index estimates failed";
-          rtrx->Rollback();
-          return rocksutils::convertStatus(s);
-        }
+      Result res = rocksCollection->serializeIndexEstimates(rtrx.get());
+      if (!res.ok()) {
+        return res;
       }
     }
   }
@@ -323,7 +321,7 @@ void RocksDBCounterManager::readSettings() {
             basics::VelocyPackHelper::stringUInt64(slice.get("tick"));
         LOG_TOPIC(TRACE, Logger::ENGINES) << "using last tick: " << lastTick;
         TRI_UpdateTickServer(lastTick);
-        
+
         if (slice.hasKey("hlc")) {
           uint64_t lastHlc =
               basics::VelocyPackHelper::stringUInt64(slice.get("hlc"));
@@ -336,6 +334,53 @@ void RocksDBCounterManager::readSettings() {
       }
     }
   }
+}
+
+void RocksDBCounterManager::readIndexEstimates() {
+  LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Reading estimates";
+  WRITE_LOCKER(guard, _rwLock);
+  RocksDBKeyBounds bounds = RocksDBKeyBounds::IndexEstimateValues();
+
+  rocksdb::Comparator const* cmp = _db->GetOptions().comparator;
+  rocksdb::ReadOptions readOptions;
+  std::unique_ptr<rocksdb::Iterator> iter(_db->NewIterator(readOptions));
+  iter->Seek(bounds.start());
+
+  for (;iter->Valid() && cmp->Compare(iter->key(), bounds.end()) < 0; iter->Next()) {
+    uint64_t objectId = RocksDBKey::counterObjectId(iter->key());
+    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Found stored: " << objectId;
+    StringRef estimateSerialisation(iter->value().data(), iter->value().size());
+    // If this hits we have two estimates for the same index
+    TRI_ASSERT(_estimators.find(objectId) == _estimators.end());
+    _estimators.emplace(objectId,
+                        std::make_unique<RocksDBCuckooIndexEstimator<uint64_t>>(
+                            estimateSerialisation));
+  }
+}
+
+std::unique_ptr<RocksDBCuckooIndexEstimator<uint64_t>>
+RocksDBCounterManager::stealIndexEstimator(uint64_t objectId) {
+  std::unique_ptr<RocksDBCuckooIndexEstimator<uint64_t>> res(nullptr);
+  LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Search: " << objectId;
+
+  auto it = _estimators.find(objectId);
+  if (it != _estimators.end()) {
+    // We swap out the stored estimate in order to move it to the caller
+    res.swap(it->second);
+    // Drop the now empty estimator
+    _estimators.erase(objectId);
+    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "FOUND";
+  }
+  return res;
+}
+
+void RocksDBCounterManager::clearIndexEstimators() {
+  // We call this to remove all index estimators that have been stored but are
+  // no longer read
+  // by recovery.
+
+  // TODO REMOVE RocksDB Keys of all not stolen values?
+  _estimators.clear();
 }
 
 /// Parse counter values from rocksdb
@@ -371,7 +416,8 @@ struct WBReader final : public rocksdb::WriteBatch::Handler {
   WBReader() : currentSeqNum(0) {}
   ~WBReader() {
     // update ticks after parsing wal
-    LOG_TOPIC(TRACE, Logger::ENGINES) << "max tick found in WAL: " << _maxTick << ", last HLC value: " << _maxHLC;
+    LOG_TOPIC(TRACE, Logger::ENGINES) << "max tick found in WAL: " << _maxTick
+                                      << ", last HLC value: " << _maxHLC;
 
     TRI_UpdateTickServer(_maxTick);
     TRI_HybridLogicalClock(_maxHLC);
@@ -419,15 +465,16 @@ struct WBReader final : public rocksdb::WriteBatch::Handler {
       storeMaxHLC(RocksDBKey::revisionId(key));
     } else if (type == RocksDBEntryType::PrimaryIndexValue) {
       // document key
-      StringRef ref = RocksDBKey::primaryKey(key); 
+      StringRef ref = RocksDBKey::primaryKey(key);
       TRI_ASSERT(!ref.empty());
       // check if the key is numeric
-      if (ref[0] >= '1' && ref[0] <= '9') { 
+      if (ref[0] >= '1' && ref[0] <= '9') {
         // numeric start byte. looks good
         try {
           // extract uint64_t value from key. this will throw if the key
           // is non-numeric
-          uint64_t tick = basics::StringUtils::uint64_check(ref.data(), ref.size());
+          uint64_t tick =
+              basics::StringUtils::uint64_check(ref.data(), ref.size());
           // if no previous _maxTick set or the numeric value found is
           // "near" our previous _maxTick, then we update it
           if (tick > _maxTick && (_maxTick == 0 || tick - _maxTick < 2048)) {
@@ -495,7 +542,7 @@ bool RocksDBCounterManager::parseRocksWAL() {
   rocksdb::SequenceNumber start = UINT64_MAX;
   // Tell the WriteBatch reader the transaction markers to look for
   auto handler = std::make_unique<WBReader>();
-  
+
   for (auto const& pair : _counters) {
     handler->seqStart.emplace(pair.first, pair.second._sequenceNum);
     start = std::min(start, pair.second._sequenceNum);

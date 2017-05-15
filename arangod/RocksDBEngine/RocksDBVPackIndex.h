@@ -227,7 +227,7 @@ protected:
 
   void serializeEstimate(std::string& output) const override;
 
-  bool deserializeEstimate(arangodb::StringRef const input) override;
+  bool deserializeEstimate(arangodb::RocksDBCounterManager* mgr) override;
 
  private:
   std::unique_ptr<FixedSizeAllocator> _allocator;

@@ -99,7 +99,7 @@ class RocksDBCuckooIndexEstimator {
   enum SerializeFormat : char {
     // To describe this format we use | as a seperator for readability, but it
     // is NOT a printed character in the serialized string
-    // NOCOMPRESSION: type|size|nrUsed|nrCuckood|nrTotal|niceSize|logSize|base
+    // NOCOMPRESSION: type|length|size|nrUsed|nrCuckood|nrTotal|niceSize|logSize|base
     NOCOMPRESSION = '0'
 
   };
@@ -153,19 +153,20 @@ class RocksDBCuckooIndexEstimator {
       delete;
 
   void serialize(std::string& serialized) const {
+    // This format is always hard coded and the serialisation has to support
+    // older formats
+    // for backwards compatibility
+    // We always have to start with the type and then the length
+    serialized += SerializeFormat::NOCOMPRESSION;
+
     uint64_t serialLength =
-        (sizeof(SerializeFormat) + sizeof(_size) + sizeof(_nrUsed) +
+        (sizeof(SerializeFormat) + sizeof(uint64_t) + sizeof(_size) + sizeof(_nrUsed) +
          sizeof(_nrCuckood) + sizeof(_nrTotal) + sizeof(_niceSize) +
          sizeof(_logSize) + (_size * _slotSize * SlotsPerBucket));
 
     serialized.reserve(sizeof(uint64_t) + serialLength);
     // We always prepend the length, so parsing is easier
     rocksutils::uint64ToPersistent(serialized, serialLength);
-
-    // This format is always hard coded and the serialisation has to support
-    // older formats
-    // for backwards compatibility
-    serialized += SerializeFormat::NOCOMPRESSION;
 
     // Add all member variables
     rocksutils::uint64ToPersistent(serialized, _size);
@@ -480,12 +481,17 @@ class RocksDBCuckooIndexEstimator {
 
   void deserializeUncompressed(arangodb::StringRef const& serialized) {
     // Assert that we have at least the member variables
-    TRI_ASSERT(serialized.size() >= (sizeof(SerializeFormat) + sizeof(_size) + sizeof(_nrUsed) +
+    TRI_ASSERT(serialized.size() >= (sizeof(SerializeFormat) + sizeof(uint64_t) + sizeof(_size) + sizeof(_nrUsed) +
                                      sizeof(_nrCuckood) + sizeof(_nrTotal) + sizeof(_niceSize) +
                                      sizeof(_logSize) ));
     char const* current = serialized.data();
     TRI_ASSERT(*current == SerializeFormat::NOCOMPRESSION);
     current++;  // Skip format char
+
+    uint64_t length = rocksutils::uint64FromPersistent(current);
+    current += sizeof(uint64_t);
+    // Validate that the serialized format is exactly as long as we expect it to be
+    TRI_ASSERT(serialized.size() == length);
 
     _size = rocksutils::uint64FromPersistent(current);
     current += sizeof(_size);
@@ -510,7 +516,7 @@ class RocksDBCuckooIndexEstimator {
 
     // Validate that we have enough data in the serialized format.
     TRI_ASSERT(serialized.size() ==
-               (sizeof(SerializeFormat) + sizeof(_size) + sizeof(_nrUsed) +
+               (sizeof(SerializeFormat) + sizeof( uint64_t) + sizeof(_size) + sizeof(_nrUsed) +
                 sizeof(_nrCuckood) + sizeof(_nrTotal) + sizeof(_niceSize) +
                 sizeof(_logSize) + (_size * _slotSize * SlotsPerBucket)));
 

@@ -1212,10 +1212,7 @@ TRI_vocbase_t* RocksDBEngine::openExistingDatabase(TRI_voc_tick_t id,
 
     VPackSlice slice = builder.slice();
     TRI_ASSERT(slice.isArray());
-
-    auto db = rocksutils::globalRocksDB();
-    auto opts = rocksdb::ReadOptions();
-
+    
     for (auto const& it : VPackArrayIterator(slice)) {
       // we found a collection that is still active
       TRI_ASSERT(!it.get("id").isNone() || !it.get("cid").isNone());
@@ -1231,17 +1228,7 @@ TRI_vocbase_t* RocksDBEngine::openExistingDatabase(TRI_voc_tick_t id,
           static_cast<RocksDBCollection*>(collection->getPhysical());
       TRI_ASSERT(physical != nullptr);
 
-      {
-        auto key = RocksDBKey::IndexEstimateValue(physical->objectId());
-        auto value = RocksDBValue::Empty(RocksDBEntryType::IndexEstimateValue);
-        auto s = db->Get(opts, key.string(), value.buffer());
-        if (s.ok()) {
-          // This collection has registered index estimates.
-          StringRef estimateSerialisation(value.buffer()->data(), value.buffer()->size());
-          physical->deserializeIndexEstimates(estimateSerialisation);
-        }
-      }
-
+      physical->deserializeIndexEstimates(counterManager());
       LOG_TOPIC(DEBUG, arangodb::Logger::FIXME)
           << "added document collection '" << collection->name() << "'";
     }

@@ -166,7 +166,7 @@ void RocksDBIndex::serializeEstimate(std::string&) const {
   // All indexes that do not have an estimator do not serialize anything.
 }
 
-bool RocksDBIndex::deserializeEstimate(StringRef const) {
+bool RocksDBIndex::deserializeEstimate(RocksDBCounterManager*) {
   // All indexes that do not have an estimator do not deserialize anything.
   // So the estimate is always recreatable.
   // We do not advance anything here.

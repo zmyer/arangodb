@@ -182,8 +182,8 @@ void RocksDBCollection::open(bool ignoreErrors) {
   RocksDBEngine* engine =
       static_cast<RocksDBEngine*>(EngineSelectorFeature::ENGINE);
   auto counterValue = engine->counterManager()->loadCounter(this->objectId());
-  LOG_TOPIC(ERR, Logger::DEVEL)
-      << " number of documents: " << counterValue.added();
+  LOG_TOPIC(ERR, Logger::DEVEL) << " number of documents: "
+                                << counterValue.added();
   _numberDocuments = counterValue.added() - counterValue.removed();
   _revisionId = counterValue.revisionId();
 
@@ -414,10 +414,9 @@ std::shared_ptr<Index> RocksDBCollection::createIndex(
     idx->toVelocyPack(indexInfo, false, true);
     int res = static_cast<RocksDBEngine*>(engine)->writeCreateCollectionMarker(
         _logicalCollection->vocbase()->id(), _logicalCollection->cid(),
-        builder.slice(),
-        RocksDBLogValue::IndexCreate(_logicalCollection->vocbase()->id(),
-                                     _logicalCollection->cid(),
-                                     indexInfo.slice()));
+        builder.slice(), RocksDBLogValue::IndexCreate(
+                             _logicalCollection->vocbase()->id(),
+                             _logicalCollection->cid(), indexInfo.slice()));
     if (res != TRI_ERROR_NO_ERROR) {
       // We could not persist the index creation. Better abort
       // Remove the Index in the local list again.
@@ -497,10 +496,9 @@ int RocksDBCollection::restoreIndex(transaction::Methods* trx,
     TRI_ASSERT(engine != nullptr);
     int res = engine->writeCreateCollectionMarker(
         _logicalCollection->vocbase()->id(), _logicalCollection->cid(),
-        builder.slice(),
-        RocksDBLogValue::IndexCreate(_logicalCollection->vocbase()->id(),
-                                     _logicalCollection->cid(),
-                                     indexInfo.slice()));
+        builder.slice(), RocksDBLogValue::IndexCreate(
+                             _logicalCollection->vocbase()->id(),
+                             _logicalCollection->cid(), indexInfo.slice()));
     if (res != TRI_ERROR_NO_ERROR) {
       // We could not persist the index creation. Better abort
       // Remove the Index in the local list again.
@@ -546,7 +544,7 @@ bool RocksDBCollection::dropIndex(TRI_idx_iid_t iid) {
         _indexes.erase(_indexes.begin() + i);
         events::DropIndex("", std::to_string(iid), TRI_ERROR_NO_ERROR);
         // toVelocyPackIgnore will take a read lock and we don't need the
-        // lock anymore, we will always return 
+        // lock anymore, we will always return
         guard.unlock();
 
         VPackBuilder builder = _logicalCollection->toVelocyPackIgnore(
@@ -1186,7 +1184,7 @@ void RocksDBCollection::figuresSpecific(
 
 /// @brief creates the initial indexes for the collection
 void RocksDBCollection::createInitialIndexes() {
-  { // addIndex holds an internal write lock
+  {  // addIndex holds an internal write lock
     READ_LOCKER(guard, _indexesLock);
     if (!_indexes.empty()) {
       return;
@@ -1229,7 +1227,7 @@ void RocksDBCollection::addIndex(std::shared_ptr<arangodb::Index> idx) {
 void RocksDBCollection::addIndexCoordinator(
     std::shared_ptr<arangodb::Index> idx) {
   WRITE_LOCKER(guard, _indexesLock);
-  
+
   auto const id = idx->id();
   for (auto const& it : _indexes) {
     if (it->id() == id) {
@@ -1317,8 +1315,8 @@ arangodb::Result RocksDBCollection::fillIndexes(
   // occured, this needs to happen since we are non transactional
   if (!r.ok()) {
     iter->reset();
-    rocksdb::WriteBatchWithIndex removeBatch(db->DefaultColumnFamily()->GetComparator(),
-                                             32 * 1024 * 1024);
+    rocksdb::WriteBatchWithIndex removeBatch(
+        db->DefaultColumnFamily()->GetComparator(), 32 * 1024 * 1024);
 
     res = TRI_ERROR_NO_ERROR;
     auto removeCb = [&](DocumentIdentifierToken token) {
@@ -1402,12 +1400,12 @@ RocksDBOperationResult RocksDBCollection::insertDocument(
   READ_LOCKER(guard, _indexesLock);
   for (std::shared_ptr<Index> const& idx : _indexes) {
     innerRes.reset(idx->insert(trx, revisionId, doc, false));
-    
+
     // in case of no-memory, return immediately
     if (innerRes.is(TRI_ERROR_OUT_OF_MEMORY)) {
       return innerRes;
     }
-    
+
     if (innerRes.fail()) {
       // "prefer" unique constraint violated over other errors
       if (innerRes.is(TRI_ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED) ||
@@ -1744,59 +1742,49 @@ void RocksDBCollection::estimateSize(velocypack::Builder& builder) {
   builder.close();
 }
 
-void RocksDBCollection::serializeIndexEstimates(std::string& output) const {
+arangodb::Result RocksDBCollection::serializeIndexEstimates(
+    rocksdb::Transaction* rtrx) const {
   if (!_needToPersistIndexEstimates) {
-    return;
+    return {TRI_ERROR_NO_ERROR};
   }
   _needToPersistIndexEstimates = false;
+  std::string output;
   for (auto index : getIndexes()) {
+    output.clear();
     RocksDBIndex* cindex = static_cast<RocksDBIndex*>(index.get());
     TRI_ASSERT(cindex != nullptr);
     cindex->serializeEstimate(output);
-  }
-}
+    if (!output.empty()) {
+      LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Persist " << cindex->objectId();
+      RocksDBKey key =
+          RocksDBKey::IndexEstimateValue(cindex->objectId());
+      rocksdb::Slice value(output);
+      rocksdb::Status s = rtrx->Put(key.string(), value);
 
-void RocksDBCollection::deserializeIndexEstimates(StringRef const input) {
-  if (input.empty()) {
-    return;
-  }
-  char const* current = input.begin();
-  size_t charsLeft = input.size();
-  size_t uintSize = sizeof(uint64_t);
-  while (current < input.end()) {
-    if (charsLeft < 2 * uintSize) {
-      // Somehow invalid state
-      recalculateIndexEstimates();
-      return;
-    }
-    auto iid = static_cast<TRI_idx_iid_t>(uint64FromPersistent(current));
-    current += uintSize;
-    uint64_t length = uint64FromPersistent(current);
-    current += uintSize;
-    charsLeft -= 2 * uintSize;
-    if (length > charsLeft) {
-      // We have persistet an invalid format
-      // Recalculate instead
-      recalculateIndexEstimates();
-      return;
-    }
-    auto index = PhysicalCollection::lookupIndex(iid);
-    if (index != nullptr) {
-      RocksDBIndex* cindex = static_cast<RocksDBIndex*>(index.get());
-      TRI_ASSERT(cindex != nullptr);
-      // NOTE This call adjusts current and charsLeft
-      if (!cindex->deserializeEstimate(StringRef(current, length))) {
-        // We are not able to deserialize the indexes from storage.
-        // Recalculate the estimate.
-        recalculateIndexEstimates();
-        return;
+      if (!s.ok()) {
+        LOG_TOPIC(WARN, Logger::ENGINES) << "writing index estimates failed";
+        rtrx->Rollback();
+        return rocksutils::convertStatus(s);
       }
     }
-    current += length;
-    charsLeft -= length;
+  }
+  return {TRI_ERROR_NO_ERROR};
+}
+
+void RocksDBCollection::deserializeIndexEstimates(RocksDBCounterManager* mgr) {
+  // TODO this can be optimized to only recaclulate those indexes that failed.
+  bool needRecalculate = false;
+  for (auto const& it : getIndexes()) {
+    auto idx = static_cast<RocksDBIndex*>(it.get());
+    if (!idx->deserializeEstimate(mgr)) {
+      needRecalculate = true;
+    }
+  }
+  if (needRecalculate) {
+    recalculateIndexEstimates();
   }
 }
 
 void RocksDBCollection::recalculateIndexEstimates() {
-  THROW_ARANGO_EXCEPTION(TRI_ERROR_NOT_YET_IMPLEMENTED);
+  // TODO IMPLEMENT!!
 }

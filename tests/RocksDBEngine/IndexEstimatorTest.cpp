@@ -96,13 +96,14 @@ SECTION("test_serialize_deserialize") {
 
   // Test that the serialization first reports the correct length
   uint64_t length = serialization.size();
-  length -= sizeof(uint64_t);
-  uint64_t persLength = rocksutils::uint64FromPersistent(serialization.data());
+  
+  // We read starting from the second char. The first char is reserved for the type
+  uint64_t persLength = rocksutils::uint64FromPersistent(serialization.data() + 1);
   CHECK(persLength == length);
 
   // We first have an uint64_t representing the length.
   // This has to be extracted BEFORE initialisation.
-  StringRef ref(serialization.data() + sizeof(uint64_t), persLength);
+  StringRef ref(serialization.data(), persLength);
 
   RocksDBCuckooIndexEstimator<uint64_t> copy(ref);
 

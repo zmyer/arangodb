@@ -41,6 +41,7 @@ class Cache;
 }
 class LogicalCollection;
 class RocksDBComparator;
+class RocksDBCounterManager;
 
 class RocksDBIndex : public Index {
 
@@ -98,7 +99,7 @@ class RocksDBIndex : public Index {
 
   virtual void serializeEstimate(std::string& output) const;
 
-  virtual bool deserializeEstimate(arangodb::StringRef const);
+  virtual bool deserializeEstimate(RocksDBCounterManager* mgr);
 
  protected:
   // Will be called during truncate to allow the index to update selectivity

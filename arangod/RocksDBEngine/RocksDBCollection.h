@@ -32,6 +32,10 @@
 #include "VocBase/KeyGenerator.h"
 #include "VocBase/ManagedDocumentResult.h"
 
+namespace rocksdb {
+class Transaction;
+}
+
 namespace arangodb {
 class LogicalCollection;
 class ManagedDocumentResult;
@@ -181,8 +185,8 @@ class RocksDBCollection final : public PhysicalCollection {
 
   bool hasGeoIndex() { return _hasGeoIndex; }
 
-  void serializeIndexEstimates(std::string&) const;
-  void deserializeIndexEstimates(arangodb::StringRef const);
+  Result serializeIndexEstimates(rocksdb::Transaction*) const;
+  void deserializeIndexEstimates(arangodb::RocksDBCounterManager* mgr);
 
   void recalculateIndexEstimates();
 
