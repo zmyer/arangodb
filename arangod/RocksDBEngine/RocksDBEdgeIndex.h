@@ -84,6 +84,8 @@ class RocksDBEdgeIndex final : public RocksDBIndex {
   friend class RocksDBEdgeIndexIterator;
 
  public:
+  static uint64_t HashForKey(const rocksdb::Slice& key);
+
   RocksDBEdgeIndex() = delete;
 
   RocksDBEdgeIndex(TRI_idx_iid_t, arangodb::LogicalCollection*,

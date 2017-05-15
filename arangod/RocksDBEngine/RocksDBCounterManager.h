@@ -137,8 +137,10 @@ class RocksDBCounterManager {
   ///        Note the elements in this container will be moved into the
   ///        index classes and are only temporarily stored here during recovery.
   //////////////////////////////////////////////////////////////////////////////
-  std::unordered_map<uint64_t,
-                     std::unique_ptr<RocksDBCuckooIndexEstimator<uint64_t>>>
+  std::unordered_map<
+      uint64_t,
+      std::pair<uint64_t,
+                std::unique_ptr<RocksDBCuckooIndexEstimator<uint64_t>>>>
       _estimators;
 
   //////////////////////////////////////////////////////////////////////////////

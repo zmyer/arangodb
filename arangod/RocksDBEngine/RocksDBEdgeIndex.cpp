@@ -261,6 +261,11 @@ void RocksDBEdgeIndexIterator::reset() {
 
 // ============================= Index ====================================
 
+uint64_t RocksDBEdgeIndex::HashForKey(const rocksdb::Slice& key) {
+  THROW_ARANGO_EXCEPTION(TRI_ERROR_NOT_YET_IMPLEMENTED);
+  return 0;
+}
+
 RocksDBEdgeIndex::RocksDBEdgeIndex(TRI_idx_iid_t iid,
                                    arangodb::LogicalCollection* collection,
                                    VPackSlice const& info,

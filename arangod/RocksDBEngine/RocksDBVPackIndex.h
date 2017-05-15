@@ -102,6 +102,8 @@ class RocksDBVPackIndex : public RocksDBIndex {
   friend class RocksDBVPackIndexIterator;
 
  public:
+  static uint64_t HashForKey(const rocksdb::Slice& key);
+
   RocksDBVPackIndex() = delete;
 
   RocksDBVPackIndex(TRI_idx_iid_t, LogicalCollection*,

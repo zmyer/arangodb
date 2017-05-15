@@ -1749,13 +1749,14 @@ arangodb::Result RocksDBCollection::serializeIndexEstimates(
   }
   _needToPersistIndexEstimates = false;
   std::string output;
+  rocksdb::TransactionDB* tdb = rocksutils::globalRocksDB();
   for (auto index : getIndexes()) {
     output.clear();
     RocksDBIndex* cindex = static_cast<RocksDBIndex*>(index.get());
     TRI_ASSERT(cindex != nullptr);
+    rocksutils::uint64ToPersistent(output, static_cast<uint64_t>(tdb->GetLatestSequenceNumber()));
     cindex->serializeEstimate(output);
-    if (!output.empty()) {
-      LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Persist " << cindex->objectId();
+    if (output.size() > sizeof(uint64_t)) {
       RocksDBKey key =
           RocksDBKey::IndexEstimateValue(cindex->objectId());
       rocksdb::Slice value(output);

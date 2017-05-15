@@ -33,8 +33,10 @@
 #include "RocksDBEngine/RocksDBCollection.h"
 #include "RocksDBEngine/RocksDBCommon.h"
 #include "RocksDBEngine/RocksDBCuckooIndexEstimator.h"
+#include "RocksDBEngine/RocksDBEdgeIndex.h"
 #include "RocksDBEngine/RocksDBKey.h"
 #include "RocksDBEngine/RocksDBKeyBounds.h"
+#include "RocksDBEngine/RocksDBVPackIndex.h"
 #include "RocksDBEngine/RocksDBValue.h"
 #include "StorageEngine/EngineSelectorFeature.h"
 #include "VocBase/ticks.h"
@@ -337,7 +339,6 @@ void RocksDBCounterManager::readSettings() {
 }
 
 void RocksDBCounterManager::readIndexEstimates() {
-  LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Reading estimates";
   WRITE_LOCKER(guard, _rwLock);
   RocksDBKeyBounds bounds = RocksDBKeyBounds::IndexEstimateValues();
 
@@ -346,30 +347,33 @@ void RocksDBCounterManager::readIndexEstimates() {
   std::unique_ptr<rocksdb::Iterator> iter(_db->NewIterator(readOptions));
   iter->Seek(bounds.start());
 
-  for (;iter->Valid() && cmp->Compare(iter->key(), bounds.end()) < 0; iter->Next()) {
+  for (; iter->Valid() && cmp->Compare(iter->key(), bounds.end()) < 0;
+       iter->Next()) {
     uint64_t objectId = RocksDBKey::counterObjectId(iter->key());
-    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Found stored: " << objectId;
-    StringRef estimateSerialisation(iter->value().data(), iter->value().size());
+    uint64_t lastSeqNumber =
+        rocksutils::uint64FromPersistent(iter->value().data());
+
+    StringRef estimateSerialisation(iter->value().data() + sizeof(uint64_t),
+                                    iter->value().size() - sizeof(uint64_t));
     // If this hits we have two estimates for the same index
     TRI_ASSERT(_estimators.find(objectId) == _estimators.end());
-    _estimators.emplace(objectId,
-                        std::make_unique<RocksDBCuckooIndexEstimator<uint64_t>>(
-                            estimateSerialisation));
+    _estimators.emplace(
+        objectId,
+        std::make_pair(lastSeqNumber,
+                       std::make_unique<RocksDBCuckooIndexEstimator<uint64_t>>(
+                           estimateSerialisation)));
   }
 }
 
 std::unique_ptr<RocksDBCuckooIndexEstimator<uint64_t>>
 RocksDBCounterManager::stealIndexEstimator(uint64_t objectId) {
   std::unique_ptr<RocksDBCuckooIndexEstimator<uint64_t>> res(nullptr);
-  LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "Search: " << objectId;
-
   auto it = _estimators.find(objectId);
   if (it != _estimators.end()) {
     // We swap out the stored estimate in order to move it to the caller
-    res.swap(it->second);
+    res.swap(it->second.second);
     // Drop the now empty estimator
     _estimators.erase(objectId);
-    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "FOUND";
   }
   return res;
 }
@@ -409,11 +413,22 @@ struct WBReader final : public rocksdb::WriteBatch::Handler {
   // must be set by the counter manager
   std::unordered_map<uint64_t, rocksdb::SequenceNumber> seqStart;
   std::unordered_map<uint64_t, RocksDBCounterManager::CounterAdjustment> deltas;
+  std::unordered_map<
+      uint64_t,
+      std::pair<uint64_t,
+                std::unique_ptr<RocksDBCuckooIndexEstimator<uint64_t>>>>*
+      _estimators;
   rocksdb::SequenceNumber currentSeqNum;
   uint64_t _maxTick = 0;
   uint64_t _maxHLC = 0;
 
-  WBReader() : currentSeqNum(0) {}
+  WBReader(std::unordered_map<
+           uint64_t,
+           std::pair<uint64_t,
+                     std::unique_ptr<RocksDBCuckooIndexEstimator<uint64_t>>>>*
+               estimators)
+      : _estimators(estimators), currentSeqNum(0) {}
+
   ~WBReader() {
     // update ticks after parsing wal
     LOG_TOPIC(TRACE, Logger::ENGINES) << "max tick found in WAL: " << _maxTick
@@ -514,6 +529,32 @@ struct WBReader final : public rocksdb::WriteBatch::Handler {
         it->second._added++;
         it->second._revisionId = revisionId;
       }
+    } else {
+      // We have to adjust the estimate with an insert
+      switch (RocksDBKey::type(key)) {
+        case RocksDBEntryType::IndexValue: {
+          uint64_t objectId = RocksDBKey::counterObjectId(key);
+          auto it = _estimators->find(objectId);
+          if (it != _estimators->end() && it->second.first < currentSeqNum) {
+            // We track estimates for this index
+            uint64_t hash = RocksDBVPackIndex::HashForKey(key);
+            it->second.second->insert(hash);
+          }
+          break;
+        }
+        case RocksDBEntryType::EdgeIndexValue: {
+          uint64_t objectId = RocksDBKey::counterObjectId(key);
+          auto it = _estimators->find(objectId);
+          if (it != _estimators->end() && it->second.first < currentSeqNum) {
+            // We track estimates for this index
+            uint64_t hash = RocksDBEdgeIndex::HashForKey(key);
+            it->second.second->insert(hash);
+          }
+          break;
+        }
+        default:
+          break;
+      }
     }
   }
 
@@ -528,6 +569,32 @@ struct WBReader final : public rocksdb::WriteBatch::Handler {
         it->second._removed++;
         it->second._revisionId = revisionId;
       }
+    } else {
+      // We have to adjust the estimate with an remove
+      switch (RocksDBKey::type(key)) {
+        case RocksDBEntryType::IndexValue: {
+          uint64_t objectId = RocksDBKey::counterObjectId(key);
+          auto it = _estimators->find(objectId);
+          if (it != _estimators->end() && it->second.first < currentSeqNum) {
+            // We track estimates for this index
+            uint64_t hash = RocksDBVPackIndex::HashForKey(key);
+            it->second.second->remove(hash);
+          }
+          break;
+        }
+        case RocksDBEntryType::EdgeIndexValue: {
+          uint64_t objectId = RocksDBKey::counterObjectId(key);
+          auto it = _estimators->find(objectId);
+          if (it != _estimators->end() && it->second.first < currentSeqNum) {
+            // We track estimates for this index
+            uint64_t hash = RocksDBEdgeIndex::HashForKey(key);
+            it->second.second->remove(hash);
+          }
+          break;
+        }
+        default:
+          break;
+      }
     }
   }
 
@@ -541,7 +608,7 @@ bool RocksDBCounterManager::parseRocksWAL() {
 
   rocksdb::SequenceNumber start = UINT64_MAX;
   // Tell the WriteBatch reader the transaction markers to look for
-  auto handler = std::make_unique<WBReader>();
+  auto handler = std::make_unique<WBReader>(&_estimators);
 
   for (auto const& pair : _counters) {
     handler->seqStart.emplace(pair.first, pair.second._sequenceNum);

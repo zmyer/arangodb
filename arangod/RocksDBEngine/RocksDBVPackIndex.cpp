@@ -158,6 +158,13 @@ bool RocksDBVPackIndexIterator::next(TokenCallback const& cb, size_t limit) {
   return true;
 }
 
+uint64_t RocksDBVPackIndex::HashForKey(const rocksdb::Slice& key) {
+  // NOTE: This function needs to use the same hashing on the
+  // indexed VPack as the initial inserter does
+  VPackSlice tmp = RocksDBKey::indexedVPack(key);
+  return tmp.normalizedHash();
+}
+
 /// @brief create the index
 RocksDBVPackIndex::RocksDBVPackIndex(TRI_idx_iid_t iid,
                                      arangodb::LogicalCollection* collection,
