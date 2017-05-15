@@ -226,6 +226,8 @@ class RocksDBCollection final : public PhysicalCollection {
   arangodb::Result lookupRevisionVPack(TRI_voc_rid_t, transaction::Methods*,
                                        arangodb::ManagedDocumentResult&) const;
 
+  void recalculateIndexEstimates(std::vector<std::shared_ptr<Index>>& indexes);
+
  private:
   uint64_t const _objectId;  // rocksdb-specific object id for collection
   std::atomic<uint64_t> _numberDocuments;

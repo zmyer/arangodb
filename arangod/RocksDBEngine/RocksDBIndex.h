@@ -101,6 +101,8 @@ class RocksDBIndex : public Index {
 
   virtual bool deserializeEstimate(RocksDBCounterManager* mgr);
 
+  virtual void recalculateEstimates();
+
  protected:
   // Will be called during truncate to allow the index to update selectivity
   // estimates, blacklist keys, etc.

@@ -173,6 +173,11 @@ bool RocksDBIndex::deserializeEstimate(RocksDBCounterManager*) {
   return true;
 }
 
+void RocksDBIndex::recalculateEstimates() {
+  // Nothing to do.
+  return;
+}
+
 void RocksDBIndex::truncate(transaction::Methods* trx) {
   RocksDBTransactionState* state = rocksutils::toRocksTransactionState(trx);
   rocksdb::Transaction* rtrx = state->rocksTransaction();

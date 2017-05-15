@@ -1699,6 +1699,7 @@ uint64_t RocksDBCollection::recalculateCounts() {
     // need correction. The value is not changed and does not need to be synced
     globalRocksEngine()->counterManager()->sync(true);
   }
+  trx.commit();
 
   return _numberDocuments;
 }
@@ -1774,19 +1775,38 @@ arangodb::Result RocksDBCollection::serializeIndexEstimates(
 }
 
 void RocksDBCollection::deserializeIndexEstimates(RocksDBCounterManager* mgr) {
-  // TODO this can be optimized to only recaclulate those indexes that failed.
-  bool needRecalculate = false;
+  std::vector<std::shared_ptr<Index>> toRecalculate;
   for (auto const& it : getIndexes()) {
     auto idx = static_cast<RocksDBIndex*>(it.get());
     if (!idx->deserializeEstimate(mgr)) {
-      needRecalculate = true;
+      toRecalculate.push_back(it);
     }
   }
-  if (needRecalculate) {
-    recalculateIndexEstimates();
+  if (!toRecalculate.empty()) {
+    recalculateIndexEstimates(toRecalculate);
   }
 }
 
 void RocksDBCollection::recalculateIndexEstimates() {
-  // TODO IMPLEMENT!!
+  auto idxs = getIndexes();
+  recalculateIndexEstimates(idxs);
+}
+
+void RocksDBCollection::recalculateIndexEstimates(std::vector<std::shared_ptr<Index>>& indexes) {
+  // start transaction to get a collection lock
+  arangodb::SingleCollectionTransaction trx(
+      arangodb::transaction::StandaloneContext::Create(
+          _logicalCollection->vocbase()),
+      _logicalCollection->cid(), AccessMode::Type::EXCLUSIVE);
+  auto res = trx.begin();
+  if (res.fail()) {
+    THROW_ARANGO_EXCEPTION(res);
+  }
+
+  for (auto const& it : indexes) {
+    auto idx = static_cast<RocksDBIndex*>(it.get());
+    idx->recalculateEstimates();
+  }
+  _needToPersistIndexEstimates = true;
+  trx.commit();
 }

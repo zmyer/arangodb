@@ -1500,6 +1500,20 @@ bool RocksDBVPackIndex::deserializeEstimate(RocksDBCounterManager* mgr) {
   return true;
 }
 
+void RocksDBVPackIndex::recalculateEstimates() {
+  if (unique()) {
+    return;
+  }
+  TRI_ASSERT(_estimator != nullptr);
+  _estimator->clear();
+
+  auto bounds = RocksDBKeyBounds::IndexEntries(_objectId);
+  rocksutils::iterateBounds(bounds, [&](rocksdb::Iterator* it) {
+    uint64_t hash = RocksDBVPackIndex::HashForKey(it->key());
+    _estimator->insert(hash);
+  });
+}
+
 Result RocksDBVPackIndex::postprocessRemove(transaction::Methods* trx,
                                             rocksdb::Slice const& key,
                                             rocksdb::Slice const& value) {

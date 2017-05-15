@@ -190,6 +190,23 @@ class RocksDBCuckooIndexEstimator {
     }
   }
 
+  void clear() {
+    WRITE_LOCKER(locker, _bucketLock);
+    // Reset Stats
+    _nrTotal = 0;
+    _nrCuckood = 0;
+    _nrUsed = 0;
+
+    // Reset filter content
+    // Now initialize all slots in all buckets with zero data:
+    for (uint32_t b = 0; b < _size; ++b) {
+      for (size_t i = 0; i < SlotsPerBucket; ++i) {
+        Slot f = findSlot(b, i);
+        f.reset();
+      }
+    }
+  }
+
   double computeEstimate() {
     READ_LOCKER(locker, _bucketLock);
     if (_nrTotal == 0) {

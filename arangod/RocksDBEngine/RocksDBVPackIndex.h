@@ -231,6 +231,8 @@ protected:
 
   bool deserializeEstimate(arangodb::RocksDBCounterManager* mgr) override;
 
+  void recalculateEstimates() override;
+
  private:
   std::unique_ptr<FixedSizeAllocator> _allocator;
 
