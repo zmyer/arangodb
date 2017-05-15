@@ -1504,7 +1504,8 @@ Result RocksDBVPackIndex::postprocessRemove(transaction::Methods* trx,
                                             rocksdb::Slice const& key,
                                             rocksdb::Slice const& value) {
   if (!unique()) {
-    // TODO: update selectivity estimate
+    uint64_t hash = RocksDBVPackIndex::HashForKey(key);
+    _estimator->remove(hash);
   }
   return {TRI_ERROR_NO_ERROR};
 }

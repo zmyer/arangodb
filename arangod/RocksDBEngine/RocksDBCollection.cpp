@@ -648,6 +648,7 @@ void RocksDBCollection::truncate(transaction::Methods* trx,
     RocksDBIndex* rindex = static_cast<RocksDBIndex*>(index.get());
     rindex->truncate(trx);
   }
+  _needToPersistIndexEstimates = true;
 }
 
 /*

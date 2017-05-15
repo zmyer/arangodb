@@ -168,25 +168,30 @@ class RocksDBCuckooIndexEstimator {
     // We always prepend the length, so parsing is easier
     rocksutils::uint64ToPersistent(serialized, serialLength);
 
-    // Add all member variables
-    rocksutils::uint64ToPersistent(serialized, _size);
-    rocksutils::uint64ToPersistent(serialized, _nrUsed);
-    rocksutils::uint64ToPersistent(serialized, _nrCuckood);
-    rocksutils::uint64ToPersistent(serialized, _nrTotal);
-    rocksutils::uint64ToPersistent(serialized, _niceSize);
-    rocksutils::uint64ToPersistent(serialized, _logSize);
+    {
+      // Sorry we need a consistent state, so we have to read-lock from here on...
+      READ_LOCKER(locker, _bucketLock);
+      // Add all member variables
+      rocksutils::uint64ToPersistent(serialized, _size);
+      rocksutils::uint64ToPersistent(serialized, _nrUsed);
+      rocksutils::uint64ToPersistent(serialized, _nrCuckood);
+      rocksutils::uint64ToPersistent(serialized, _nrTotal);
+      rocksutils::uint64ToPersistent(serialized, _niceSize);
+      rocksutils::uint64ToPersistent(serialized, _logSize);
 
-    // Add the data blob
-    // Size is as follows: nrOfBuckets * SlotsPerBucket * SlotSize
-    TRI_ASSERT((_size * _slotSize * SlotsPerBucket) <= _allocSize);
-    
-    for (uint64_t i = 0; i < (_size * _slotSize * SlotsPerBucket) / sizeof(uint16_t);
-         ++i) {
-      rocksutils::uint16ToPersistent(serialized, *(reinterpret_cast<uint16_t*>(_base + i * 2)));
+      // Add the data blob
+      // Size is as follows: nrOfBuckets * SlotsPerBucket * SlotSize
+      TRI_ASSERT((_size * _slotSize * SlotsPerBucket) <= _allocSize);
+      
+      for (uint64_t i = 0; i < (_size * _slotSize * SlotsPerBucket) / sizeof(uint16_t);
+           ++i) {
+        rocksutils::uint16ToPersistent(serialized, *(reinterpret_cast<uint16_t*>(_base + i * 2)));
+      }
     }
   }
 
   double computeEstimate() {
+    READ_LOCKER(locker, _bucketLock);
     if (_nrTotal == 0) {
       // If we do not have any documents we have a rather constant estimate.
       return 1;
