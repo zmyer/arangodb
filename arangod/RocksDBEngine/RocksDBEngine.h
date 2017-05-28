@@ -41,6 +41,7 @@ class PhysicalCollection;
 class PhysicalView;
 class RocksDBBackgroundThread;
 class RocksDBComparator;
+class RocksDBCompactionFilter;
 class RocksDBCounterManager;
 class RocksDBReplicationManager;
 class RocksDBLogValue;
@@ -222,6 +223,9 @@ class RocksDBEngine final : public StorageEngine {
   void determinePrunableWalFiles(TRI_voc_tick_t minTickToKeep);
   void pruneWalFiles();
 
+  void markIdAsDropped(uint64_t);
+  bool hasIdBeenDropped(uint64_t) const;
+
  private:
   Result dropDatabase(TRI_voc_tick_t);
   bool systemDatabaseExists();
@@ -247,6 +251,8 @@ class RocksDBEngine final : public StorageEngine {
   rocksdb::Options _options;
   /// arangodb comparator - requried because of vpack in keys
   std::unique_ptr<RocksDBComparator> _vpackCmp;
+  /// compaction filter - useful for garbage collection
+  std::unique_ptr<RocksDBCompactionFilter> _compactionFilter;
   /// path used by rocksdb (inside _basePath)
   std::string _path;
   /// path to arangodb data dir
@@ -271,6 +277,8 @@ class RocksDBEngine final : public StorageEngine {
   mutable basics::ReadWriteLock _collectionMapLock;
   std::unordered_map<uint64_t, std::pair<TRI_voc_tick_t, TRI_voc_cid_t>>
       _collectionMap;
+  mutable basics::ReadWriteLock _droppedIdsLock;
+  std::set<uint64_t> _droppedIds;
 
   // which WAL files can be pruned when
   std::unordered_map<std::string, double> _prunableWalFiles;

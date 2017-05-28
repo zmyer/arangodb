@@ -58,7 +58,7 @@ RocksDBIndex::RocksDBIndex(
       _useCache(useCache) {
   if (_useCache) {
     createCache();
-  } 
+  }
 }
 
 RocksDBIndex::RocksDBIndex(TRI_idx_iid_t id, LogicalCollection* collection,
@@ -173,6 +173,7 @@ int RocksDBIndex::drop() {
     } catch (...) {
     }
   }
+  globalRocksEngine()->markIdAsDropped(_objectId);
   return TRI_ERROR_NO_ERROR;
 }
 
@@ -206,7 +207,7 @@ void RocksDBIndex::truncate(transaction::Methods* trx) {
 
   while (iter->Valid() && cmp->Compare(iter->key(), end) < 0) {
     TRI_ASSERT(_objectId == RocksDBKey::objectId(iter->key()));
-    
+
     Result r = mthds->Delete(_cf, iter->key());
     if (!r.ok()) {
       THROW_ARANGO_EXCEPTION(r);

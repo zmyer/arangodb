@@ -7,6 +7,7 @@ set(ROCKSDB_SOURCES
   RocksDBEngine/RocksDBCollection.cpp
   RocksDBEngine/RocksDBCommon.cpp
   RocksDBEngine/RocksDBComparator.cpp
+  RocksDBEngine/RocksDBCompactionFilter.cpp
   RocksDBEngine/RocksDBCounterManager.cpp
   RocksDBEngine/RocksDBEdgeIndex.cpp
   RocksDBEngine/RocksDBEngine.cpp

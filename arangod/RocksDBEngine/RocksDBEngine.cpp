@@ -49,6 +49,7 @@
 #include "RocksDBEngine/RocksDBColumnFamily.h"
 #include "RocksDBEngine/RocksDBCommon.h"
 #include "RocksDBEngine/RocksDBComparator.h"
+#include "RocksDBEngine/RocksDBCompactionFilter.h"
 #include "RocksDBEngine/RocksDBCounterManager.h"
 #include "RocksDBEngine/RocksDBIndex.h"
 #include "RocksDBEngine/RocksDBIndexFactory.h"
@@ -108,6 +109,7 @@ RocksDBEngine::RocksDBEngine(application_features::ApplicationServer* server)
     : StorageEngine(server, EngineName, FeatureName, new RocksDBIndexFactory()),
       _db(nullptr),
       _vpackCmp(new RocksDBComparator()),
+      _compactionFilter(new RocksDBCompactionFilter()),
       _maxTransactionSize((std::numeric_limits<uint64_t>::max)()),
       _intermediateTransactionCommitSize(32 * 1024 * 1024),
       _intermediateTransactionCommitCount(100000),
@@ -228,8 +230,8 @@ void RocksDBEngine::start() {
   for (int level = 0; level < _options.num_levels; ++level) {
     _options.compression_per_level[level] = ((level >= 2) ? rocksdb::kSnappyCompression : rocksdb::kNoCompression);
   }
-  
-  // TODO: try out the effects of these options 
+
+  // TODO: try out the effects of these options
   // Number of files to trigger level-0 compaction. A value <0 means that
   // level-0 compaction will not be triggered by number of files at all.
   //
@@ -275,6 +277,8 @@ void RocksDBEngine::start() {
   table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, true));
   _options.table_factory.reset(
       rocksdb::NewBlockBasedTableFactory(table_options));
+
+  //_options.compaction_filter = _compactionFilter.get();
 
   _options.create_if_missing = true;
   _options.create_missing_column_families = true;
@@ -815,13 +819,15 @@ arangodb::Result RocksDBEngine::dropCollection(
   // 1. Persist the drop.
   //   * if this fails the collection will remain!
   //   * if this succeeds the collection is gone from user point
-  // 2. Drop all Documents
+  // 2. Mark collection objectId as dropped
+  //   * allows cleanup during compaction
+  // 3. Drop all Documents
   //   * If this fails we give up => We have data-garbage in RocksDB, Collection
-  //   is gone.
-  // 3. Drop all Indexes
+  //   is gone. Compaction filter may help clean some of this up.
+  // 4. Drop all Indexes (mark objectIds as dropped)
   //   * If this fails we give up => We have data-garbage in RocksDB, Collection
-  //   is gone.
-  // 4. If all succeeds we do not have data-garbage, all is gone.
+  //   is gone. Compaction filter may help clean some of this up.
+  // 5. If all succeeds we do not have data-garbage, all is gone.
   //
   // (NOTE: The above fails can only occur on full HDD or Machine dying. No
   // write conflicts possible)
@@ -854,6 +860,9 @@ arangodb::Result RocksDBEngine::dropCollection(
     WRITE_LOCKER(guard, _collectionMapLock);
     _collectionMap.erase(collection->cid());
   }
+
+  // mark as dropped
+  markIdAsDropped(coll->objectId());
 
   // delete documents
   RocksDBKeyBounds bounds =
@@ -1132,6 +1141,16 @@ void RocksDBEngine::pruneWalFiles() {
     // endless loop
     ++it;
   }
+}
+
+void RocksDBEngine::markIdAsDropped(uint64_t id) {
+  WRITE_LOCKER(guard, _droppedIdsLock);
+  _droppedIds.emplace(id);
+}
+
+bool RocksDBEngine::hasIdBeenDropped(uint64_t id) const {
+  READ_LOCKER(guard, _droppedIdsLock);
+  return (_droppedIds.find(id) != _droppedIds.end());
 }
 
 Result RocksDBEngine::dropDatabase(TRI_voc_tick_t id) {
