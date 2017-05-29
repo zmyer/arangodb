@@ -20,10 +20,10 @@
 /// @author Michael Hackstein
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef ARANGOD_VOC_BASE_TRAVERSER_DOCUMENT_CACHE_H
-#define ARANGOD_VOC_BASE_TRAVERSER_DOCUMENT_CACHE_H 1
+#ifndef ARANGOD_GRAPH_TRAVERSER_DOCUMENT_CACHE_H
+#define ARANGOD_GRAPH_TRAVERSER_DOCUMENT_CACHE_H 1
 
-#include "VocBase/TraverserCache.h"
+#include "Graph/TraverserCache.h"
 
 namespace arangodb {
 
@@ -32,7 +32,7 @@ class Cache;
 class Finding;
 }
 
-namespace traverser {
+namespace graph {
 
 class TraverserDocumentCache : public TraverserCache {
 

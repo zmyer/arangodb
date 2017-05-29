@@ -24,8 +24,8 @@
 #include "PathEnumerator.h"
 #include "Basics/VelocyPackHelper.h"
 #include "Graph/EdgeCursor.h"
+#include "Graph/TraverserCache.h"
 #include "VocBase/Traverser.h"
-#include "VocBase/TraverserCache.h"
 
 using PathEnumerator = arangodb::traverser::PathEnumerator;
 using DepthFirstEnumerator = arangodb::traverser::DepthFirstEnumerator;

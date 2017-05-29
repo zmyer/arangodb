@@ -24,17 +24,16 @@
 #include "BreadthFirstEnumerator.h"
 
 #include "Graph/EdgeCursor.h"
+#include "Graph/TraverserCache.h"
 #include "VocBase/Traverser.h"
-#include "VocBase/TraverserCache.h"
 #include "VocBase/TraverserOptions.h"
 
 #include <velocypack/Slice.h>
 #include <velocypack/velocypack-aliases.h>
 
 using namespace arangodb;
+using namespace arangodb::graph;
 using namespace arangodb::traverser;
-
-using BreadthFirstEnumerator = arangodb::graph::BreadthFirstEnumerator;
 
 BreadthFirstEnumerator::PathStep::PathStep(StringRef const vertex) 
   : sourceIdx(0),
@@ -117,7 +116,7 @@ bool BreadthFirstEnumerator::next() {
     auto const nextVertex = _schreier[nextIdx].vertex;
     StringRef vId;
 
-    std::unique_ptr<arangodb::graph::EdgeCursor> cursor(_opts->nextCursor(_traverser->mmdr(), nextVertex, _currentDepth));
+    std::unique_ptr<EdgeCursor> cursor(_opts->nextCursor(_traverser->mmdr(), nextVertex, _currentDepth));
     if (cursor != nullptr) {
       bool shouldReturnPath = _currentDepth + 1 >= _opts->minDepth;
       bool didInsert = false;

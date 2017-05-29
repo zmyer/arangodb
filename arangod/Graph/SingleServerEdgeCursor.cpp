@@ -24,12 +24,12 @@
 #include "SingleServerEdgeCursor.h"
 
 #include "Graph/BaseOptions.h"
+#include "Graph/TraverserCache.h"
 #include "StorageEngine/DocumentIdentifierToken.h"
 #include "Transaction/Methods.h"
 #include "Utils/OperationCursor.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ManagedDocumentResult.h"
-#include "VocBase/TraverserCache.h"
 
 using namespace arangodb;
 using namespace arangodb::graph;

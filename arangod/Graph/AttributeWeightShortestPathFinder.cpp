@@ -28,9 +28,9 @@
 #include "Graph/EdgeCursor.h"
 #include "Graph/ShortestPathOptions.h"
 #include "Graph/ShortestPathResult.h"
+#include "Graph/TraverserCache.h"
 #include "Transaction/Helpers.h"
 #include "VocBase/ManagedDocumentResult.h"
-#include "VocBase/TraverserCache.h"
 
 #include <velocypack/Slice.h>
 #include <velocypack/velocypack-aliases.h>

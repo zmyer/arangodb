@@ -25,12 +25,12 @@
 
 #include "Basics/VelocyPackHelper.h"
 #include "Graph/EdgeCursor.h"
+#include "Graph/TraverserCache.h"
 #include "VocBase/Traverser.h"
-#include "VocBase/TraverserCache.h"
 
 using namespace arangodb;
-using namespace arangodb::traverser;
 using namespace arangodb::graph;
+using namespace arangodb::traverser;
 
 NeighborsEnumerator::NeighborsEnumerator(Traverser* traverser,
                                          VPackSlice const& startVertex,

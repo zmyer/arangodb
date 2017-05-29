@@ -28,11 +28,11 @@
 #include "Cluster/ServerState.h"
 #include "Graph/EdgeCursor.h"
 #include "Graph/ShortestPathResult.h"
+#include "Graph/TraverserCache.h"
 #include "Transaction/Helpers.h"
 #include "Utils/OperationCursor.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ManagedDocumentResult.h"
-#include "VocBase/TraverserCache.h"
 
 #include <velocypack/Iterator.h>
 #include <velocypack/Slice.h>

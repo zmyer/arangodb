@@ -20,8 +20,8 @@
 /// @author Michael Hackstein
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef ARANGOD_VOC_BASE_TRAVERSER_CACHE_H
-#define ARANGOD_VOC_BASE_TRAVERSER_CACHE_H 1
+#ifndef ARANGOD_GRAPH_TRAVERSER_CACHE_H
+#define ARANGOD_GRAPH_TRAVERSER_CACHE_H 1
 
 #include "Basics/Common.h"
 #include "Basics/StringRef.h"
@@ -43,7 +43,7 @@ namespace aql {
   struct AqlValue;
 }
   
-namespace traverser {
+namespace graph {
 class TraverserCache {
 
   public:

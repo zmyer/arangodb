@@ -27,9 +27,9 @@
 #include "Aql/AqlValue.h"
 #include "Graph/BreadthFirstEnumerator.h"
 #include "Graph/NeighborsEnumerator.h"
+#include "Graph/TraverserCache.h"
 #include "Transaction/Methods.h"
 #include "VocBase/ManagedDocumentResult.h"
-#include "VocBase/TraverserCache.h"
 
 using namespace arangodb;
 using namespace arangodb::traverser;

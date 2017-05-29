@@ -25,7 +25,7 @@
 
 #include "Cluster/ClusterInfo.h"
 #include "Cluster/TraverserEngineRegistry.h"
-#include "VocBase/TraverserCache.h"
+#include "Graph/TraverserCache.h"
 
 namespace arangodb {
 
@@ -46,7 +46,7 @@ class Slice;
 
 namespace graph {
 
-class ClusterTraverserCache : public traverser::TraverserCache {
+class ClusterTraverserCache : public TraverserCache {
  public:
   ClusterTraverserCache(
       transaction::Methods* trx,

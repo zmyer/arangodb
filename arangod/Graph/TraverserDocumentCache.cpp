@@ -37,7 +37,7 @@
 #include <velocypack/velocypack-aliases.h>
 
 using namespace arangodb;
-using namespace arangodb::traverser;
+using namespace arangodb::graph;
 
 TraverserDocumentCache::TraverserDocumentCache(transaction::Methods* trx)
     : TraverserCache(trx), _cache(nullptr) {

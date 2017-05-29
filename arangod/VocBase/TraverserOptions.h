@@ -46,10 +46,13 @@ class Query;
 class TraversalNode;
 }
 
+namespace graph {
+class TraverserCache;
+}
+
 namespace traverser {
 
 class ClusterTraverser;
-class TraverserCache;
 
 struct TraverserOptions : public graph::BaseOptions {
   friend class arangodb::aql::TraversalNode;

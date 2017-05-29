@@ -26,9 +26,9 @@
 #include "Cluster/ClusterMethods.h"
 #include "Cluster/ClusterTraverser.h"
 #include "Graph/ClusterTraverserCache.h"
+#include "Graph/TraverserCache.h"
 #include "Transaction/Helpers.h"
 #include "Transaction/Methods.h"
-#include "VocBase/TraverserCache.h"
 
 #include <velocypack/Slice.h>
 #include <velocypack/velocypack-aliases.h>

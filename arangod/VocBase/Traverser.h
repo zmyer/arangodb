@@ -59,13 +59,13 @@ class Query;
 namespace graph {
 class BreadthFirstEnumerator;
 class NeighborsEnumerator;
+class TraverserCache;
 }
 
 namespace traverser {
 
 class PathEnumerator;
 struct TraverserOptions;
-class TraverserCache;
 
 class TraversalPath {
  public:
@@ -213,7 +213,7 @@ class Traverser {
   /// @brief Get the next possible path in the graph.
   bool next();
 
-  TraverserCache* traverserCache();
+  graph::TraverserCache* traverserCache();
 
  protected:
 

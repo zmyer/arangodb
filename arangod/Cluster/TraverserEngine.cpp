@@ -29,10 +29,10 @@
 #include "Basics/Exceptions.h"
 #include "Graph/EdgeCursor.h"
 #include "Graph/ShortestPathOptions.h"
+#include "Graph/TraverserCache.h"
 #include "Transaction/Context.h"
 #include "Utils/CollectionNameResolver.h"
 #include "VocBase/ManagedDocumentResult.h"
-#include "VocBase/TraverserCache.h"
 #include "VocBase/TraverserOptions.h"
 
 #include <velocypack/Iterator.h>
