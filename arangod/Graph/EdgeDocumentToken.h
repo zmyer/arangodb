@@ -69,12 +69,7 @@ struct SingleServerEdgeDocumentToken : public EdgeDocumentToken {
 
   DocumentIdentifierToken token() const;
 
-  bool equals(EdgeDocumentToken const* other) const override {
-    auto o = static_cast<SingleServerEdgeDocumentToken const*>(other); 
-    // This cast is save because on DBServer and SingleServer we can only create
-    // this type of EdgeToken and not on Coordinator
-    return _cid == o->_cid && _token == o->_token;
-  }
+  bool equals(EdgeDocumentToken const* other) const override;
 };
 
 /// @brief Cluster identifier for Documents
@@ -93,16 +88,9 @@ struct ClusterEdgeDocumentToken : public EdgeDocumentToken {
 
   ~ClusterEdgeDocumentToken();
 
-  StringRef id() const {
-    return _id;
-  }
+  StringRef id() const;
 
-  bool equals(EdgeDocumentToken const* other) const override {
-    auto o = static_cast<ClusterEdgeDocumentToken const*>(other); 
-    // This cast is save because on Coordinator we can only create
-    // this type of EdgeToken and not on SingleServer and DBServer
-    return _id == o->_id;
-  }
+  bool equals(EdgeDocumentToken const* other) const override;
 };
 
 }

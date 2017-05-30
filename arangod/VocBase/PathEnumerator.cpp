@@ -91,8 +91,6 @@ bool DepthFirstEnumerator::next() {
                 edge, StringRef(_enumeratedPath.vertices.back()),
                 _enumeratedPath.edges.size(), cursorId)) {
           // This edge does not pass the filtering
-          TRI_ASSERT(!_enumeratedPath.edges.empty());
-          _enumeratedPath.edges.pop_back();
           return;
         }
 

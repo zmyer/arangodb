@@ -40,13 +40,37 @@ SingleServerEdgeDocumentToken::SingleServerEdgeDocumentToken(
 
 SingleServerEdgeDocumentToken::~SingleServerEdgeDocumentToken() {}
 
-TRI_voc_cid_t SingleServerEdgeDocumentToken::cid() const { return _cid; }
+TRI_voc_cid_t SingleServerEdgeDocumentToken::cid() const {
+  TRI_ASSERT(_cid != 0);
+  return _cid;
+}
 
 DocumentIdentifierToken SingleServerEdgeDocumentToken::token() const {
+  TRI_ASSERT(_token._data != 0);
   return _token;
+}
+
+bool SingleServerEdgeDocumentToken::equals(EdgeDocumentToken const* other) const {
+  auto o = static_cast<SingleServerEdgeDocumentToken const*>(other); 
+  // This cast is save because on DBServer and SingleServer we can only create
+  // this type of EdgeToken and not on Coordinator
+  return _cid == o->_cid && _token == o->_token;
 }
 
 ClusterEdgeDocumentToken::ClusterEdgeDocumentToken() : EdgeDocumentToken() {}
 ClusterEdgeDocumentToken::ClusterEdgeDocumentToken(StringRef const id) : EdgeDocumentToken() , _id(id) {}
 
 ClusterEdgeDocumentToken::~ClusterEdgeDocumentToken() {}
+
+StringRef ClusterEdgeDocumentToken::id() const {
+  TRI_ASSERT(!_id.empty());
+  return _id;
+}
+
+bool ClusterEdgeDocumentToken::equals(EdgeDocumentToken const* other) const {
+    auto o = static_cast<ClusterEdgeDocumentToken const*>(other); 
+    // This cast is save because on Coordinator we can only create
+    // this type of EdgeToken and not on SingleServer and DBServer
+    return id() == o->id();
+  }
+
