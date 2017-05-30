@@ -48,6 +48,7 @@ namespace graph {
 
 class AttributeWeightShortestPathFinder;
 class ConstantWeightShortestPathFinder;
+class EdgeDocumentToken;
 class TraverserCache;
 
 class ShortestPathResult {
@@ -100,7 +101,7 @@ class ShortestPathResult {
   std::deque<arangodb::StringRef> _vertices;
 
   /// @brief edges
-  std::deque<arangodb::StringRef> _edges;
+  std::deque<arangodb::graph::EdgeDocumentToken*> _edges;
 };
 
 

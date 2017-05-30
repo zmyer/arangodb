@@ -64,12 +64,17 @@ class ClusterTraverserCache : public TraverserCache {
   void insertIntoResult(StringRef idString,
                         arangodb::velocypack::Builder& builder) override;
 
+  void insertIntoResult(graph::EdgeDocumentToken const* idToken,
+                        arangodb::velocypack::Builder& builder) override;
+
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Return AQL value containing the result
   ///        The document will be looked up in the Datalake
   //////////////////////////////////////////////////////////////////////////////
 
   aql::AqlValue fetchAqlResult(StringRef idString) override;
+
+  aql::AqlValue fetchAqlResult(graph::EdgeDocumentToken const* idToken) override;
 
   std::unordered_map<ServerID, traverser::TraverserEngineID> const* engines();
 

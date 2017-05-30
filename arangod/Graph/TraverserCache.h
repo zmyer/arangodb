@@ -44,6 +44,10 @@ namespace aql {
 }
   
 namespace graph {
+
+struct EdgeDocumentToken;
+struct SingleServerEdgeDocumentToken;
+
 class TraverserCache {
 
   public:
@@ -59,6 +63,16 @@ class TraverserCache {
 
    virtual void insertIntoResult(StringRef idString,
                                  arangodb::velocypack::Builder& builder);
+
+   virtual void insertIntoResult(EdgeDocumentToken const* etkn,
+                                 arangodb::velocypack::Builder& builder);
+
+   //////////////////////////////////////////////////////////////////////////////
+   /// @brief Return AQL value containing the result
+   ///        The document will be looked up in the StorageEngine
+   //////////////////////////////////////////////////////////////////////////////
+
+   virtual aql::AqlValue fetchAqlResult(arangodb::graph::EdgeDocumentToken const*);
 
    //////////////////////////////////////////////////////////////////////////////
    /// @brief Return AQL value containing the result
@@ -115,6 +129,9 @@ class TraverserCache {
 
    arangodb::velocypack::Slice lookupInCollection(
        StringRef idString);
+
+   arangodb::velocypack::Slice lookupInCollection(
+       SingleServerEdgeDocumentToken const* idToken);
 
   protected:
 

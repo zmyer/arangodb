@@ -317,16 +317,9 @@ class Traverser {
   /// @brief Function to fetch the real data of a vertex into an AQLValue
   virtual aql::AqlValue fetchVertexData(StringRef vid) = 0;
 
-  /// @brief Function to fetch the real data of an edge into an AQLValue
-  virtual aql::AqlValue fetchEdgeData(StringRef eid) = 0;
-
   /// @brief Function to add the real data of a vertex into a velocypack builder
   virtual void addVertexToVelocyPack(StringRef vid,
                                      arangodb::velocypack::Builder&) = 0;
-
-  /// @brief Function to add the real data of an edge into a velocypack builder
-  virtual void addEdgeToVelocyPack(StringRef eid,
-                                   arangodb::velocypack::Builder&) = 0;
  
 };
 }  // traverser
