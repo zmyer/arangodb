@@ -119,6 +119,10 @@ class TraverserCache {
      _filteredDocuments++;
    }
 
+   void increaseCounter() {
+     _insertedDocuments++;
+   }
+
   protected:
 
    //////////////////////////////////////////////////////////////////////////////

@@ -81,6 +81,7 @@ bool SingleServerEdgeCursor::next(
 
     if (collection->readDocument(_trx, etkn->token(), *_mmdr)) {
       VPackSlice edgeDocument(_mmdr->vpack());
+      _opts->cache()->increaseCounter();
       if (_internalCursorMapping != nullptr) {
         TRI_ASSERT(_currentCursor < _internalCursorMapping->size());
         callback(std::move(etkn), edgeDocument,
@@ -138,6 +139,7 @@ bool SingleServerEdgeCursor::next(
   auto etkn = std::make_unique<SingleServerEdgeDocumentToken>(collection->cid(), _cache[_cachePos++]);
   if (collection->readDocument(_trx, etkn->token(), *_mmdr)) {
     VPackSlice edgeDocument(_mmdr->vpack());
+    _opts->cache()->increaseCounter();
     if (_internalCursorMapping != nullptr) {
       TRI_ASSERT(_currentCursor < _internalCursorMapping->size());
       callback(std::move(etkn), edgeDocument,
@@ -165,12 +167,14 @@ void SingleServerEdgeCursor::readAll(
       auto cid = collection->cid();
       if (cursor->hasExtra()) {
         auto cb = [&](DocumentIdentifierToken const& token, VPackSlice doc) {
+          _opts->cache()->increaseCounter();
           callback(std::make_unique<SingleServerEdgeDocumentToken>(cid, token), doc, cursorId);
         };
         cursor->allWithExtra(cb);
       } else {
         auto cb = [&](DocumentIdentifierToken const& token) {
           if (collection->readDocument(_trx, token, *_mmdr)) {
+            _opts->cache()->increaseCounter();
             VPackSlice doc(_mmdr->vpack());
             callback(std::make_unique<SingleServerEdgeDocumentToken>(cid, token), doc, cursorId);
           }

@@ -108,8 +108,6 @@ aql::AqlValue TraverserCache::fetchAqlResult(EdgeDocumentToken const* idToken) {
   return aql::AqlValue(lookupInCollection(static_cast<SingleServerEdgeDocumentToken const*>(idToken)));
 }
 
-
-
 void TraverserCache::insertDocument(StringRef idString, arangodb::velocypack::Slice const& document) {
   ++_insertedDocuments;
   return;
