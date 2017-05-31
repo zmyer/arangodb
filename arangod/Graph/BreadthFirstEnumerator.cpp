@@ -47,7 +47,9 @@ BreadthFirstEnumerator::PathStep::PathStep(
 BreadthFirstEnumerator::PathStep::~PathStep() {}
 
 BreadthFirstEnumerator::PathStep::PathStep(PathStep& other)
-    : sourceIdx(other.sourceIdx), edge(other.edge.release()), vertex(other.vertex) {}
+    : sourceIdx(other.sourceIdx),
+      edge(other.edge.release()),
+      vertex(other.vertex) {}
 
 BreadthFirstEnumerator::BreadthFirstEnumerator(Traverser* traverser,
                                                VPackSlice startVertex,
@@ -135,7 +137,8 @@ bool BreadthFirstEnumerator::next() {
         }
 
         if (_traverser->getSingleVertex(e, nextVertex, _currentDepth, vId)) {
-          _schreier.emplace_back(std::make_unique<PathStep>(nextIdx, std::move(eid), vId));
+          _schreier.emplace_back(
+              std::make_unique<PathStep>(nextIdx, std::move(eid), vId));
           if (_currentDepth < _opts->maxDepth - 1) {
             _nextDepth.emplace_back(NextStep(_schreierIndex));
           }
@@ -168,7 +171,8 @@ bool BreadthFirstEnumerator::next() {
 
 arangodb::aql::AqlValue BreadthFirstEnumerator::lastVertexToAqlValue() {
   TRI_ASSERT(_lastReturned < _schreier.size());
-  return _traverser->fetchVertexData(StringRef(_schreier[_lastReturned]->vertex));
+  return _traverser->fetchVertexData(
+      StringRef(_schreier[_lastReturned]->vertex));
 }
 
 arangodb::aql::AqlValue BreadthFirstEnumerator::lastEdgeToAqlValue() {

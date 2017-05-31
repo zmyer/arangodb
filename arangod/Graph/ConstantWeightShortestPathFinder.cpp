@@ -134,7 +134,7 @@ bool ConstantWeightShortestPathFinder::expandClosure(Closure& sourceClosure,
   }
   _edges.clear();
   _neighbors.clear();
-  _leftClosure.swap(_nextClosure);
+  sourceClosure.swap(_nextClosure);
   _nextClosure.clear();
   return false;
 }
