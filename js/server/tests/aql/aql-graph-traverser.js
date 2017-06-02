@@ -3333,7 +3333,7 @@ function depth0Suite () {
 
       for (let i = 0; i < max; ++i) {
         vc.save({_key: String(i)});
-        ec.save({_from: `${vn}/${i}`, _to: `${vn}/${(i+1) % max}`
+        ec.save({_from: `${vn}/${i}`, _to: `${vn}/${(i+1) % max}`});
       }
     },
 
@@ -3370,7 +3370,7 @@ function depth0Suite () {
 
       for (let i = 0; i < max; ++i) {
         let d0 = res[i * 2];
-        let d1 = res[i * 2 + 1]
+        let d1 = res[i * 2 + 1];
         // We expect all pairs to be equal
         assertEqual(d0[0], d0[1]);
         assertEqual((parseInt(d1[0]) + 1) % max, parseInt(d1[1]));
