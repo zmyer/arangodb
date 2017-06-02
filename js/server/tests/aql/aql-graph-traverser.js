@@ -3321,6 +3321,64 @@ function optimizeNonVertexCentricIndexesSuite () {
   };
 };
 
+function depth0Suite () {
+
+  const max = 100;
+  return {
+
+    setUpAll: () => {
+      cleanup();
+      vc = db._create(vn, {numberOfShards: 4});
+      ec = db._createEdgeCollection(en, {numberOfShards: 4});
+
+      for (let i = 0; i < max; ++i) {
+        vc.save({_key: String(i)});
+        ec.save({_from: `${vn}/${i}`, _to: `${vn}/${(i+1) % max}`
+      }
+    },
+
+    tearDownAll: cleanup,
+
+    testFullCollectionVertex0To0 : () => {
+      let q = `
+        FOR start IN ${vn}
+          FOR target IN 0..0 OUTBOUND start
+          RETURN [start._key, target._key]
+      `;
+      let res = db._query(q).toArray();
+      // We get exactly one result for each document
+      assertEqual(res.length, max);
+
+      for (let x of res) {
+        // We expect all pairs to be equal
+        assertEqual(x[0], x[1]);
+      }
+    },
+
+    testFullCollectionVertex0To1 : () => {
+      let q = `
+        FOR start IN ${vn}
+          FOR target IN 0..1 OUTBOUND start
+          RETURN [start._key, target._key]
+      `;
+      let res = db._query(q).toArray();
+
+      // We get exactly two results for each document
+      // * [source, source] d0
+      // * [source, target] d1
+      assertEqual(res.length, max * 2);
+
+      for (let i = 0; i < max; ++i) {
+        let d0 = res[i * 2];
+        let d1 = res[i * 2 + 1]
+        // We expect all pairs to be equal
+        assertEqual(d0[0], d0[1]);
+        assertEqual((parseInt(d1[0]) + 1) % max, parseInt(d1[1]));
+      }
+    }
+  };
+};
+
 jsunity.run(nestedSuite);
 jsunity.run(namedGraphSuite);
 jsunity.run(multiCollectionGraphSuite);
@@ -3334,6 +3392,7 @@ jsunity.run(multiEdgeDirectionSuite);
 jsunity.run(subQuerySuite);
 jsunity.run(optionsSuite);
 jsunity.run(optimizeQuantifierSuite);
+jsunity.run(depth0Suite);
 if (!isCluster) {
   jsunity.run(optimizeNonVertexCentricIndexesSuite);
 }
