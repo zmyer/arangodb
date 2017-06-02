@@ -3342,7 +3342,7 @@ function depth0Suite () {
     testFullCollectionVertex0To0 : () => {
       let q = `
         FOR start IN ${vn}
-          FOR target IN 0..0 OUTBOUND start
+          FOR target IN 0..0 OUTBOUND start ${en}
           RETURN [start._key, target._key]
       `;
       let res = db._query(q).toArray();
@@ -3358,7 +3358,7 @@ function depth0Suite () {
     testFullCollectionVertex0To1 : () => {
       let q = `
         FOR start IN ${vn}
-          FOR target IN 0..1 OUTBOUND start
+          FOR target IN 0..1 OUTBOUND start ${en}
           RETURN [start._key, target._key]
       `;
       let res = db._query(q).toArray();
