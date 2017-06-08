@@ -502,7 +502,7 @@ AqlItemBlock* IndexBlock::getSome(size_t atLeast, size_t atMost) {
   IndexIterator::DocumentCallback callback;
   if (_indexes.size() > 1) {
     // Activate uniqueness checks
-    callback = [&](ManagedDocumentResult const& mdr) {
+    callback = [&](ManagedDocumentResult& mdr) {
       TRI_ASSERT(res.get() != nullptr);
       if (!_isLastIndex) {
         // insert & check for duplicates in one go
@@ -530,7 +530,7 @@ AqlItemBlock* IndexBlock::getSome(size_t atLeast, size_t atMost) {
     };
   } else {
     // No uniqueness checks
-    callback = [&](ManagedDocumentResult const& mdr) {
+    callback = [&](ManagedDocumentResult& mdr) {
       TRI_ASSERT(res.get() != nullptr);
       res->setValue(_returned,
                     static_cast<arangodb::aql::RegisterId>(curRegs),

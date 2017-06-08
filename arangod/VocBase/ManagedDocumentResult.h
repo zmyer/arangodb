@@ -49,7 +49,7 @@ class ManagedDocumentResult {
   ManagedDocumentResult& operator=(ManagedDocumentResult const& other) = delete;
 
   ManagedDocumentResult& operator=(ManagedDocumentResult&& other) {
-    if (other._useString){
+    if (other._useString) {
       setManaged(std::move(other._string), other._lastRevisionId);
       other._managed = false;
       other.reset();
@@ -98,7 +98,7 @@ class ManagedDocumentResult {
   // @brief Creates an AQLValue with the content of this ManagedDocumentResult
   // The caller is responsible to properly destroy() the
   // returned value
-  aql::AqlValue createAqlValue() const;
+  aql::AqlValue createAqlValue();
 
  private:
   uint64_t _length;

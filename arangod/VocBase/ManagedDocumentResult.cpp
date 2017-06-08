@@ -47,7 +47,7 @@ void ManagedDocumentResult::clone(ManagedDocumentResult& cloned) const {
 
 //add unmanaged vpack 
 void ManagedDocumentResult::setUnmanaged(uint8_t const* vpack, TRI_voc_rid_t revisionId) {
-  if(_managed || _useString) {
+  if (_managed || _useString) {
     reset();
   }
   TRI_ASSERT(_length == 0);
@@ -79,13 +79,13 @@ void ManagedDocumentResult::setManaged(std::string&& str, TRI_voc_rid_t revision
 }
 
 void ManagedDocumentResult::reset() noexcept {
-  if(_managed) {
+  if (_managed) {
     delete[] _vpack;
   }
   _managed = false;
   _length = 0;
 
-  if(_useString){
+  if (_useString){
     _string.clear();
   }
   _useString = false;
@@ -106,13 +106,20 @@ void ManagedDocumentResult::addToBuilder(velocypack::Builder& builder, bool allo
 // @brief Creates an AQLValue with the content of this ManagedDocumentResult
 // The caller is responsible to properly destroy() the
 // returned value
-AqlValue ManagedDocumentResult::createAqlValue() const {
+AqlValue ManagedDocumentResult::createAqlValue() {
   TRI_ASSERT(!empty());
   if (canUseInExternal()) {
     // No need to copy. Underlying structure guarantees that Slices stay
     // valid
     return AqlValue(_vpack, AqlValueFromManagedDocument());
   }
+  if (_managed && !_useString) {
+    uint8_t* ptr = _vpack;
+    _length = 0;
+    _vpack = nullptr;
+    _lastRevisionId = 0;
+    return AqlValue(AqlValueHintTransferOwnership(ptr));
+  }
   // Do copy. Otherwise the slice may go out of scope
-  return AqlValue(VPackSlice(_vpack));
+  return AqlValue(AqlValueHintCopy(_vpack));
 }

@@ -187,7 +187,7 @@ AqlItemBlock* EnumerateCollectionBlock::getSome(size_t,  // atLeast,
 
     IndexIterator::DocumentCallback cb;
     if (_mustStoreResult) {
-      cb = [&](ManagedDocumentResult const& mdr) {
+      cb = [&](ManagedDocumentResult& mdr) {
         res->setValue(send,
                       static_cast<arangodb::aql::RegisterId>(curRegs),
                       mdr.createAqlValue());
@@ -198,7 +198,7 @@ AqlItemBlock* EnumerateCollectionBlock::getSome(size_t,  // atLeast,
         ++send;
       };
     } else {
-      cb = [&](ManagedDocumentResult const& mdr) {
+      cb = [&](ManagedDocumentResult& mdr) {
         if (send > 0) {
           // re-use already copied AQLValues
           res->copyValuesFromFirstRow(send, static_cast<RegisterId>(curRegs));

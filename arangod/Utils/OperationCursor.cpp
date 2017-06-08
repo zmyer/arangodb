@@ -110,7 +110,7 @@ bool OperationCursor::nextDocument(IndexIterator::DocumentCallback const& callba
   // We add wrapper around Callback that validates that
   // the callback has been called at least once.
   bool called = false;
-  auto cb = [&](ManagedDocumentResult const& mdr) {
+  auto cb = [&](ManagedDocumentResult& mdr) {
     called = true;
     callback(mdr);
   };
