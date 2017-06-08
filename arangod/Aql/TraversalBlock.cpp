@@ -262,7 +262,7 @@ bool TraversalBlock::morePaths(size_t hint) {
     if (usesEdgeOutput()) {
       _edges.emplace_back(_traverser->lastEdgeToAqlValue());
     }
-    if (usesPathOutput()) {
+    if (false && usesPathOutput()) {
       tmp->clear();
       _paths.emplace_back(_traverser->pathToAqlValue(*tmp.builder()));
     }
