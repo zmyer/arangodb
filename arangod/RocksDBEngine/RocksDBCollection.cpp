@@ -1518,7 +1518,6 @@ arangodb::Result RocksDBCollection::lookupRevisionVPack(
   TRI_ASSERT(_objectId != 0);
 
   auto key = RocksDBKey::Document(_objectId, revisionId);
-  std::string value;
 
   if (withCache && useCache()) {
     TRI_ASSERT(_cache != nullptr);
@@ -1526,14 +1525,15 @@ arangodb::Result RocksDBCollection::lookupRevisionVPack(
     auto f = _cache->find(key.string().data(),
                           static_cast<uint32_t>(key.string().size()));
     if (f.found()) {
-      value.append(reinterpret_cast<char const*>(f.value()->value()),
-                   static_cast<size_t>(f.value()->valueSize));
-      mdr.setManaged(std::move(value), revisionId);
+      mdr.setManaged(reinterpret_cast<uint8_t const*>(f.value()->value()),
+                     static_cast<size_t>(f.value()->valueSize),
+                     revisionId);
       return {TRI_ERROR_NO_ERROR};
     }
   }
 
   RocksDBMethods* mthd = rocksutils::toRocksMethods(trx);
+  std::string value;
   Result res = mthd->Get(RocksDBColumnFamily::documents(), key, &value);
   TRI_ASSERT(value.data());
   if (res.ok()) {
@@ -1549,7 +1549,7 @@ arangodb::Result RocksDBCollection::lookupRevisionVPack(
       }
     }
 
-    mdr.setManaged(std::move(value), revisionId);
+    mdr.setManaged(reinterpret_cast<uint8_t const*>(value.data()), value.size(), revisionId);
   } else {
     LOG_TOPIC(ERR, Logger::FIXME)
         << "NOT FOUND rev: " << revisionId << " trx: " << trx->state()->id()

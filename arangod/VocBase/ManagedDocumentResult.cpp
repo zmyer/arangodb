@@ -33,12 +33,7 @@ using namespace arangodb::aql;
 
 void ManagedDocumentResult::clone(ManagedDocumentResult& cloned) const {
   cloned.reset();
-  if (_useString) {
-    cloned._useString = true;
-    cloned._string = _string;
-    cloned._lastRevisionId = _lastRevisionId;
-    cloned._vpack = reinterpret_cast<uint8_t*>(const_cast<char*>(cloned._string.data()));
-  } else if (_managed) {
+  if (_managed) {
     cloned.setManaged(_vpack, _lastRevisionId);
   } else {
     cloned.setUnmanaged(_vpack, _lastRevisionId);
@@ -47,7 +42,7 @@ void ManagedDocumentResult::clone(ManagedDocumentResult& cloned) const {
 
 //add unmanaged vpack 
 void ManagedDocumentResult::setUnmanaged(uint8_t const* vpack, TRI_voc_rid_t revisionId) {
-  if (_managed || _useString) {
+  if (_managed) {
     reset();
   }
   TRI_ASSERT(_length == 0);
@@ -56,26 +51,21 @@ void ManagedDocumentResult::setUnmanaged(uint8_t const* vpack, TRI_voc_rid_t rev
 }
 
 void ManagedDocumentResult::setManaged(uint8_t const* vpack, TRI_voc_rid_t revisionId) {
+  setManaged(vpack, VPackSlice(vpack).byteSize(), revisionId);
+}
+
+void ManagedDocumentResult::setManaged(uint8_t const* vpack, size_t length, TRI_voc_rid_t revisionId) {
   VPackSlice slice(vpack);
-  auto newLen = slice.byteSize();
-  if (_length >= newLen && _managed){
-    std::memcpy(_vpack, vpack, newLen);
+  if (_length >= length && _managed) {
+    std::memcpy(_vpack, vpack, length);
   } else {
     reset();
-    _vpack = new uint8_t[newLen];
-    std::memcpy(_vpack, vpack, newLen);
-    _length=newLen;
+    _vpack = new uint8_t[length];
+    std::memcpy(_vpack, vpack, length);
+    _length = length;
   }
   _lastRevisionId = revisionId;
   _managed = true;
-}
-
-void ManagedDocumentResult::setManaged(std::string&& str, TRI_voc_rid_t revisionId) {
-  reset();
-  _string = std::move(str);
-  _vpack = reinterpret_cast<uint8_t*>(const_cast<char*>(_string.data()));
-  _lastRevisionId = revisionId;
-  _useString = true;
 }
 
 void ManagedDocumentResult::reset() noexcept {
@@ -84,11 +74,6 @@ void ManagedDocumentResult::reset() noexcept {
   }
   _managed = false;
   _length = 0;
-
-  if (_useString){
-    _string.clear();
-  }
-  _useString = false;
 
   _lastRevisionId = 0;
   _vpack = nullptr;
@@ -113,7 +98,7 @@ AqlValue ManagedDocumentResult::createAqlValue() {
     // valid
     return AqlValue(_vpack, AqlValueFromManagedDocument());
   }
-  if (_managed && !_useString) {
+  if (_managed) {
     uint8_t* ptr = _vpack;
     _length = 0;
     _vpack = nullptr;

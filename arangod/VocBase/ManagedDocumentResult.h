@@ -42,18 +42,13 @@ class ManagedDocumentResult {
     _length(0),
     _lastRevisionId(0),
     _vpack(nullptr),
-    _managed(false),
-    _useString(false) {}
+    _managed(false) {}
   ~ManagedDocumentResult() { reset(); }
   ManagedDocumentResult(ManagedDocumentResult const& other) = delete;
   ManagedDocumentResult& operator=(ManagedDocumentResult const& other) = delete;
 
   ManagedDocumentResult& operator=(ManagedDocumentResult&& other) {
-    if (other._useString) {
-      setManaged(std::move(other._string), other._lastRevisionId);
-      other._managed = false;
-      other.reset();
-    } else if (other._managed){
+    if (other._managed) {
       reset();
       _vpack = other._vpack;
       _length = other._length;
@@ -75,8 +70,7 @@ class ManagedDocumentResult {
   void setUnmanaged(uint8_t const* vpack, TRI_voc_rid_t revisionId);
 
   void setManaged(uint8_t const* vpack, TRI_voc_rid_t revisionId);
-
-  void setManaged(std::string&& str, TRI_voc_rid_t revisionId);
+  void setManaged(uint8_t const* vpack, size_t length, TRI_voc_rid_t revisionId);
 
   inline TRI_voc_rid_t lastRevisionId() const { return _lastRevisionId; }
   
@@ -90,7 +84,7 @@ class ManagedDocumentResult {
   inline bool empty() const { return _vpack == nullptr; }
 
   inline bool canUseInExternal() const {
-    return (!_managed && !_useString);
+    return (!_managed);
   }
   
   void addToBuilder(velocypack::Builder& builder, bool allowExternals) const;
@@ -104,9 +98,7 @@ class ManagedDocumentResult {
   uint64_t _length;
   TRI_voc_rid_t _lastRevisionId;
   uint8_t* _vpack;
-  std::string _string;
   bool _managed;
-  bool _useString;
 };
 
 }
