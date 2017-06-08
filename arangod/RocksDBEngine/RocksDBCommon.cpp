@@ -236,16 +236,18 @@ Result removeLargeRange(rocksdb::TransactionDB* db,
     rocksdb::WriteBatch batch;
     rocksdb::ReadOptions readOptions;
     readOptions.fill_cache = false;
-    std::unique_ptr<rocksdb::Iterator> it(db->NewIterator(readOptions));
+    std::unique_ptr<rocksdb::Iterator> it(db->NewIterator(readOptions, handle));
 
     // TODO: split this into multiple batches if batches get too big
     it->Seek(lower);
     size_t counter = 0;
     while (it->Valid() && cmp->Compare(it->key(), upper) < 0) {
+      TRI_ASSERT(cmp->Compare(it->key(), lower) > 0);
       counter++;
       batch.Delete(it->key());
       it->Next();
       if (counter == 1000) {
+        LOG_TOPIC(DEBUG, Logger::FIXME) << "Intermediate delete write";
         // Persist deletes all 1000 documents
         rocksdb::Status status = db->Write(rocksdb::WriteOptions(), &batch);
         if (!status.ok()) {
@@ -259,6 +261,7 @@ Result removeLargeRange(rocksdb::TransactionDB* db,
     }
 
     if (counter > 0) {
+      LOG_TOPIC(DEBUG, Logger::FIXME) << "Remove large batch from bounds";
       // We still have sth to write
       // now apply deletion batch
       rocksdb::Status status = db->Write(rocksdb::WriteOptions(), &batch);
