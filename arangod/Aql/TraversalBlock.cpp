@@ -262,9 +262,11 @@ bool TraversalBlock::morePaths(size_t hint) {
     if (usesEdgeOutput()) {
       _edges.emplace_back(_traverser->lastEdgeToAqlValue());
     }
-    if (false && usesPathOutput()) {
+    if (usesPathOutput()) {
       tmp->clear();
-      _paths.emplace_back(_traverser->pathToAqlValue(*tmp.builder()));
+      tmp->openObject();
+      tmp->close();
+      _paths.emplace_back(arangodb::aql::AqlValue(tmp->slice()));
     }
     throwIfKilled();  // check if we were aborted
   }
