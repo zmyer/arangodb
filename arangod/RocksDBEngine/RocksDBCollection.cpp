@@ -1533,23 +1533,23 @@ arangodb::Result RocksDBCollection::lookupRevisionVPack(
   }
 
   RocksDBMethods* mthd = rocksutils::toRocksMethods(trx);
-  std::string value;
-  Result res = mthd->Get(RocksDBColumnFamily::documents(), key, &value);
-  TRI_ASSERT(value.data());
+  std::string* value = trx->transactionContextPtr()->tempString();
+  Result res = mthd->Get(RocksDBColumnFamily::documents(), key, value);
+  TRI_ASSERT(value->data());
   if (res.ok()) {
     if (withCache && useCache()) {
       TRI_ASSERT(_cache != nullptr);
       // write entry back to cache
       auto entry = cache::CachedValue::construct(
           key.string().data(), static_cast<uint32_t>(key.string().size()),
-          value.data(), static_cast<uint64_t>(value.size()));
+          value->data(), static_cast<uint64_t>(value->size()));
       bool cached = _cache->insert(entry);
       if (!cached) {
         delete entry;
       }
     }
 
-    mdr.setManaged(reinterpret_cast<uint8_t const*>(value.data()), value.size(), revisionId);
+    mdr.setManaged(reinterpret_cast<uint8_t const*>(value->data()), value->size(), revisionId);
   } else {
     LOG_TOPIC(ERR, Logger::FIXME)
         << "NOT FOUND rev: " << revisionId << " trx: " << trx->state()->id()
