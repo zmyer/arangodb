@@ -79,11 +79,11 @@ class Context {
   /// @brief whether or not the data for the collection is pinned
   bool isPinned(TRI_voc_cid_t);
   
-  /// @brief return the address of a string, to be re-used by multiple ops
-  std::string* tempString() { return &_tempString; }
-  
-  /// @brief return the address of a string, to be re-used by multiple ops
-  std::string const* tempString() const { return &_tempString; }
+  /// @brief temporarily lease a string
+  std::string* leaseString();
+
+  /// @brief return the temporary string
+  void returnString();
   
   /// @brief temporarily lease a StringBuffer object
   basics::StringBuffer* leaseStringBuffer(size_t initialSize);
@@ -145,7 +145,7 @@ class Context {
   SmallVector<arangodb::velocypack::Builder*, 32> _builders;
   
   std::unique_ptr<arangodb::basics::StringBuffer> _stringBuffer;
-  std::string _tempString;
+  std::string _string;
 
   arangodb::velocypack::Options _options;
   arangodb::velocypack::Options _dumpOptions;
@@ -158,6 +158,8 @@ class Context {
   } _transaction;
 
   bool _ownsResolver;
+
+  bool _leasedString;
 };
 
 }

@@ -331,19 +331,12 @@ struct AqlValue final {
     setType(AqlValueType::VPACK_MANAGED_SLICE);
   }
   
-  // construct from Buffer, taking over its ownership
-  explicit AqlValue(arangodb::velocypack::Buffer<uint8_t>* buffer) {
-    TRI_ASSERT(buffer != nullptr);
-    _data.buffer = buffer;
-    setType(AqlValueType::VPACK_MANAGED_BUFFER);
-  }
-  
   // construct from Builder, copying contents
   explicit AqlValue(arangodb::velocypack::Builder const& builder) {
     TRI_ASSERT(builder.isClosed());
     initFromSlice(builder.slice());
   }
-  
+
   // construct from Builder, copying contents
   explicit AqlValue(arangodb::velocypack::Builder const* builder) {
     TRI_ASSERT(builder->isClosed());

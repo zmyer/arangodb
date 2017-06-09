@@ -271,6 +271,7 @@ struct TRI_vocbase_t {
   /// @brief get a collection name by a collection id
   /// the name is fetched under a lock to make this thread-safe.
   /// returns empty string if the collection does not exist.
+  void collectionName(std::string& out, TRI_voc_cid_t id);
   std::string collectionName(TRI_voc_cid_t id);
 
   /// @brief looks up a collection by name

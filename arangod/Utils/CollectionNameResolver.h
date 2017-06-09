@@ -103,6 +103,7 @@ class CollectionNameResolver {
   /// translate the local collection ID into a cluster wide collection name.
   //////////////////////////////////////////////////////////////////////////////
 
+  void getCollectionName(std::string&, TRI_voc_cid_t cid) const;
   std::string getCollectionName(TRI_voc_cid_t cid) const;
 
   //////////////////////////////////////////////////////////////////////////////
@@ -110,6 +111,7 @@ class CollectionNameResolver {
   /// collection id
   //////////////////////////////////////////////////////////////////////////////
 
+  void getCollectionNameCluster(std::string& out, TRI_voc_cid_t cid) const;
   std::string getCollectionNameCluster(TRI_voc_cid_t cid) const;
 
   //////////////////////////////////////////////////////////////////////////////
@@ -122,6 +124,7 @@ class CollectionNameResolver {
 
  private:
 
+  void localNameLookup(std::string& out, TRI_voc_cid_t cid) const;
   std::string localNameLookup(TRI_voc_cid_t cid) const;
 
  private:

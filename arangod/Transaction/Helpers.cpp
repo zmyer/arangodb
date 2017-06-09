@@ -57,6 +57,82 @@ StringRef transaction::helpers::extractKeyPart(VPackSlice const slice) {
 
 /// @brief extract the _id attribute from a slice, and convert it into a 
 /// string, static method
+void transaction::helpers::extractIdString(std::string& out,
+                                           CollectionNameResolver const* resolver,
+                                           VPackSlice slice,
+                                           VPackSlice const& base) {
+  VPackSlice id;
+
+  if (slice.isExternal()) {
+    slice = slice.resolveExternal();
+  }
+   
+  if (slice.isObject()) {
+    // extract id attribute from object
+    uint8_t const* p = slice.begin() + slice.findDataOffset(slice.head());
+    if (*p == basics::VelocyPackHelper::KeyAttribute) {
+      // skip over attribute name
+      ++p;
+      VPackSlice key = VPackSlice(p);
+      // skip over attribute value
+      p += key.byteSize();
+      
+      if (*p == basics::VelocyPackHelper::IdAttribute) {
+        id = VPackSlice(p + 1);
+        if (id.isCustom()) {
+          // we should be pointing to a custom value now
+          TRI_ASSERT(id.head() == 0xf3);
+ 
+          makeIdFromCustom(out, resolver, id, key);
+          return;
+        }
+        if (id.isString()) {
+          VPackValueLength l;
+          char const* s = id.getString(l);
+          out.assign(s, l);
+          return;
+        }
+      }
+    }
+
+    // in case the quick access above did not work out, use the slow path... 
+    id = slice.get(StaticStrings::IdString);
+  } else {
+    id = slice;
+  }
+  
+  if (id.isString()) {
+    // already a string...
+    VPackValueLength l;
+    char const* s = id.getString(l);
+    out.assign(s, l);
+    return;
+  }
+
+  if (!id.isCustom() || id.head() != 0xf3) {
+    // invalid type for _id
+    THROW_ARANGO_EXCEPTION(TRI_ERROR_ARANGO_DOCUMENT_TYPE_INVALID);
+  }
+
+  // we now need to extract the _key attribute
+  VPackSlice key;
+  if (slice.isObject()) {
+    key = slice.get(StaticStrings::KeyString);
+  } else if (base.isObject()) {
+    key = extractKeyFromDocument(base);
+  } else if (base.isExternal()) {
+    key = base.resolveExternal().get(StaticStrings::KeyString);
+  }
+
+  if (!key.isString()) {
+    THROW_ARANGO_EXCEPTION(TRI_ERROR_ARANGO_DOCUMENT_TYPE_INVALID);
+  }
+        
+  makeIdFromCustom(out, resolver, id, key);
+}
+
+/// @brief extract the _id attribute from a slice, and convert it into a 
+/// string, static method
 std::string transaction::helpers::extractIdString(CollectionNameResolver const* resolver,
                                          VPackSlice slice,
                                          VPackSlice const& base) {
@@ -352,6 +428,36 @@ OperationResult transaction::helpers::buildCountResult(std::vector<std::pair<std
 }
 
 /// @brief creates an id string from a custom _id value and the _key string
+void transaction::helpers::makeIdFromCustom(std::string& out,
+                                            CollectionNameResolver const* resolver,
+                                           VPackSlice const& id, 
+                                           VPackSlice const& key) {
+  TRI_ASSERT(id.isCustom() && id.head() == 0xf3);
+  TRI_ASSERT(key.isString());
+
+  uint64_t cid = encoding::readNumber<uint64_t>(id.begin() + 1, sizeof(uint64_t));
+  
+  resolver->getCollectionNameCluster(out, cid);
+#ifdef USE_ENTERPRISE
+  if (out.compare(0, 7, "_local_") == 0) {
+    out.erase(0, 7);
+  } else if (out.compare(0, 6, "_from_") == 0) {
+    out.erase(0, 6);
+  } else if (out.compare(0, 4, "_to_") == 0) {
+    out.erase(0,4);
+  }
+#endif
+  VPackValueLength keyLength;
+  char const* p = key.getString(keyLength);
+  if (p == nullptr) {
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "invalid _key value");
+  }
+  out.reserve(out.size() + 1 + keyLength);
+  out.push_back('/');
+  out.append(p, static_cast<size_t>(keyLength));
+}
+
+/// @brief creates an id string from a custom _id value and the _key string
 std::string transaction::helpers::makeIdFromCustom(CollectionNameResolver const* resolver,
                                           VPackSlice const& id, 
                                           VPackSlice const& key) {
@@ -381,17 +487,30 @@ std::string transaction::helpers::makeIdFromCustom(CollectionNameResolver const*
   return resolved;
 }
 
+/// @brief constructor, leases a string
+transaction::StringLeaser::StringLeaser(transaction::Methods* trx) 
+      : _transactionContext(trx->transactionContextPtr()),
+        _string(_transactionContext->leaseString()) {}
+
+/// @brief constructor, leases a string
+transaction::StringLeaser::StringLeaser(transaction::Context* transactionContext) 
+      : _transactionContext(transactionContext), 
+        _string(_transactionContext->leaseString()) {}
+
+/// @brief destructor
+transaction::StringLeaser::~StringLeaser() { 
+  _transactionContext->returnString();
+}
+
 /// @brief constructor, leases a StringBuffer
 transaction::StringBufferLeaser::StringBufferLeaser(transaction::Methods* trx) 
       : _transactionContext(trx->transactionContextPtr()),
-        _stringBuffer(_transactionContext->leaseStringBuffer(32)) {
-}
+        _stringBuffer(_transactionContext->leaseStringBuffer(32)) {}
 
 /// @brief constructor, leases a StringBuffer
 transaction::StringBufferLeaser::StringBufferLeaser(transaction::Context* transactionContext) 
       : _transactionContext(transactionContext), 
-        _stringBuffer(_transactionContext->leaseStringBuffer(32)) {
-}
+        _stringBuffer(_transactionContext->leaseStringBuffer(32)) {}
 
 /// @brief destructor
 transaction::StringBufferLeaser::~StringBufferLeaser() { 

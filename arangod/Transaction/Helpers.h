@@ -51,6 +51,10 @@ namespace helpers {
   /// @brief extract the _key attribute from a slice
   StringRef extractKeyPart(VPackSlice const);
   
+  void extractIdString(std::string& out,
+                       CollectionNameResolver const*, 
+                       VPackSlice slice, VPackSlice const& base);
+  
   std::string extractIdString(CollectionNameResolver const*, 
                               VPackSlice, VPackSlice const&);
 
@@ -90,9 +94,27 @@ namespace helpers {
   OperationResult buildCountResult(std::vector<std::pair<std::string, uint64_t>> const& count, bool aggregate);
   
   /// @brief creates an id string from a custom _id value and the _key string
+  void makeIdFromCustom(std::string& out,
+                        CollectionNameResolver const* resolver,
+                        VPackSlice const& idPart, 
+                        VPackSlice const& keyPart);
+  
+  /// @brief creates an id string from a custom _id value and the _key string
   std::string makeIdFromCustom(CollectionNameResolver const* resolver,
                                VPackSlice const& idPart, 
                                VPackSlice const& keyPart);
+};
+
+class StringLeaser {
+ public:
+  explicit StringLeaser(Methods*); 
+  explicit StringLeaser(transaction::Context*); 
+  ~StringLeaser();
+  std::string* operator->() const { return _string; }
+  std::string* get() const { return _string; }
+ private:
+  transaction::Context* _transactionContext;
+  std::string* _string;
 };
 
 class StringBufferLeaser {

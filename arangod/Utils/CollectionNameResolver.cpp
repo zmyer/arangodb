@@ -181,6 +181,19 @@ TRI_col_type_e CollectionNameResolver::getCollectionTypeCluster(
 /// translate the local collection ID into a cluster wide collection name.
 //////////////////////////////////////////////////////////////////////////////
 
+void CollectionNameResolver::getCollectionName(std::string& out,
+                                               TRI_voc_cid_t cid) const {
+  auto it = _resolvedIds.find(cid);
+
+  if (it != _resolvedIds.end()) {
+    out.assign((*it).second);
+    return;
+  }
+
+  localNameLookup(out, cid);
+  _resolvedIds.emplace(cid, out);
+}
+
 std::string CollectionNameResolver::getCollectionName(TRI_voc_cid_t cid) const {
   auto it = _resolvedIds.find(cid);
 
@@ -198,6 +211,51 @@ std::string CollectionNameResolver::getCollectionName(TRI_voc_cid_t cid) const {
 /// @brief look up a cluster-wide collection name for a cluster-wide
 /// collection id
 //////////////////////////////////////////////////////////////////////////////
+
+void CollectionNameResolver::getCollectionNameCluster(std::string& out,
+                                                      TRI_voc_cid_t cid) const {
+  // First check the cache:
+  auto it = _resolvedIds.find(cid);
+
+  if (it != _resolvedIds.end()) {
+    out.assign((*it).second);
+    return;
+  }
+
+  if (!ServerState::isClusterRole(_serverRole)) {
+    // This handles the case of a standalone server
+    getCollectionName(out, cid);
+    return;
+  }
+
+  if (ServerState::isDBServer(_serverRole)) {
+    // This might be a local system collection:
+    localNameLookup(out, cid);
+    if (out != "_unknown") {
+      _resolvedIds.emplace(cid, out);
+      return;
+    }
+  }
+
+  int tries = 0;
+
+  while (tries++ < 2) {
+    auto ci = ClusterInfo::instance()->getCollection(
+        _vocbase->name(), arangodb::basics::StringUtils::itoa(cid));
+
+    if (ci == nullptr) {
+      ClusterInfo::instance()->flush();
+      continue;
+    }
+
+    out = ci->name();
+    _resolvedIds.emplace(cid, out);
+    return;
+  }
+
+  LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "CollectionNameResolver: was not able to resolve id " << cid;
+  out.assign("unknown");
+}
 
 std::string CollectionNameResolver::getCollectionNameCluster(
     TRI_voc_cid_t cid) const {
@@ -257,6 +315,43 @@ std::string CollectionNameResolver::getCollectionName(
   }
   TRI_voc_cid_t tmp = arangodb::basics::StringUtils::uint64(nameOrId);
   return getCollectionName(tmp);
+}
+
+void CollectionNameResolver::localNameLookup(std::string& out, TRI_voc_cid_t cid) const {
+  if (ServerState::isDBServer(_serverRole)) {
+    READ_LOCKER(readLocker, _vocbase->_collectionsLock);
+
+    auto it = _vocbase->_collectionsById.find(cid);
+
+    if (it != _vocbase->_collectionsById.end()) {
+      if ((*it).second->planId() == (*it).second->cid()) {
+        // DBserver local case
+        out.assign((*it).second->name());
+      } else {
+        // DBserver case of a shard:
+        out = arangodb::basics::StringUtils::itoa((*it).second->planId());
+        std::shared_ptr<LogicalCollection> ci;
+        try {
+          ci = ClusterInfo::instance()->getCollection(
+              (*it).second->dbName(), out);
+        }
+        catch (...) {
+        }
+        if (ci == nullptr) {
+          out = ""; // collection unknown
+        } else {
+          out = ci->name();  // can be empty, if collection unknown
+        }
+      }
+    }
+  } else {
+    // exactly as in the non-cluster case
+    _vocbase->collectionName(out, cid);
+  }
+
+  if (out.empty()) {
+    out = "_unknown";
+  }
 }
 
 std::string CollectionNameResolver::localNameLookup(TRI_voc_cid_t cid) const {

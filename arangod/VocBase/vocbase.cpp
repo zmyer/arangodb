@@ -820,6 +820,22 @@ std::shared_ptr<VPackBuilder> TRI_vocbase_t::inventory(
 /// @brief gets a collection name by a collection id
 /// the name is fetched under a lock to make this thread-safe.
 /// returns empty string if the collection does not exist.
+void TRI_vocbase_t::collectionName(std::string& out, TRI_voc_cid_t id) {
+  READ_LOCKER(readLocker, _collectionsLock);
+
+  auto it = _collectionsById.find(id);
+
+  if (it == _collectionsById.end()) {
+    out.clear();
+    return;
+  }
+
+  out.assign((*it).second->name());
+}
+
+/// @brief gets a collection name by a collection id
+/// the name is fetched under a lock to make this thread-safe.
+/// returns empty string if the collection does not exist.
 std::string TRI_vocbase_t::collectionName(TRI_voc_cid_t id) {
   READ_LOCKER(readLocker, _collectionsLock);
 

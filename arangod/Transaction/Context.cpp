@@ -50,8 +50,8 @@ struct CustomTypeHandler final : public VPackCustomTypeHandler {
 
   void dump(VPackSlice const& value, VPackDumper* dumper,
             VPackSlice const& base) override final {
-
-    dumper->appendString(toString(value, nullptr, base));
+    transaction::helpers::extractIdString(temp, resolver, value, base);
+    dumper->appendString(temp);
   }
   
   std::string toString(VPackSlice const& value, VPackOptions const* options,
@@ -61,6 +61,7 @@ struct CustomTypeHandler final : public VPackCustomTypeHandler {
 
   TRI_vocbase_t* vocbase;
   CollectionNameResolver const* resolver;
+  std::string temp;
 };
 
 /// @brief create the context
@@ -73,7 +74,8 @@ transaction::Context::Context(TRI_vocbase_t* vocbase)
       _options(arangodb::velocypack::Options::Defaults),
       _dumpOptions(arangodb::velocypack::Options::Defaults),
       _transaction{ 0, false }, 
-      _ownsResolver(false) {
+      _ownsResolver(false),
+      _leasedString(false) {
   _dumpOptions.escapeUnicode = true;        
 }
 
@@ -109,6 +111,23 @@ void transaction::Context::pinData(LogicalCollection* collection) {
 /// @brief whether or not the data for the collection is pinned
 bool transaction::Context::isPinned(TRI_voc_cid_t cid) {
   return contextData()->isPinned(cid);
+}
+
+/// @brief temporarily lease a string object
+std::string* transaction::Context::leaseString() {
+  if (_leasedString) {
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "string already leased");
+  }
+  _leasedString = true;
+  if (!_string.empty()) {
+    _string.clear();
+  }
+  return &_string;
+}
+
+/// @brief return a string
+void transaction::Context::returnString() {
+  _leasedString = false;
 }
   
 /// @brief temporarily lease a StringBuffer object

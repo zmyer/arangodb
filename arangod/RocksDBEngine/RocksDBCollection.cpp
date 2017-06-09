@@ -1532,8 +1532,10 @@ arangodb::Result RocksDBCollection::lookupRevisionVPack(
     }
   }
 
+  transaction::StringLeaser stringLeaser(trx);
+  std::string* value = stringLeaser.get();
+  
   RocksDBMethods* mthd = rocksutils::toRocksMethods(trx);
-  std::string* value = trx->transactionContextPtr()->tempString();
   Result res = mthd->Get(RocksDBColumnFamily::documents(), key, value);
   TRI_ASSERT(value->data());
   if (res.ok()) {

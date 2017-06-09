@@ -345,7 +345,9 @@ AqlValue AqlValue::getIdAttribute(transaction::Methods* trx,
         if (found.isCustom()) {
           // _id as a custom type needs special treatment
           mustDestroy = true;
-          return AqlValue(transaction::helpers::extractIdString(trx->resolver(), found, s));
+          transaction::StringLeaser stringLeaser(trx);
+          transaction::helpers::extractIdString(*stringLeaser.get(), trx->resolver(), found, s);
+          return AqlValue(*stringLeaser.get());
         }
         if (!found.isNone()) {
           if (doCopy) {
@@ -468,7 +470,9 @@ AqlValue AqlValue::get(transaction::Methods* trx,
         if (found.isCustom()) {
           // _id needs special treatment
           mustDestroy = true;
-          return AqlValue(trx->extractIdString(s));
+          transaction::StringLeaser stringLeaser(trx);
+          transaction::helpers::extractIdString(*stringLeaser.get(), trx->resolver(), s, VPackSlice());
+          return AqlValue(*stringLeaser.get());
         }
         if (!found.isNone()) {
           if (doCopy) {
@@ -534,7 +538,9 @@ AqlValue AqlValue::get(transaction::Methods* trx,
             if (i + 1 == n) {
               // x.y._id
               mustDestroy = true;
-              return AqlValue(transaction::helpers::extractIdString(trx->resolver(), s, prev));
+              transaction::StringLeaser stringLeaser(trx);
+              transaction::helpers::extractIdString(*stringLeaser.get(), trx->resolver(), s, prev);
+              return AqlValue(*stringLeaser.get());
             }
             // x._id.y
             return AqlValue(arangodb::basics::VelocyPackHelper::NullValue());
@@ -956,11 +962,7 @@ AqlValue AqlValue::clone() const {
     }
     case VPACK_MANAGED_BUFFER: {
       // copy buffer
-      VPackValueLength length = _data.buffer->size();
-      auto buffer = new VPackBuffer<uint8_t>(length);
-      buffer->append(reinterpret_cast<char const*>(_data.buffer->data()),
-                     length);
-      return AqlValue(buffer);
+      return AqlValue(VPackSlice(_data.buffer->data()));
     }
     case DOCVEC: {
       auto c = std::make_unique<std::vector<AqlItemBlock*>>();
