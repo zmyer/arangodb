@@ -56,8 +56,7 @@ Agent::Agent(config_t const& config)
     _activator(nullptr),
     _compactor(this),
     _ready(false),
-    _preparing(false),
-    _startup(false) {
+    _preparing(false) {
   _state.configure(this);
   _constituent.configure(this);
 }
@@ -490,7 +489,7 @@ void Agent::sendAppendEntriesRPC() {
       // Body
       Builder builder;
       builder.add(VPackValue(VPackValueType::Array));
-      if (!_preparing &&
+      if (
           ((system_clock::now() - _earliestPackage[followerId]).count() > 0)) {
         if (needSnapshot) {
           { VPackObjectBuilder guard(&builder);
@@ -543,7 +542,7 @@ void Agent::sendAppendEntriesRPC() {
         std::make_shared<std::string>(builder.toJson()), headerFields,
         std::make_shared<AgentCallback>(
           this, followerId, (toLog) ? highest : 0, toLog),
-        std::max(1.0e-3 * toLog * dt.count(), 0.25 * _config.minPing()), true);
+        std::max(1.0e-3 * toLog * dt.count(), _config.minPing()), true);
 
       // _lastSent, _lastHighest: local and single threaded access
       _lastSent[followerId]        = system_clock::now();
@@ -702,9 +701,9 @@ void Agent::load() {
   }
 
   if (size() > 1) {
-    _startup = true;
     _inception->start();
   } else {
+    _spearhead = _readDB;
     activateAgency();
   }
 }
@@ -762,13 +761,11 @@ trans_ret_t Agent::transact(query_t const& queries) {
 
   {
     CONDITION_LOCKER(guard, _waitForCV);
-    while (_startup) {
+    while (_preparing) {
       _waitForCV.wait(100);
-      MUTEX_LOCKER(ioLocker, _ioLock);
-      _startup = (_commitIndex != _state.lastIndex());
     }
   }
-  
+
   // Apply to spearhead and get indices for log entries
   auto qs = queries->slice();
   addTrxsOngoing(qs);    // remember that these are ongoing
@@ -825,10 +822,8 @@ trans_ret_t Agent::transient(query_t const& queries) {
 
   {
     CONDITION_LOCKER(guard, _waitForCV);
-    while (_startup) {
+    while (_preparing) {
       _waitForCV.wait(100);
-      MUTEX_LOCKER(ioLocker, _ioLock);
-      _startup = (_commitIndex != _state.lastIndex());
     }
   }
   
@@ -921,13 +916,11 @@ write_ret_t Agent::write(query_t const& query, bool discardStartup) {
 
   if (!discardStartup) {
     CONDITION_LOCKER(guard, _waitForCV);
-    while (_startup) {
+    while (_preparing) {
       _waitForCV.wait(100);
-      MUTEX_LOCKER(ioLocker, _ioLock);
-      _startup = (_commitIndex != _state.lastIndex());
     }
   }
-
+  
   addTrxsOngoing(query->slice());    // remember that these are ongoing
 
   auto slice = query->slice();
@@ -989,10 +982,8 @@ read_ret_t Agent::read(query_t const& query) {
 
   {
     CONDITION_LOCKER(guard, _waitForCV);
-    while (_startup) {
+    while (_preparing) {
       _waitForCV.wait(100);
-      MUTEX_LOCKER(ioLocker, _ioLock);
-      _startup = (_commitIndex != _state.lastIndex());
     }
   }
 
@@ -1029,7 +1020,7 @@ void Agent::run() {
       sendAppendEntriesRPC();
 
       // Don't panic
-      _appendCV.wait(1.0e-1*_config.minPing());
+      _appendCV.wait(static_cast<uint64_t>(1.0e-1*_config.minPing()));
 
       // Detect faulty agent and replace
       // if possible and only if not already activating
@@ -1233,6 +1224,15 @@ void Agent::lead() {
   // Notify inactive pool
   notifyInactive();
 
+  {
+    CONDITION_LOCKER(guard, _waitForCV);
+    while(_commitIndex != _state.lastIndex()) {
+      _waitForCV.wait(10000);
+    }
+  }
+
+  _spearhead = _readDB;
+    
 }
 
 // When did we take on leader ship?
@@ -1463,6 +1463,7 @@ Agent& Agent::operator=(VPackSlice const& compaction) {
   _nextCompactionAfter = _commitIndex + _config.compactionStepSize();
 
   return *this;
+  
 }
 
 /// Are we still starting up?
