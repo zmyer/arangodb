@@ -63,6 +63,7 @@ using namespace arangodb::basics;
 
 namespace {
 constexpr bool EdgeIndexFillBlockCache = false;
+constexpr size_t EdgeIndexBlockCacheSize = 40;
 }
 
 RocksDBEdgeIndexIterator::RocksDBEdgeIndexIterator(
@@ -73,7 +74,6 @@ RocksDBEdgeIndexIterator::RocksDBEdgeIndexIterator(
       _keys(keys.get()),
       _keysIterator(_keys->slice()),
       _index(index),
-      _bounds(RocksDBKeyBounds::EdgeIndex(0)),
       _cache(cache),
       _builderIterator(arangodb::basics::VelocyPackHelper::EmptyArrayValue()) {
   keys.release();  // now we have ownership for _keys
@@ -303,28 +303,9 @@ bool RocksDBEdgeIndexIterator::nextExtra(ExtraCallback const& cb,
   return _builderIterator.valid() || _keysIterator.valid();
 }
 
-void RocksDBEdgeIndexIterator::lookupInRocksDB(StringRef fromTo) {
-  // Bad case read from RocksDB
-  _bounds = RocksDBKeyBounds::EdgeIndexVertex(_index->_objectId, fromTo);
-  _iterator->Seek(_bounds.start());
-  resetInplaceMemory();
-  rocksdb::Comparator const* cmp = _index->comparator();
-
+void RocksDBEdgeIndexIterator::cacheResult(StringRef fromTo) {
+  TRI_ASSERT(_builder.slice().isArray());
   cache::Cache* cc = _cache.get();
-  _builder.openArray(true);
-  auto end = _bounds.end();
-  while (_iterator->Valid() && (cmp->Compare(_iterator->key(), end) < 0)) {
-    TRI_voc_rid_t revisionId = RocksDBKey::revisionId(_iterator->key());
-    RocksDBToken token(revisionId);
-
-    // adding revision ID and _from or _to value
-    _builder.add(VPackValue(token.revisionId()));
-    StringRef vertexId = RocksDBValue::vertexId(_iterator->value());
-    _builder.add(VPackValuePair(vertexId.data(), vertexId.size(), VPackValueType::String));
-
-    _iterator->Next();
-  }
-  _builder.close();
   if (cc != nullptr) {
     // TODO Add cache retry on next call
     // Now we have something in _inplaceMemory.
@@ -350,7 +331,73 @@ void RocksDBEdgeIndexIterator::lookupInRocksDB(StringRef fromTo) {
       delete entry;
     }
   }
+
+}
+
+void RocksDBEdgeIndexIterator::lookupInRocksDB(StringRef fromTo) {
+  resetInplaceMemory();
+  {
+    RocksDBMethods* mthds = rocksutils::toRocksMethods(_trx);
+    auto options = mthds->readOptions(); // intentional copy
+    options.fill_cache = EdgeIndexFillBlockCache;
+  TRI_ASSERT(options.snapshot != nullptr);
+
+    auto key = RocksDBKey::EdgeIndexValue(_index->objectId(), fromTo);
+    auto value = RocksDBValue::Empty(RocksDBEntryType::EdgeIndexValue);
+
+    arangodb::Result r = mthds->Get(_index->columnFamily(), key, value.buffer());
+
+    if (r.fail()) {
+      if (r.is(TRI_ERROR_ARANGO_DOCUMENT_NOT_FOUND)) {
+        // Expected, there are no edges for this vertex.
+        _builder.openArray(true);
+        _builder.close();
+        cacheResult(fromTo);
+        _builderIterator = VPackArrayIterator(_builder.slice());
+        return;
+      } else {
+        THROW_ARANGO_EXCEPTION(r.errorNumber());
+      }
+    }
+    auto finding = RocksDBValue::data(value);
+    TRI_ASSERT(finding.isArray());
+    if (finding.length() < 2 * EdgeIndexBlockCacheSize) {
+      // we found everything directly. Just hard copy
+      _builder.add(finding);
+      cacheResult(fromTo);
+      _builderIterator = VPackArrayIterator(_builder.slice());
+      return;
+    }
+    // If we get here we have more than EdgeIndexBlockCacheSize many edges
+    // Copy over everything we have just found and do a range-scan in addition
+    _builder.openArray(true);
+    for (auto const& it : VPackArrayIterator(finding)) {
+      _builder.add(it);
+    }
+    // Leave builder open
+  }
+  TRI_ASSERT(_builder.isOpenArray());
+
+  // Bad case range-scan from RocksDB
+  auto bounds = RocksDBKeyBounds::EdgeIndexVertex(_index->_objectId, fromTo);
+  // NOTE bounds exclude the key lookup
+  _iterator->Seek(bounds.start());
+  rocksdb::Comparator const* cmp = _index->comparator();
+
+  auto end = bounds.end();
+  while (_iterator->Valid() && (cmp->Compare(_iterator->key(), end) < 0)) {
+    TRI_voc_rid_t revisionId = RocksDBKey::revisionId(_iterator->key());
+    RocksDBToken token(revisionId);
+
+    // adding revision ID and _from or _to value
+    _builder.add(VPackValue(token.revisionId()));
+    StringRef vertexId = RocksDBValue::vertexId(_iterator->value());
+    _builder.add(VPackValuePair(vertexId.data(), vertexId.size(), VPackValueType::String));
+    _iterator->Next();
+  }
+  _builder.close();
   TRI_ASSERT(_builder.slice().isArray());
+  cacheResult(fromTo);
   _builderIterator = VPackArrayIterator(_builder.slice());
 }
 

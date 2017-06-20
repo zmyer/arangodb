@@ -59,6 +59,11 @@ RocksDBKey RocksDBKey::PrimaryIndexValue(uint64_t indexId,
 }
 
 RocksDBKey RocksDBKey::EdgeIndexValue(uint64_t indexId,
+                                      arangodb::StringRef const& vertexId) {
+  return RocksDBKey(RocksDBEntryType::EdgeIndexValue, indexId, vertexId);
+}
+
+RocksDBKey RocksDBKey::EdgeIndexValue(uint64_t indexId,
                                       arangodb::StringRef const& vertexId,
                                       TRI_voc_rid_t revisionId) {
   return RocksDBKey(RocksDBEntryType::EdgeIndexValue, indexId, vertexId,

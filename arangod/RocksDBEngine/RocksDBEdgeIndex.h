@@ -66,6 +66,7 @@ class RocksDBEdgeIndexIterator final : public IndexIterator {
   arangodb::StringRef getFromToFromIterator(
       arangodb::velocypack::ArrayIterator const&);
   void lookupInRocksDB(StringRef edgeKey);
+  void cacheResult(StringRef edgeKey);
 
   std::unique_ptr<arangodb::velocypack::Builder> _keys;
   arangodb::velocypack::ArrayIterator _keysIterator;
@@ -73,7 +74,6 @@ class RocksDBEdgeIndexIterator final : public IndexIterator {
 
   // the following 2 values are required for correct batch handling
   std::unique_ptr<rocksdb::Iterator> _iterator;  // iterator position in rocksdb
-  RocksDBKeyBounds _bounds;
   std::shared_ptr<cache::Cache> _cache;
   arangodb::velocypack::ArrayIterator _builderIterator;
   arangodb::velocypack::Builder _builder;
