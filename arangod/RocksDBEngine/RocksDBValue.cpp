@@ -49,6 +49,10 @@ RocksDBValue RocksDBValue::EdgeIndexValue(arangodb::StringRef const& vertexId) {
   return RocksDBValue(RocksDBEntryType::EdgeIndexValue, vertexId);
 }
 
+RocksDBValue RocksDBValue::EdgeIndexValue(VPackSlice const& data) {
+  return RocksDBValue(RocksDBEntryType::EdgeIndexValue, data);
+}
+
 RocksDBValue RocksDBValue::IndexValue() {
   return RocksDBValue(RocksDBEntryType::IndexValue);
 }
@@ -118,6 +122,7 @@ RocksDBValue::RocksDBValue(RocksDBEntryType type, VPackSlice const& data)
     : _type(type), _buffer() {
   switch (_type) {
     case RocksDBEntryType::Database:
+    case RocksDBEntryType::EdgeIndexValue:
     case RocksDBEntryType::Collection:
     case RocksDBEntryType::Document:
     case RocksDBEntryType::View:

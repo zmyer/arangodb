@@ -179,6 +179,8 @@ class RocksDBEdgeIndex final : public RocksDBIndex {
   void handleValNode(VPackBuilder* keys,
                      arangodb::aql::AstNode const* valNode) const;
 
+  Result lookupEdgeBlock(transaction::Methods* trx, StringRef vertex, RocksDBValue& value) const;
+
   std::string _directionAttr;
   bool _isFromIndex;
 

@@ -337,16 +337,8 @@ void RocksDBEdgeIndexIterator::cacheResult(StringRef fromTo) {
 void RocksDBEdgeIndexIterator::lookupInRocksDB(StringRef fromTo) {
   resetInplaceMemory();
   {
-    RocksDBMethods* mthds = rocksutils::toRocksMethods(_trx);
-    auto options = mthds->readOptions(); // intentional copy
-    options.fill_cache = EdgeIndexFillBlockCache;
-  TRI_ASSERT(options.snapshot != nullptr);
-
-    auto key = RocksDBKey::EdgeIndexValue(_index->objectId(), fromTo);
     auto value = RocksDBValue::Empty(RocksDBEntryType::EdgeIndexValue);
-
-    arangodb::Result r = mthds->Get(_index->columnFamily(), key, value.buffer());
-
+    arangodb::Result r = _index->lookupEdgeBlock(_trx, fromTo, value);
     if (r.fail()) {
       if (r.is(TRI_ERROR_ARANGO_DOCUMENT_NOT_FOUND)) {
         // Expected, there are no edges for this vertex.
@@ -482,24 +474,84 @@ void RocksDBEdgeIndex::toVelocyPack(VPackBuilder& builder, bool withFigures,
 Result RocksDBEdgeIndex::insert(transaction::Methods* trx,
                              TRI_voc_rid_t revisionId, VPackSlice const& doc,
                              bool isRollback) {
-  VPackSlice fromTo = doc.get(_directionAttr);
-  TRI_ASSERT(fromTo.isString());
-  auto fromToRef = StringRef(fromTo);
-  RocksDBKey key = RocksDBKey::EdgeIndexValue(_objectId, fromToRef, revisionId);
-  VPackSlice toFrom = _isFromIndex ? transaction::helpers::extractToFromDocument(doc) : transaction::helpers::extractFromFromDocument(doc);
-  TRI_ASSERT(toFrom.isString());
-  RocksDBValue value = RocksDBValue::EdgeIndexValue(StringRef(toFrom));
+  VPackSlice source = doc.get(_directionAttr);
+  TRI_ASSERT(source.isString());
+
+  VPackSlice target = _isFromIndex ? transaction::helpers::extractToFromDocument(doc) : transaction::helpers::extractFromFromDocument(doc);
+  TRI_ASSERT(target.isString());
+
+  std::unique_ptr<RocksDBKey> key ;
+  std::unique_ptr<RocksDBValue> value;
+  auto sourceRef = StringRef(source);
+  {
+    // First we do a fast-path lookup for Block-Indexed-Edges
+    auto oldValue = RocksDBValue::Empty(RocksDBEntryType::EdgeIndexValue);
+    arangodb::Result r = lookupEdgeBlock(trx, sourceRef, oldValue);
+    if (r.fail()) {
+      if (r.is(TRI_ERROR_ARANGO_DOCUMENT_NOT_FOUND)) {
+        // Insert a new entry and we are done.
+        transaction::BuilderLeaser builder(trx);
+        builder->openArray(true);
+        builder->add(VPackValue(revisionId));
+        builder->add(target);
+        builder->close();
+
+        key = std::make_unique<RocksDBKey>(RocksDBKey::EdgeIndexValue(objectId(), sourceRef));
+        value = std::make_unique<RocksDBValue>(RocksDBValue::EdgeIndexValue(builder->slice()));
+      } else {
+        // Something is seriously wrong
+        return r;
+      }
+    } else {
+      auto finding = RocksDBValue::data(oldValue);
+      TRI_ASSERT(finding.isArray());
+      if (finding.length() < 2 * EdgeIndexBlockCacheSize) {
+        // We must have an even length, we insert two values for each edge.
+        TRI_ASSERT(finding.length() % 2 == 0);
+        // Simply append the new edge here.
+        // Insert a new entry and we are done.
+        transaction::BuilderLeaser builder(trx);
+        builder->reserve(finding.byteSize());
+        builder->openArray(true);
+#ifdef USE_MAINTAINER_MODE
+        bool alternateTest = false;
+#endif
+        for (auto const& it : VPackArrayIterator(finding)) {
+#ifdef USE_MAINTAINER_MODE
+          // We assert that we always find [_rev,target]
+          if (alternateTest) {
+            TRI_ASSERT(it.isString());
+          } else {
+            TRI_ASSERT(it.isNumber());
+          }
+          alternateTest = !alternateTest;
+#endif
+          builder->add(it);
+        }
+        builder->add(VPackValue(revisionId));
+        builder->add(target);
+        builder->close();
+
+        key = std::make_unique<RocksDBKey>(RocksDBKey::EdgeIndexValue(objectId(), sourceRef));
+        value = std::make_unique<RocksDBValue>(RocksDBValue::EdgeIndexValue(builder->slice()));
+      } else {
+        // just add an edge by the old format
+        key = std::make_unique<RocksDBKey>(RocksDBKey::EdgeIndexValue(_objectId, sourceRef, revisionId));
+        value = std::make_unique<RocksDBValue>(RocksDBValue::EdgeIndexValue(StringRef(target)));
+      }
+    }
+  }
 
   // blacklist key in cache
-  blackListKey(fromToRef);
+  blackListKey(sourceRef);
 
   // acquire rocksdb transaction
   RocksDBMethods* mthd = rocksutils::toRocksMethods(trx);
-  Result r = mthd->Put(_cf, rocksdb::Slice(key.string()), value.string(),
+  Result r = mthd->Put(_cf, rocksdb::Slice(key->string()), value->string(),
                        rocksutils::index);
   if (r.ok()) {
     std::hash<StringRef> hasher;
-    uint64_t hash = static_cast<uint64_t>(hasher(fromToRef));
+    uint64_t hash = static_cast<uint64_t>(hasher(sourceRef));
     _estimator->insert(hash);
     return IndexResult(TRI_ERROR_NO_ERROR);
   } else {
@@ -932,4 +984,14 @@ Result RocksDBEdgeIndex::postprocessRemove(transaction::Methods* trx,
   uint64_t hash = RocksDBEdgeIndex::HashForKey(key);
   _estimator->remove(hash);
   return {TRI_ERROR_NO_ERROR};
+}
+
+Result RocksDBEdgeIndex::lookupEdgeBlock(transaction::Methods* trx, StringRef vertex, RocksDBValue& value) const {
+  RocksDBMethods* mthds = rocksutils::toRocksMethods(trx);
+  auto options = mthds->readOptions(); // intentional copy
+  options.fill_cache = EdgeIndexFillBlockCache;
+  TRI_ASSERT(options.snapshot != nullptr);
+
+  auto key = RocksDBKey::EdgeIndexValue(objectId(), vertex);
+  return mthds->Get(columnFamily(), key, value.buffer());
 }

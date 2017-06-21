@@ -313,6 +313,7 @@ RocksDBKey::RocksDBKey(RocksDBEntryType type, uint64_t first,
                        arangodb::StringRef const& second)
     : _type(type), _buffer() {
   switch (_type) {
+    case RocksDBEntryType::EdgeIndexValue:
     case RocksDBEntryType::PrimaryIndexValue: {
       size_t length = sizeof(char) + sizeof(uint64_t) + second.size();
       _buffer.reserve(length);
