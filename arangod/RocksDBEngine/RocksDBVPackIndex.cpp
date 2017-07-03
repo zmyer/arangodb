@@ -631,16 +631,22 @@ Result RocksDBVPackIndex::removeInternal(transaction::Methods* trx,
 int RocksDBVPackIndex::drop() {
   // First drop the cache all indexes can work without it.
   RocksDBIndex::drop();
-  if (_unique) {
-    return rocksutils::removeLargeRange(
-               rocksutils::globalRocksDB(),
-               RocksDBKeyBounds::UniqueVPackIndex(_objectId))
-        .errorNumber();
-  } else {
-    return rocksutils::removeLargeRange(rocksutils::globalRocksDB(),
-                                        RocksDBKeyBounds::VPackIndex(_objectId))
-        .errorNumber();
+  RocksDBKeyBounds bounds = RocksDBKeyBounds::UniqueVPackIndex(_objectId);
+  if (!_unique) {
+    bounds = RocksDBKeyBounds::RocksDBKeyBounds::VPackIndex(_objectId);
   }
+  int rv = rocksutils::removeLargeRange(
+      rocksutils::globalRocksDB(),bounds).errorNumber();
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+  //check if documents have been deleted
+  rocksdb::ReadOptions readOptions;
+  readOptions.fill_cache = false;
+  size_t numDocs = rocksutils::countKeyRange(rocksutils::globalRocksDB(), readOptions, bounds);
+  if (numDocs) {
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "deletion check in vpack index (skiplist/hash/persistent) drop failed - not all documents in the index have been deleted");
+  }
+#endif
+  return rv;
 }
 
 /// @brief attempts to locate an entry in the index

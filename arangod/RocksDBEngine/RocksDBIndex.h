@@ -85,7 +85,7 @@ class RocksDBIndex : public Index {
     // nothing to do here
     return TRI_ERROR_NO_ERROR;
   }
-  
+ 
   Result insert(transaction::Methods* trx, TRI_voc_rid_t rid,
                 velocypack::Slice const& doc, bool) override {
     auto mthds = RocksDBTransactionState::toMethods(trx);
@@ -106,26 +106,28 @@ class RocksDBIndex : public Index {
   virtual bool deserializeEstimate(RocksDBCounterManager* mgr);
 
   virtual void recalculateEstimates();
-  
+
   /// insert index elements into the specified write batch.
   virtual Result insertInternal(transaction::Methods* trx,
                                 RocksDBMethods*, TRI_voc_rid_t,
                                 arangodb::velocypack::Slice const&) = 0;
-  
+
   /// remove index elements and put it in the specified write batch.
   virtual Result removeInternal(transaction::Methods* trx,
                                 RocksDBMethods*, TRI_voc_rid_t,
                                 arangodb::velocypack::Slice const&) = 0;
-  
+
   rocksdb::ColumnFamilyHandle* columnFamily() const { return _cf; }
-  
+
   rocksdb::Comparator const* comparator() const;
-  
+
   static RocksDBKeyBounds getBounds(Index::IndexType type, uint64_t objectId,
                                     bool unique);
-  
+
+  RocksDBKeyBounds getBounds() const {
+    return RocksDBIndex::getBounds(type(), _objectId, _unique);
+  };
 protected:
-  
   // Will be called during truncate to allow the index to update selectivity
   // estimates, blacklist keys, etc.
   virtual Result postprocessRemove(transaction::Methods* trx,
@@ -136,9 +138,6 @@ protected:
   void blackListKey(char const* data, std::size_t len);
   void blackListKey(StringRef& ref) { blackListKey(ref.data(), ref.size()); };
 
-  RocksDBKeyBounds getBounds() const {
-    return RocksDBIndex::getBounds(type(), _objectId, _unique);
-  };
 
  protected:
   uint64_t _objectId;

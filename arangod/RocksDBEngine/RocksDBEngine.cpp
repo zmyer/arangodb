@@ -1023,6 +1023,16 @@ arangodb::Result RocksDBEngine::dropCollection(
   RocksDBKeyBounds bounds =
       RocksDBKeyBounds::CollectionDocuments(coll->objectId());
   auto result = rocksutils::removeLargeRange(_db, bounds);
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+  //check if documents have been deleted
+  rocksdb::ReadOptions readOptions;
+  readOptions.fill_cache = false;
+  size_t numDocs = rocksutils::countKeyRange(rocksutils::globalRocksDB(), readOptions, bounds);
+  if (numDocs) {
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "deletion check in drop collection failed - not all documents have been deleted");
+  }
+#endif
+
   // TODO FAILURE Simulate result.fail()
   if (result.fail()) {
     // We try to remove all documents.
@@ -1335,9 +1345,18 @@ Result RocksDBEngine::dropDatabase(TRI_voc_tick_t id) {
         if (res.fail()) {
           return res;
         }
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+       //check if documents have been deleted
+       rocksdb::ReadOptions readOptions;
+       readOptions.fill_cache = false;
+       size_t numDocs = rocksutils::countKeyRange(rocksutils::globalRocksDB(), readOptions, bounds);
+       if (numDocs) {
+         THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "deletion check in drop collection failed - not all index documents have been deleted");
+       }
+#endif
       }
     }
-    
+
     uint64_t objectId =
         basics::VelocyPackHelper::stringUInt64(val.second.slice(), "objectId");
     // delete documents
@@ -1347,6 +1366,15 @@ Result RocksDBEngine::dropDatabase(TRI_voc_tick_t id) {
       return res;
     }
     // delete Collection
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+    //check if documents have been deleted
+    rocksdb::ReadOptions readOptions;
+    readOptions.fill_cache = false;
+    size_t numDocs = rocksutils::countKeyRange(rocksutils::globalRocksDB(), readOptions, bounds);
+    if (numDocs) {
+      THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "deletion check in drop collection failed - not all documents have been deleted");
+    }
+#endif
     _counterManager->removeCounter(objectId);
     res = globalRocksDBRemove(RocksDBColumnFamily::definitions(),
                               val.first.string(), options);

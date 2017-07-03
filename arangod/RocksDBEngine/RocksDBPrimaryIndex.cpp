@@ -257,9 +257,18 @@ Result RocksDBPrimaryIndex::removeInternal(transaction::Methods* trx,
 int RocksDBPrimaryIndex::drop() {
   // First drop the cache all indexes can work without it.
   RocksDBIndex::drop();
-  return rocksutils::removeLargeRange(rocksutils::globalRocksDB(),
-                                      RocksDBKeyBounds::PrimaryIndex(_objectId))
-      .errorNumber();
+  int rv = rocksutils::removeLargeRange(
+      rocksutils::globalRocksDB(), RocksDBKeyBounds::PrimaryIndex(_objectId)) .errorNumber();
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+  //check if documents have been deleted
+  rocksdb::ReadOptions readOptions;
+  readOptions.fill_cache = false;
+  size_t numDocs = rocksutils::countKeyRange(rocksutils::globalRocksDB(), readOptions, RocksDBKeyBounds::PrimaryIndex(_objectId));
+  if (numDocs) {
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "deletion check in primary index drop failed - not all documents in the index have been deleted");
+  }
+#endif
+  return rv;
 }
 
 /// @brief checks whether the index supports the condition

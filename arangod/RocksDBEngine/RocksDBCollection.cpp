@@ -659,6 +659,7 @@ void RocksDBCollection::invokeOnAllElements(
 
 void RocksDBCollection::truncate(transaction::Methods* trx,
                                  OperationOptions& options) {
+
   // TODO FIXME -- improve transaction size
   TRI_ASSERT(_objectId != 0);
   TRI_voc_cid_t cid = _logicalCollection->cid();
@@ -714,6 +715,22 @@ void RocksDBCollection::truncate(transaction::Methods* trx,
     RocksDBIndex* rindex = static_cast<RocksDBIndex*>(index.get());
     rindex->truncate(trx);
   }
+
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+  //check if documents have been deleted
+
+  if (mthd->countInBounds(documentBounds, true)) {
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "deletion check in collection truncate failed - not all documents have been deleted");
+  }
+
+  for (std::shared_ptr<Index> const& index : _indexes) {
+    RocksDBIndex* rindex = static_cast<RocksDBIndex*>(index.get());
+    if (mthd->countInBounds(rindex->getBounds(),true)) {
+      THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "deletion check in collection truncate failed - not all documents in an index have been deleted");
+    }
+  }
+#endif
+
   _needToPersistIndexEstimates = true;
 }
 

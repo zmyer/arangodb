@@ -185,7 +185,7 @@ std::pair<TRI_voc_tick_t, TRI_voc_cid_t> mapObjectToCollection(
 std::size_t countKeyRange(rocksdb::DB* db, rocksdb::ReadOptions const& opts,
                           RocksDBKeyBounds const& bounds) {
   rocksdb::ColumnFamilyHandle* cf = bounds.columnFamily();
-  rocksdb::Comparator const* cmp = db->GetOptions().comparator;
+  rocksdb::Comparator const* cmp = cf->GetComparator();
   std::unique_ptr<rocksdb::Iterator> it(db->NewIterator(opts, cf));
   std::size_t count = 0;
 

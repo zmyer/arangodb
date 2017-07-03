@@ -534,10 +534,18 @@ void RocksDBEdgeIndex::batchInsert(
 int RocksDBEdgeIndex::drop() {
   // First drop the cache all indexes can work without it.
   RocksDBIndex::drop();
-  return rocksutils::removeLargeRange(rocksutils::globalRocksDB(),
-                                      RocksDBKeyBounds::EdgeIndex(_objectId),
-                                      false)
-      .errorNumber();
+  int rv =  rocksutils::removeLargeRange(
+    rocksutils::globalRocksDB(), RocksDBKeyBounds::EdgeIndex(_objectId), false).errorNumber();
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+  //check if documents have been deleted
+  rocksdb::ReadOptions readOptions;
+  readOptions.fill_cache = false;
+  size_t numDocs = rocksutils::countKeyRange(rocksutils::globalRocksDB(), readOptions, RocksDBKeyBounds::EdgeIndex(_objectId));
+  if (numDocs) {
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "deletion check in edge index drop failed - not all documents in the index have been deleted");
+  }
+#endif
+  return rv;
 }
 
 /// @brief checks whether the index supports the condition

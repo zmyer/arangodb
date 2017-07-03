@@ -87,6 +87,7 @@ class RocksDBMethods {
   virtual void SetSavePoint() = 0;
   virtual arangodb::Result RollbackToSavePoint() = 0;
 
+  std::size_t countInBounds(RocksDBKeyBounds const& bounds, bool isElementInRange = false);
  protected:
   RocksDBTransactionState* _state;
 };

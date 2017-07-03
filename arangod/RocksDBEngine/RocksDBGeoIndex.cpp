@@ -601,3 +601,20 @@ GeoCoordinates* RocksDBGeoIndex::nearQuery(transaction::Methods* trx,
   GeoIndex_clearRocks(_geoIndex);
   return coords;
 }
+
+int RocksDBGeoIndex::drop() {
+  // First drop the cache all indexes can work without it.
+  RocksDBIndex::drop();
+  int rv = rocksutils::removeLargeRange(
+      rocksutils::globalRocksDB(), RocksDBKeyBounds::GeoIndex(_objectId)) .errorNumber();
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+  //check if documents have been deleted
+  rocksdb::ReadOptions readOptions;
+  readOptions.fill_cache = false;
+  size_t numDocs = rocksutils::countKeyRange(rocksutils::globalRocksDB(), readOptions, RocksDBKeyBounds::GeoIndex(_objectId));
+  if (numDocs) {
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "deletion check in geo index drop failed - not all documents in the index have been deleted");
+  }
+#endif
+  return rv;
+}

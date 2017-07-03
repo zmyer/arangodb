@@ -126,6 +126,7 @@ class RocksDBGeoIndex final : public RocksDBIndex {
   bool allowExpansion() const override { return false; }
 
   bool canBeDropped() const override { return true; }
+  int drop() override;
 
   bool isSorted() const override { return true; }
 
