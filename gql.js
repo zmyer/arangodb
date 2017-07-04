@@ -174,8 +174,9 @@ function _generateSchema(
   // TODO: check that typeDefinitions is either string or array of strings
 
   const [ast, schema] = buildSchemaFromTypeDefinitions(typeDefinitions);
-
-  // print(JSON.stringify(ast, false, 2));
+  print('------- AST ----------');
+  print(JSON.stringify(ast, false, 2));
+  print('------- AST ----------');
 
   ast.definitions.forEach( definition => {
     const x = JSON.parse(JSON.stringify(definition, false, 2));
@@ -225,8 +226,56 @@ function _generateSchema(
 
           return res.pop();
 
-      }
-    } // if
+      } // function
+    } else { // if field.name.value == Query
+      print('----- != QUERY -----');
+      print(x);
+      print('----- != QUERY -----');
+      const objectTypeName = x.name.value;
+      print('objectTypeName', objectTypeName);
+      x.fields.forEach(field => {
+        const fieldName = field.name.value;
+
+        const isArray = 'ListType' === field.type.kind ? true : false;
+
+        if (field.directives.length) {
+          const directive = field.directives.shift();
+
+          if ('aql' === directive.name.value) {
+            const arg = directive.arguments.shift();
+            if ('exec' === arg.name.value) {
+              const aql = arg.value.value;
+              const parseResult = db._parse(aql);
+              const usesCurrent = !!~parseResult.bindVars.indexOf('current');
+
+              if (!resolveFunctions[objectTypeName]) resolveFunctions[objectTypeName] = {};
+
+              resolveFunctions[objectTypeName][fieldName] = function(obj, emptyObject, dontknow, returnTypeOperationDesc) {
+
+                print('-- ARGUMENTS --');
+                print(JSON.parse(JSON.stringify(arguments)));
+                print('-- ARGUMENTS --');
+                print('-----OBJ-----');
+                print(obj);
+                print('-----OBJ-----');
+
+                const params = {};
+                if (usesCurrent) {
+                  params.current = obj;
+                }
+                const res = db._query(aql, params).toArray();
+
+                if (isArray) {
+                  return res;
+                } else {
+                  return res.pop();
+                }
+              }
+            }
+          } // if
+        } // if
+      });
+    }
   }); // forEach
 
   addResolveFunctionsToSchema(schema, resolveFunctions);
@@ -240,6 +289,10 @@ function _generateSchema(
   if (logger) {
     addErrorLoggingToSchema(schema, logger);
   }
+
+/*print('---------- SCHEMA ----------');
+  print(JSON.parse(JSON.stringify(schema)));
+  print('---------- SCHEMA ----------');*/
 
   return schema;
 }
@@ -419,15 +472,17 @@ const jsSchema = makeExecutableSchema({
 
 
 let typeDefs = [`
+  type Bob {
+    id: Int!
+  }
+
   type Author {
     id: Int!
-    firstName: String
-    lastName: String
-    name: String
+    name: Bob @aql(exec: "return @current")
   }
 
   type Query {
-    author(id: Int!, name: String!): Author
+    author(id: Int!): Author
   }
 `]
 
@@ -435,10 +490,11 @@ let schema = makeExecutableSchema(typeDefs);
 
 let query = `
 {
-  author(id: 4, name: "Manuel") {
-    firstName
-    name
+  author(id: 4) {
     id
+    name {
+     id
+    }
   }
 }
 `;
@@ -447,5 +503,4 @@ let result = graphql(schema, query);
 
 print('-----------');
 print(result);
-
 

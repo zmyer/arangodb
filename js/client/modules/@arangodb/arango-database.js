@@ -937,17 +937,39 @@ ArangoDatabase.prototype._explain = function (query, bindVars, options) {
 };
 
 // //////////////////////////////////////////////////////////////////////////////
+// / @brief parses a query
+// //////////////////////////////////////////////////////////////////////////////
+
+ArangoDatabase.prototype._parse = function (query) {
+  if (typeof query === 'object' && typeof query.toAQL === 'function') {
+    query = { query: query.toAQL() };
+  } else {
+    query = { query: query };
+  }
+
+  const requestResult = this._connection.POST('/_api/query', JSON.stringify(query));
+
+  if (requestResult && requestResult.error === true) {
+    throw new ArangoError(requestResult);
+  }
+
+  arangosh.checkRequestResult(requestResult);
+
+  return requestResult;
+};
+
+// //////////////////////////////////////////////////////////////////////////////
 // / @brief create a new database
 // //////////////////////////////////////////////////////////////////////////////
 
 ArangoDatabase.prototype._createDatabase = function (name, options, users) {
-  var data = {
+ const data = {
     name: name,
     options: options || { },
     users: users || []
   };
 
-  var requestResult = this._connection.POST('/_api/database', JSON.stringify(data));
+  const requestResult = this._connection.POST('/_api/database', JSON.stringify(data));
 
   if (requestResult !== null && requestResult.error === true) {
     throw new ArangoError(requestResult);
