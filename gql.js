@@ -220,7 +220,7 @@ function _generateSchema(
           const filterList = Object.keys(args).map(arg => `doc.${arg} == ${'string' === typeof args[arg] ? "'" + args[arg] + "'" : args[arg] }`);
 
           print('filterList', filterList);
-
+          print(`for doc in ${collection} filter ${filterList.join(' AND ')} return doc`);
           const res = db._query(`for doc in ${collection} filter ${filterList.join(' AND ')} return doc`).toArray();
 
 
@@ -472,17 +472,20 @@ const jsSchema = makeExecutableSchema({
 
 
 let typeDefs = [`
-  type Bob {
-    id: Int!
+  type BlogEntry {
+    _key: String!
+    authorKey: String!
+
+    author: Author @aql(exec: "FOR author in Author filter author._key == @current.authorKey return author")
   }
 
   type Author {
-    id: Int!
-    name: Bob @aql(exec: "return @current")
+    _key: String!
+    name: String
   }
 
   type Query {
-    author(id: Int!): Author
+    blogEntry(_key: String!): BlogEntry
   }
 `]
 
@@ -490,11 +493,12 @@ let schema = makeExecutableSchema(typeDefs);
 
 let query = `
 {
-  author(id: 4) {
-    id
-    name {
-     id
-    }
+  blogEntry(_key: "1") {
+    _key
+    authorKey
+    author {
+      name
+     }
   }
 }
 `;
@@ -503,4 +507,3 @@ let result = graphql(schema, query);
 
 print('-----------');
 print(result);
-
