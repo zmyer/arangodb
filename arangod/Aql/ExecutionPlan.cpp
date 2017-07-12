@@ -732,15 +732,15 @@ ExecutionNode* ExecutionPlan::fromNodeTraversal(ExecutionNode* previous,
   direction = direction->getMember(0);
   TRI_ASSERT(direction->isIntValue());
 
-  // First create the node
-  auto travNode = new TraversalNode(this, nextId(), _ast->query()->vocbase(),
-                                    direction, start, graph, options);
 
   auto variable = node->getMember(4);
   TRI_ASSERT(variable->type == NODE_TYPE_VARIABLE);
   auto v = static_cast<Variable*>(variable->getData());
   TRI_ASSERT(v != nullptr);
-  travNode->setVertexOutput(v);
+
+  // First create the node
+  auto travNode = new TraversalNode(this, nextId(), _ast->query()->vocbase(),
+                                    direction, start, graph, v, options);
 
   if (node->numMembers() > 5) {
     // return the edge as well
@@ -808,16 +808,16 @@ ExecutionNode* ExecutionPlan::fromNodeShortestPath(ExecutionNode* previous,
 
   auto options = CreateShortestPathOptions(getAst()->query()->trx(), node->getMember(4));
 
-  // First create the node
-  auto spNode = new ShortestPathNode(this, nextId(), _ast->query()->vocbase(),
-                                     direction, start, target,
-                                     graph, options);
-
   auto variable = node->getMember(5);
   TRI_ASSERT(variable->type == NODE_TYPE_VARIABLE);
   auto v = static_cast<Variable*>(variable->getData());
   TRI_ASSERT(v != nullptr);
-  spNode->setVertexOutput(v);
+
+  // First create the node
+  auto spNode = new ShortestPathNode(this, nextId(), _ast->query()->vocbase(),
+                                     direction, start, target,
+                                     graph, v, options);
+
 
   if (node->numMembers() > 6) {
     // return the edge as well

@@ -104,7 +104,7 @@ describe('Rule optimize-traversals', () => {
       let found = false;
       result.plan.nodes.forEach(function (thisNode) {
         if (thisNode.type === 'TraversalNode') {
-          expect(thisNode.hasOwnProperty('vertexOutVariable')).to.equal(query[2][0]);
+          expect(thisNode.hasOwnProperty('outVariable')).to.equal(query[2][0]);
           expect(thisNode.hasOwnProperty('edgeOutVariable')).to.equal(query[2][1]);
           expect(thisNode.hasOwnProperty('pathOutVariable')).to.equal(query[2][2]);
           found = true;

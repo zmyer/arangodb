@@ -88,8 +88,9 @@ void TraversalNode::TraversalEdgeConditionBuilder::toVelocyPack(
 TraversalNode::TraversalNode(ExecutionPlan* plan, size_t id,
                              TRI_vocbase_t* vocbase, AstNode const* direction,
                              AstNode const* start, AstNode const* graph,
+                             Variable const* outVariable,
                              std::unique_ptr<BaseOptions>& options)
-    : GraphNode(plan, id, vocbase, direction, graph, options),
+    : GraphNode(plan, id, vocbase, direction, graph, outVariable, options),
       _pathOutVariable(nullptr),
       _inVariable(nullptr),
       _condition(nullptr),
@@ -152,8 +153,9 @@ TraversalNode::TraversalNode(
     std::vector<std::unique_ptr<Collection>> const& vertexColls,
     Variable const* inVariable, std::string const& vertexId,
     std::vector<TRI_edge_direction_e> const& directions,
+    Variable const* outVariable,
     std::unique_ptr<BaseOptions>& options)
-    : GraphNode(plan, id, vocbase, edgeColls, vertexColls, directions, options),
+    : GraphNode(plan, id, vocbase, edgeColls, vertexColls, directions, outVariable, options),
       _pathOutVariable(nullptr),
       _inVariable(inVariable),
       _vertexId(vertexId),
@@ -259,7 +261,7 @@ TraversalNode::~TraversalNode() {
 }
 
 int TraversalNode::checkIsOutVariable(size_t variableId) const {
-  if (_vertexOutVariable != nullptr && _vertexOutVariable->id == variableId) {
+  if (outVariable() != nullptr && outVariable()->id == variableId) {
     return 0;
   }
   if (_edgeOutVariable != nullptr && _edgeOutVariable->id == variableId) {
@@ -391,18 +393,17 @@ ExecutionNode* TraversalNode::clone(ExecutionPlan* plan, bool withDependencies,
   auto oldOpts = static_cast<TraverserOptions*>(options());
   std::unique_ptr<BaseOptions> tmp =
       std::make_unique<TraverserOptions>(*oldOpts);
-  auto c = new TraversalNode(plan, _id, _vocbase, _edgeColls, _vertexColls,
-                             _inVariable, _vertexId, _directions, tmp);
 
-  if (usesVertexOutVariable()) {
-    auto vertexOutVariable = _vertexOutVariable;
-    if (withProperties) {
-      vertexOutVariable =
-          plan->getAst()->variables()->createVariable(vertexOutVariable);
-    }
-    TRI_ASSERT(vertexOutVariable != nullptr);
-    c->setVertexOutput(vertexOutVariable);
+  TRI_ASSERT(usesVertexOutVariable());
+  auto vertexOutVariable = outVariable();
+  if (withProperties) {
+    vertexOutVariable =
+        plan->getAst()->variables()->createVariable(vertexOutVariable);
   }
+  TRI_ASSERT(vertexOutVariable != nullptr);
+
+  auto c = new TraversalNode(plan, _id, _vocbase, _edgeColls, _vertexColls,
+                             _inVariable, _vertexId, _directions, vertexOutVariable, tmp);
 
   if (usesEdgeOutVariable()) {
     auto edgeOutVariable = _edgeOutVariable;
@@ -579,8 +580,7 @@ void TraversalNode::setCondition(arangodb::aql::Condition* condition) {
   Ast::getReferencedVariables(condition->root(), varsUsedByCondition);
 
   for (auto const& oneVar : varsUsedByCondition) {
-    if ((_vertexOutVariable == nullptr ||
-         oneVar->id != _vertexOutVariable->id) &&
+    if ((outVariable() == nullptr || oneVar->id != outVariable()->id) &&
         (_edgeOutVariable == nullptr || oneVar->id != _edgeOutVariable->id) &&
         (_pathOutVariable == nullptr || oneVar->id != _pathOutVariable->id) &&
         (_inVariable == nullptr || oneVar->id != _inVariable->id)) {

@@ -82,6 +82,7 @@ class TraversalNode : public GraphNode {
   TraversalNode(ExecutionPlan* plan, size_t id, TRI_vocbase_t* vocbase,
                 AstNode const* direction, AstNode const* start,
                 AstNode const* graph,
+                Variable const* outVariable,
                 std::unique_ptr<graph::BaseOptions>& options);
 
   TraversalNode(ExecutionPlan* plan, arangodb::velocypack::Slice const& base);
@@ -95,6 +96,7 @@ class TraversalNode : public GraphNode {
                 std::vector<std::unique_ptr<aql::Collection>> const& vertexColls,
                 Variable const* inVariable, std::string const& vertexId,
                 std::vector<TRI_edge_direction_e> const& directions,
+                Variable const* outVariable,
                 std::unique_ptr<graph::BaseOptions>& options);
 
  public:

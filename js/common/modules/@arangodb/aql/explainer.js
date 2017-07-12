@@ -881,8 +881,8 @@ function processQuery (query, explain) {
         node.minMaxDepthLen = node.minMaxDepth.length;
 
         rc = keyword('FOR ');
-        if (node.hasOwnProperty('vertexOutVariable')) {
-          parts.push(variableName(node.vertexOutVariable) + '  ' + annotation('/* vertex */'));
+        if (node.hasOwnProperty('outVariable')) {
+          parts.push(variableName(node.outVariable) + '  ' + annotation('/* vertex */'));
         }
         if (node.hasOwnProperty('edgeOutVariable')) {
           parts.push(variableName(node.edgeOutVariable) + '  ' + annotation('/* edge */'));
@@ -1000,8 +1000,8 @@ function processQuery (query, explain) {
 
         return rc;
       case 'ShortestPathNode':
-        if (node.hasOwnProperty('vertexOutVariable')) {
-          parts.push(variableName(node.vertexOutVariable) + '  ' + annotation('/* vertex */'));
+        if (node.hasOwnProperty('outVariable')) {
+          parts.push(variableName(node.outVariable) + '  ' + annotation('/* vertex */'));
         }
         if (node.hasOwnProperty('edgeOutVariable')) {
           parts.push(variableName(node.edgeOutVariable) + '  ' + annotation('/* edge */'));

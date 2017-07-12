@@ -24,6 +24,7 @@
 #ifndef ARANGOD_AQL_GRAPH_NODE_H
 #define ARANGOD_AQL_GRAPH_NODE_H 1
 
+#include "Aql/DocumentProducingNode.h"
 #include "Aql/ExecutionNode.h"
 #include "Cluster/ClusterInfo.h"
 #include "Cluster/TraverserEngineRegistry.h"
@@ -45,11 +46,12 @@ class Graph;
 //        * option preparation
 //        * Smart Graph Handling
 
-class GraphNode : public ExecutionNode {
+class GraphNode : public ExecutionNode, public DocumentProducingNode {
  public:
   /// @brief constructor with a vocbase and a collection name
   GraphNode(ExecutionPlan* plan, size_t id, TRI_vocbase_t* vocbase,
             AstNode const* direction, AstNode const* graph,
+            Variable const* outVariable,
             std::unique_ptr<graph::BaseOptions>& options);
 
   GraphNode(ExecutionPlan* plan, arangodb::velocypack::Slice const& base);
@@ -60,6 +62,7 @@ class GraphNode : public ExecutionNode {
             std::vector<std::unique_ptr<Collection>> const& edgeColls,
             std::vector<std::unique_ptr<Collection>> const& vertexColls,
             std::vector<TRI_edge_direction_e> const& directions,
+            Variable const* outVariable,
             std::unique_ptr<graph::BaseOptions>& options);
 
  public:
@@ -75,13 +78,13 @@ class GraphNode : public ExecutionNode {
   TRI_vocbase_t* vocbase() const { return _vocbase; }
 
   /// @brief return the vertex out variable
-  Variable const* vertexOutVariable() const { return _vertexOutVariable; }
+  Variable const* vertexOutVariable() const { return _outVariable; }
 
   /// @brief checks if the vertex out variable is used
-  bool usesVertexOutVariable() const { return _vertexOutVariable != nullptr; }
+  bool usesVertexOutVariable() const { return _outVariable != nullptr; }
 
   /// @brief set the vertex out variable
-  void setVertexOutput(Variable const* outVar) { _vertexOutVariable = outVar; }
+  // void setVertexOutput(Variable const* outVar) { _outVariable = outVar; }
 
   /// @brief return the edge out variable
   Variable const* edgeOutVariable() const { return _edgeOutVariable; }
@@ -134,9 +137,6 @@ class GraphNode : public ExecutionNode {
  protected:
   /// @brief the database
   TRI_vocbase_t* _vocbase;
-
-  /// @brief vertex output variable
-  Variable const* _vertexOutVariable;
 
   /// @brief vertex output variable
   Variable const* _edgeOutVariable;
