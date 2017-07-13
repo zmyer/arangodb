@@ -26,11 +26,10 @@ SOFTWARE.
 
 */
 
-
 'use strict';
 
 const gql = require('graphql-sync');
-const lodash_1 = require("lodash");
+const lodash_1 = require('lodash');
 const db = require('@arangodb').db;
 
 const graphql = gql.graphql;
@@ -79,66 +78,51 @@ function _generateSchema(
   // TODO: check that typeDefinitions is either string or array of strings
 
   const [ast, schema] = buildSchemaFromTypeDefinitions(typeDefinitions);
-  print('------- AST ----------');
+  /*print('------- AST ----------');
   print(JSON.stringify(ast, false, 2));
-  print('------- AST ----------');
+  print('------- AST ----------');*/
 
-  ast.definitions.forEach( definition => {
-    const x = JSON.parse(JSON.stringify(definition, false, 2));
+  ast.definitions.forEach( objectDefinition => {
+    if (objectDefinition.name.value == 'Query') {
+      console.log('objectDefinition Query');
 
-    if (x.name.value == 'Query') {
-      console.log('found query');
-      const field = x.fields[0];
-      const fieldName = field.name.value;
+      objectDefinition.fields.forEach(field => {
+        const fieldName = field.name.value;
+        // print('fieldName', fieldName);
+        const collection = field.type.name.value;
+        // print('collection', collection);
+        
+        /*const args = field.arguments;
+        const argList = [];
 
-      print(fieldName);
+        for (const arg of args) {
+            print('arg.name.value', arg.name.value);
+            print('arg.type.type.name.value', arg.type.type.name.value);
 
-    
+            argList.push({[arg.name.value]: arg.type.type.name.value});
+        } // for*/
 
-      const collection = field.type.name.value;
-      const args = field.arguments;
+        if (!resolveFunctions['Query']) resolveFunctions['Query'] = {};
+        resolveFunctions['Query'][fieldName] = function(dontknow, args, dontknow2, astPart) { // a undefined, b id:4, undefined, astpart
 
-      print('collection is', collection);
+            // print(args);
 
-      const argList = [];
+            const filterList = Object.keys(args).map(arg => `doc.${arg} == ${'string' === typeof args[arg] ? "'" + args[arg] + "'" : args[arg] }`);
 
-      for (const arg of args) {
-        print(arg);
-        print('arg.name.value');
-        print(arg.name.value);
-        print('arg.type.type.name.value');
-        print(arg.type.type.name.value);
+            // print('filterList', filterList);
+            // print(`for doc in ${collection} filter ${filterList.join(' AND ')} return doc`);
+            const res = db._query(`for doc in ${collection} filter ${filterList.join(' AND ')} return doc`).toArray();
 
-        argList.push({[arg.name.value]: arg.type.type.name.value});
-      } // for
-
-
-
-      // print(collection);
-      // print(argList);
-
-      resolveFunctions['Query'] = {};
-      resolveFunctions['Query'][fieldName] = function(dontknow, args, dontknow2, astPart) { // a undefined, b id:4, undefined, astpart
-
-          // print(args);
-
-          const filterList = Object.keys(args).map(arg => `doc.${arg} == ${'string' === typeof args[arg] ? "'" + args[arg] + "'" : args[arg] }`);
-
-          print('filterList', filterList);
-          print(`for doc in ${collection} filter ${filterList.join(' AND ')} return doc`);
-          const res = db._query(`for doc in ${collection} filter ${filterList.join(' AND ')} return doc`).toArray();
-
-
-          return res.pop();
-
-      } // function
+            return res.pop();
+        } // function      
+      }); // fields.forEach
     } else { // if field.name.value == Query
-      print('----- != QUERY -----');
-      print(x);
-      print('----- != QUERY -----');
-      const objectTypeName = x.name.value;
-      print('objectTypeName', objectTypeName);
-      x.fields.forEach(field => {
+      /*print('----- != QUERY -----');
+      print(JSON.parse(JSON.stringify(objectDefinition)));
+      print('----- != QUERY -----');*/
+      const objectTypeName = objectDefinition.name.value;
+      // print('objectTypeName', objectTypeName);
+      objectDefinition.fields.forEach(field => {
         const fieldName = field.name.value;
 
         const isArray = 'ListType' === field.type.kind ? true : false;
@@ -151,21 +135,21 @@ function _generateSchema(
             if ('exec' === arg.name.value) {
               const aql = arg.value.value;
               const parseResult = db._parse(aql);
-              print('---parse result-----');
+              /*print('---parse result-----');
               print(parseResult);
-              print('---parse result-----');
+              print('---parse result-----');*/
               const usesCurrent = !!~parseResult.bindVars.indexOf('current');
 
               if (!resolveFunctions[objectTypeName]) resolveFunctions[objectTypeName] = {};
 
               resolveFunctions[objectTypeName][fieldName] = function(obj, emptyObject, dontknow, returnTypeOperationDesc) {
 
-                print('-- ARGUMENTS --');
+                /*print('-- ARGUMENTS --');
                 print(JSON.parse(JSON.stringify(arguments)));
                 print('-- ARGUMENTS --');
                 print('-----OBJ-----');
                 print(obj);
-                print('-----OBJ-----');
+                print('-----OBJ-----');*/
 
                 const params = {};
                 if (usesCurrent) {

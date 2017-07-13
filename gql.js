@@ -1,10 +1,7 @@
 'use strict';
 
-const gql = require('graphql-sync');
-const graphql = gql.graphql;
-
-const generator = require('./graphql-generator');
-
+const graphql = require('../sgq/node_modules/graphql-sync').graphql;
+const sgq = require('../sgq');
 
 
 let typeDefs = [`
@@ -25,9 +22,9 @@ let typeDefs = [`
   }
 `]
 
-let schema = generator(typeDefs);
+const schema = sgq(typeDefs);
 
-let query = `
+const query = `
 {
   blogEntry(_key: "1") {
     _key
@@ -38,7 +35,7 @@ let query = `
   }
 }`;
 
-let result = graphql(schema, query);
+const result = graphql(schema, query);
 
 print('-----------');
 print(result);
