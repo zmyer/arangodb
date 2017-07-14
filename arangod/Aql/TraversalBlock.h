@@ -24,6 +24,8 @@
 #ifndef ARANGOD_AQL_TRAVERSAL_BLOCK_H
 #define ARANGOD_AQL_TRAVERSAL_BLOCK_H 1
 
+#include "Aql/BlockCollector.h"
+#include "Aql/DocumentProducingBlock.h"
 #include "Aql/ExecutionBlock.h"
 #include "Aql/TraversalNode.h"
 #include "Basics/VelocyPackHelper.h"
@@ -37,7 +39,7 @@ class ManagedDocumentResult;
 
 namespace aql {
 
-class TraversalBlock final : public ExecutionBlock {
+class TraversalBlock final : public ExecutionBlock, public DocumentProducingBlock {
  public:
   TraversalBlock(ExecutionEngine* engine, TraversalNode const* ep);
 
@@ -62,20 +64,11 @@ class TraversalBlock final : public ExecutionBlock {
 
  private:
 
-  /// @brief cleanup, here we clean up all internally generated values
-  void freeCaches();
-
-  /// @brief continue fetching of paths
-  bool morePaths(size_t hint);
-
-  /// @brief skip the next paths
-  size_t skipPaths(size_t hint);
-
   /// @brief Initialize the filter expressions
   void initializeExpressions(AqlItemBlock const*, size_t pos);
 
   /// @brief Initialize the path enumerator
-  void initializePaths(AqlItemBlock const*, size_t pos);
+  bool initializePaths(AqlItemBlock const*, size_t pos);
 
   /// @brief Checks if we output the vertex
   bool usesVertexOutput() { return _vertexVar != nullptr; }
@@ -87,17 +80,6 @@ class TraversalBlock final : public ExecutionBlock {
   bool usesPathOutput() { return _pathVar != nullptr; }
 
  private:
-  /// @brief vertices buffer
-  std::vector<arangodb::aql::AqlValue> _vertices;
-
-  /// @brief edges buffer
-  std::vector<arangodb::aql::AqlValue> _edges;
-
-  /// @brief path buffer
-  std::vector<arangodb::aql::AqlValue> _paths;
-
-  /// @brief current position in _paths, _edges, _vertices
-  size_t _posInPaths;
 
   std::unique_ptr<ManagedDocumentResult> _mmdr;
 
@@ -151,6 +133,9 @@ class TraversalBlock final : public ExecutionBlock {
   std::vector<RegisterId> _inRegs;
 
   std::unordered_map<ServerID, traverser::TraverserEngineID> const* _engines;
+
+  /// @brief Collect several AQLItemsBlocks
+  BlockCollector _collector;
 };
 }  // namespace arangodb::aql
 }  // namespace arangodb

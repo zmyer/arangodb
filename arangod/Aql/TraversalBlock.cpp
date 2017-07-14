@@ -52,7 +52,7 @@ using namespace arangodb::traverser;
 
 TraversalBlock::TraversalBlock(ExecutionEngine* engine, TraversalNode const* ep)
     : ExecutionBlock(engine, ep),
-      _posInPaths(0),
+      DocumentProducingBlock(ep, _trx),
       _opts(nullptr),
       _traverser(nullptr),
       _reg(ExecutionNode::MaxRegisterId),
@@ -64,7 +64,8 @@ TraversalBlock::TraversalBlock(ExecutionEngine* engine, TraversalNode const* ep)
       _edgeReg(0),
       _pathVar(nullptr),
       _pathReg(0),
-      _engines(nullptr) {
+      _engines(nullptr),
+      _collector(&_engine->_itemBlockManager) {
   auto const& registerPlan = ep->getRegisterPlan()->varInfo;
   ep->getConditionVariables(_inVars);
   for (auto const& v : _inVars) {
@@ -133,22 +134,6 @@ TraversalBlock::TraversalBlock(ExecutionEngine* engine, TraversalNode const* ep)
 }
 
 TraversalBlock::~TraversalBlock() {
-  freeCaches();
-}
-
-void TraversalBlock::freeCaches() {
-  for (auto& v : _vertices) {
-    v.destroy();
-  }
-  _vertices.clear();
-  for (auto& e : _edges) {
-    e.destroy();
-  }
-  _edges.clear();
-  for (auto& p : _paths) {
-    p.destroy();
-  }
-  _paths.clear();
 }
 
 int TraversalBlock::initialize() {
@@ -186,9 +171,7 @@ int TraversalBlock::initialize() {
 
 int TraversalBlock::initializeCursor(AqlItemBlock* items, size_t pos) {
   _pos = 0;
-  _posInPaths = 0;
   _usedConstant = false;
-  freeCaches();
   return ExecutionBlock::initializeCursor(items, pos);
 }
 
@@ -228,70 +211,6 @@ int TraversalBlock::shutdown(int errorCode) {
   DEBUG_END_BLOCK();
 }
 
-/// @brief read more paths
-bool TraversalBlock::morePaths(size_t hint) {
-  DEBUG_BEGIN_BLOCK();
-  
-  freeCaches();
-  _posInPaths = 0;
-  if (!_traverser->hasMore()) {
-    _engine->_stats.scannedIndex += _traverser->getAndResetReadDocuments();
-    _engine->_stats.filtered += _traverser->getAndResetFilteredPaths();
-    return false;
-  }
-  
-  if (usesVertexOutput()) {
-    _vertices.reserve(hint);
-  }
-  if (usesEdgeOutput()) {
-    _edges.reserve(hint);
-  }
-  if (usesPathOutput()) {
-    _paths.reserve(hint);
-  }
-
-  transaction::BuilderLeaser tmp(_trx);
-  for (size_t j = 0; j < hint; ++j) {
-    if (!_traverser->next()) {
-      // There are no further paths available.
-      break;
-    }
-
-    if (usesVertexOutput()) {
-      _vertices.emplace_back(_traverser->lastVertexToAqlValue());
-    }
-    if (usesEdgeOutput()) {
-      _edges.emplace_back(_traverser->lastEdgeToAqlValue());
-    }
-    if (usesPathOutput()) {
-      tmp->clear();
-      _paths.emplace_back(_traverser->pathToAqlValue(*tmp.builder()));
-    }
-    throwIfKilled();  // check if we were aborted
-  }
-
-  _engine->_stats.scannedIndex += _traverser->getAndResetReadDocuments();
-  _engine->_stats.filtered += _traverser->getAndResetFilteredPaths();
-  return !_vertices.empty();
-
-  // cppcheck-suppress style
-  DEBUG_END_BLOCK();
-}
-
-/// @brief skip the next paths
-size_t TraversalBlock::skipPaths(size_t hint) {
-  DEBUG_BEGIN_BLOCK();
-  freeCaches();
-  _posInPaths = 0;
-  if (!_traverser->hasMore()) {
-    return 0;
-  }
-  return _traverser->skip(hint);
-
-  // cppcheck-suppress style
-  DEBUG_END_BLOCK();
-}
-
 void TraversalBlock::initializeExpressions(AqlItemBlock const* items, size_t pos) {
   // Initialize the Expressions within the options.
   // We need to find the variable and read its value here. Everything is computed right now.
@@ -304,13 +223,9 @@ void TraversalBlock::initializeExpressions(AqlItemBlock const* items, size_t pos
 }
 
 /// @brief initialize the list of paths
-void TraversalBlock::initializePaths(AqlItemBlock const* items, size_t pos) {
+bool TraversalBlock::initializePaths(AqlItemBlock const* items, size_t pos) {
   DEBUG_BEGIN_BLOCK();
-  if (!_vertices.empty()) {
-    // No Initialization required.
-    return;
-  }
-        
+
   initializeExpressions(items, pos);
 
   if (!_useRegister) {
@@ -322,9 +237,12 @@ void TraversalBlock::initializePaths(AqlItemBlock const* items, size_t pos) {
             TRI_ERROR_BAD_PARAMETER, "Invalid input for traversal: "
                                          "Only id strings or objects with "
                                          "_id are allowed");
+        return false;
       } else {
         _traverser->setStartVertex(_vertexId);
       }
+    } else {
+      return false;
     }
   } else {
     AqlValue const& in = items->getValueReference(_pos, _reg);
@@ -334,6 +252,7 @@ void TraversalBlock::initializePaths(AqlItemBlock const* items, size_t pos) {
       }
       catch (...) {
         // _id or _key not present... ignore this error and fall through
+        return false;
       }
     } else if (in.isString()) {
       _vertexId = in.slice().copyString();
@@ -343,108 +262,160 @@ void TraversalBlock::initializePaths(AqlItemBlock const* items, size_t pos) {
           TRI_ERROR_BAD_PARAMETER, "Invalid input for traversal: Only "
                                        "id strings or objects with _id are "
                                        "allowed");
+      return false;
     }
   }
+  return _traverser->hasMore();
 
   // cppcheck-suppress style
   DEBUG_END_BLOCK();
 }
 
 /// @brief getSome
-AqlItemBlock* TraversalBlock::getSome(size_t,  // atLeast,
+AqlItemBlock* TraversalBlock::getSome(size_t, // atLeast
                                       size_t atMost) {
   DEBUG_BEGIN_BLOCK();
-  traceGetSomeBegin();
+
+  if (_done) {
+    traceGetSomeEnd(nullptr);
+    return nullptr;
+  }
+
+  RegisterId nrRegs =
+      getPlanNode()->getRegisterPlan()->nrRegs[getPlanNode()->getDepth()];
+
+  std::unique_ptr<AqlItemBlock> res = nullptr;
+
+  transaction::BuilderLeaser tmp(_trx);
+
+  // Counts position in result
+  // Needs to be incremented
+  // accross traversers
+  size_t j = 0;
+
+  auto vertexCallback = [&] () -> void {
+    res->setValue(j, _vertexReg, _traverser->lastVertexToAqlValue());
+  };
+
+  auto edgeCallback = [&] () -> void {
+    res->setValue(j, _edgeReg, _traverser->lastEdgeToAqlValue());
+  };
+
+  auto pathCallback = [&] () -> void {
+    tmp->clear();
+    res->setValue(j, _pathReg, _traverser->pathToAqlValue(*tmp.builder()));
+  };
+  bool needInit = false;
+
   while (true) {
-    if (_done) {
-      traceGetSomeEnd(nullptr);
-      return nullptr;
-    }
 
     if (_buffer.empty()) {
       size_t toFetch = (std::min)(DefaultBatchSize(), atMost);
       if (!ExecutionBlock::getBlock(toFetch, toFetch)) {
         _done = true;
-        traceGetSomeEnd(nullptr);
-        return nullptr;
+        break;
       }
+      needInit = true;
       _pos = 0;  // this is in the first block
     }
 
-    // If we get here, we do have _buffer.front()
+    // automatically freed if we throw
+    res.reset(requestBlock(atMost, nrRegs));
+    TRI_ASSERT(!_buffer.empty());
     AqlItemBlock* cur = _buffer.front();
     size_t const curRegs = cur->getNrRegs();
+    TRI_ASSERT(curRegs <= res->getNrRegs());
 
-    if (_pos == 0 && !_traverser->hasMore()) {
-      // Initial initialization
-      initializePaths(cur, _pos);
-    }
+    if (needInit || !_traverser->hasMore()) {
+      needInit = false;
+      // If we are in the first run of a block.
+      // Or the current traverser is empty
+      // we need to initialize the next one.
+      if (!initializePaths(cur, _pos)) {
+        needInit = true;
+        // must reset this variable because otherwise the traverser's
+        // start vertex may not be reset properly
+        _usedConstant = false;
 
-    // Iterate more paths:
-    if (_posInPaths >= _vertices.size()) {
-      if (!morePaths(atMost)) {
-        // This input does not have any more paths. maybe the next one has.
-        // we can only return nullptr iff the buffer is empty.
-        _usedConstant = false; // must reset this variable because otherwise the traverser's start vertex may not be reset properly
+        // Move forward the buffer
         if (++_pos >= cur->size()) {
           _buffer.pop_front();  // does not throw
           returnBlock(cur);
           _pos = 0;
-        } else {
-          initializePaths(cur, _pos);
         }
+
+        // Fill statistics before we return
+        _engine->_stats.scannedIndex += _traverser->getAndResetReadDocuments();
+        _engine->_stats.filtered += _traverser->getAndResetFilteredPaths();
+
+        // Failed to initialize paths for this cursor, try next one
         continue;
       }
+      // only copy 1st row of registers inherited from previous frame(s)
+      inheritRegisters(cur, res.get(), _pos);
     }
 
-    size_t available = _vertices.size() - _posInPaths;
-    size_t toSend = (std::min)(atMost, available);
+    // Iterate more paths:
+    while (j < atMost && _traverser->next()) {
 
-    RegisterId nrRegs =
-        getPlanNode()->getRegisterPlan()->nrRegs[getPlanNode()->getDepth()];
-
-    std::unique_ptr<AqlItemBlock> res(requestBlock(toSend, nrRegs));
-    // automatically freed if we throw
-    TRI_ASSERT(curRegs <= res->getNrRegs());
-
-    // only copy 1st row of registers inherited from previous frame(s)
-    inheritRegisters(cur, res.get(), _pos);
-
-    for (size_t j = 0; j < toSend; j++) {
       if (usesVertexOutput()) {
-        res->setValue(j, _vertexReg, _vertices[_posInPaths].clone());
+        vertexCallback();
       }
+
       if (usesEdgeOutput()) {
-        res->setValue(j, _edgeReg, _edges[_posInPaths].clone());
+        edgeCallback();
       }
+
       if (usesPathOutput()) {
-        res->setValue(j, _pathReg, _paths[_posInPaths].clone());
+        pathCallback();
       }
+
       if (j > 0) {
         // re-use already copied AqlValues
         res->copyValuesFromFirstRow(j, static_cast<RegisterId>(curRegs));
       }
-      ++_posInPaths;
-    }
-    // Advance read position:
-    if (_posInPaths >= _vertices.size()) {
-      // we have exhausted our local paths buffer
-      // fetch more paths into our buffer
-      if (!morePaths(atMost)) {
-        // nothing more to read, re-initialize fetching of paths
 
-        _usedConstant = false; // must reset this variable because otherwise the traverser's start vertex may not be reset properly
-        if (++_pos >= cur->size()) {
-          _buffer.pop_front();  // does not throw
-          returnBlock(cur);
-          _pos = 0;
-        } else {
-          initializePaths(cur, _pos);
-        }
+      ++j;
+    }
+
+    // Fill statistics before we return
+    _engine->_stats.scannedIndex += _traverser->getAndResetReadDocuments();
+    _engine->_stats.filtered += _traverser->getAndResetFilteredPaths();
+
+    // Check if this traverser is exhausted and we need to move on.
+    if (!_traverser->hasMore()) {
+      if (j > 0 && j < atMost) {
+        res->shrink(j, false);
+        _collector.add(std::move(res));
+
+        // Reduce j and atmost
+        atMost -= j;
+        j = 0;
+      }
+      // must reset this variable because otherwise the traverser's
+      // start vertex may not be reset properly
+      _usedConstant = false;
+      needInit = true;
+
+      // Move forward the buffer
+      if (++_pos >= cur->size()) {
+        _buffer.pop_front();  // does not throw
+        returnBlock(cur);
+        _pos = 0;
       }
     }
 
+    if (j >= atMost) {
+      _collector.add(std::move(res));
+      break;
+    }
+  }
+
+  if (_collector.totalSize() == 0) {
+    return nullptr;
+  } else {
     // Clear out registers no longer needed later:
+    res.reset(_collector.steal());
     clearRegisters(res.get());
     traceGetSomeEnd(res.get());
     return res.release();
@@ -457,50 +428,78 @@ AqlItemBlock* TraversalBlock::getSome(size_t,  // atLeast,
 /// @brief skipSome
 size_t TraversalBlock::skipSome(size_t atLeast, size_t atMost) {
   DEBUG_BEGIN_BLOCK();
-  size_t skipped = 0;
 
   if (_done) {
-    return skipped;
+    return 0;
   }
 
-  if (_posInPaths < _vertices.size()) {
-    skipped += (std::min)(atMost, _vertices.size() - _posInPaths);
-    _posInPaths += skipped;
-  }
+  // Counts position in result
+  // Needs to be incremented
+  // accross traversers
+  size_t skipped = 0;
 
-  while (skipped < atLeast) {
+  bool needInit = false;
+  while (skipped < atMost) {
+
     if (_buffer.empty()) {
       size_t toFetch = (std::min)(DefaultBatchSize(), atMost);
       if (!ExecutionBlock::getBlock(toFetch, toFetch)) {
         _done = true;
-        return skipped;
-      }
-      _pos = 0;  // this is in the first block
-    }
-
-    // If we get here, we do have _buffer.front()
-    AqlItemBlock* cur = _buffer.front();
-    initializePaths(cur, _pos);
-  
-    while (atMost > skipped) {
-      TRI_ASSERT(atMost >= skipped);
-      skipped += skipPaths(atMost - skipped);
-  
-      if (_traverser->hasMore()) {
-        continue;
-      }
-
-      if (++_pos >= cur->size()) {
-        _buffer.pop_front();  // does not throw
-        delete cur;
-        _pos = 0;
         break;
       }
-    
-      initializePaths(cur, _pos);
+      _pos = 0;  // this is in the first block
+      needInit = true;
+    }
+
+    TRI_ASSERT(!_buffer.empty());
+    AqlItemBlock* cur = _buffer.front();
+
+    if (needInit || !_traverser->hasMore()) {
+      needInit = false;
+      // If we are in the first run of a block.
+      // Or the current traverser is empty
+      // we need to initialize the next one.
+      if (!initializePaths(cur, _pos)) {
+        needInit = true;
+        // must reset this variable because otherwise the traverser's
+        // start vertex may not be reset properly
+        _usedConstant = false;
+
+        // Move forward the buffer
+        if (++_pos >= cur->size()) {
+          _buffer.pop_front();  // does not throw
+          returnBlock(cur);
+          _pos = 0;
+        }
+
+        // Failed to initialize paths for this cursor, try next one
+        continue;
+
+      }
+    }
+
+    skipped += _traverser->skip(atMost - skipped);
+
+    // Fill statistics before we return
+    _engine->_stats.scannedIndex += _traverser->getAndResetReadDocuments();
+    _engine->_stats.filtered += _traverser->getAndResetFilteredPaths();
+
+    // Check if this traverser is exhausted and we need to move on.
+    if (!_traverser->hasMore()) {
+      needInit = true;
+      // must reset this variable because otherwise the traverser's
+      // start vertex may not be reset properly
+      _usedConstant = false;
+
+      // Move forward the buffer
+      if (++_pos >= cur->size()) {
+        _buffer.pop_front();  // does not throw
+        returnBlock(cur);
+        _pos = 0;
+      }
     }
   }
-  
+
   return skipped;
 
   // cppcheck-suppress style
