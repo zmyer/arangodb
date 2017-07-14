@@ -1962,7 +1962,9 @@ void arangodb::aql::reduceExtractionToProjectionRule(Optimizer* opt,
   SmallVector<ExecutionNode*>::allocator_type::arena_type a;
   SmallVector<ExecutionNode*> nodes{a};
   
-  std::vector<ExecutionNode::NodeType> const types = {ExecutionNode::ENUMERATE_COLLECTION}; //ENUMERATE_COLLECTION, ExecutionNode::INDEX}; 
+  // std::vector<ExecutionNode::NodeType> const types = {ExecutionNode::ENUMERATE_COLLECTION, ExecutionNode::TRAVERSAL, ExecutionNode::SHORTEST_PATH}; //ENUMERATE_COLLECTION, ExecutionNode::INDEX}; 
+  std::vector<ExecutionNode::NodeType> const types = {ExecutionNode::ENUMERATE_COLLECTION, ExecutionNode::TRAVERSAL}; //ENUMERATE_COLLECTION, ExecutionNode::INDEX}; 
+  // std::vector<ExecutionNode::NodeType> const types = {ExecutionNode::ENUMERATE_COLLECTION}; //ENUMERATE_COLLECTION, ExecutionNode::INDEX}; 
   plan->findNodesOfType(nodes, types, true);
 
   bool modified = false;
