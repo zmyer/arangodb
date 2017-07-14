@@ -103,6 +103,11 @@ bool NeighborsEnumerator::next() {
   return true;
 }
 
+void NeighborsEnumerator::produceLastVertex(std::function<void(arangodb::velocypack::Slice)>& callback) {
+  TRI_ASSERT(_iterator != _currentDepth.end());
+  return _traverser->produceVertexData(*_iterator, callback);
+}
+
 arangodb::aql::AqlValue NeighborsEnumerator::lastVertexToAqlValue() {
   TRI_ASSERT(_iterator != _currentDepth.end());
   return _traverser->fetchVertexData(*_iterator);

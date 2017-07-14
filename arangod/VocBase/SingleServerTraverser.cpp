@@ -42,6 +42,12 @@ SingleServerTraverser::SingleServerTraverser(TraverserOptions* opts,
 
 SingleServerTraverser::~SingleServerTraverser() {}
 
+
+/// @brief Function to fetch the real data of a vertex into an AQLValue using a projection
+void SingleServerTraverser::produceVertexData(StringRef vid, std::function<void (arangodb::velocypack::Slice)>& callback) {
+  _opts->cache()->produceAqlResult(vid, callback);
+};
+
 aql::AqlValue SingleServerTraverser::fetchVertexData(StringRef vid) {
   return _opts->cache()->fetchAqlResult(vid);
 }

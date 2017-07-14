@@ -293,19 +293,8 @@ AqlItemBlock* TraversalBlock::getSome(size_t, // atLeast
   // accross traversers
   size_t j = 0;
 
-  auto vertexCallback = [&] () -> void {
-    res->setValue(j, _vertexReg, _traverser->lastVertexToAqlValue());
-  };
-
-  auto edgeCallback = [&] () -> void {
-    res->setValue(j, _edgeReg, _traverser->lastEdgeToAqlValue());
-  };
-
-  auto pathCallback = [&] () -> void {
-    tmp->clear();
-    res->setValue(j, _pathReg, _traverser->pathToAqlValue(*tmp.builder()));
-  };
   bool needInit = false;
+
 
   while (true) {
 
@@ -325,6 +314,10 @@ AqlItemBlock* TraversalBlock::getSome(size_t, // atLeast
     AqlItemBlock* cur = _buffer.front();
     size_t const curRegs = cur->getNrRegs();
     TRI_ASSERT(curRegs <= res->getNrRegs());
+
+    std::function<void (arangodb::velocypack::Slice)> vertexCallback = [&] (arangodb::velocypack::Slice document) -> void {
+      _documentProducer(res.get(), document, curRegs, j);
+    };
 
     if (needInit || !_traverser->hasMore()) {
       needInit = false;
@@ -358,24 +351,20 @@ AqlItemBlock* TraversalBlock::getSome(size_t, // atLeast
     // Iterate more paths:
     while (j < atMost && _traverser->next()) {
 
-      if (usesVertexOutput()) {
-        vertexCallback();
-      }
-
+      // We need to fill edges and paths before because the documentProducer
+      // will increase the j
       if (usesEdgeOutput()) {
-        edgeCallback();
+        res->setValue(j, _edgeReg, _traverser->lastEdgeToAqlValue());
       }
 
       if (usesPathOutput()) {
-        pathCallback();
+        tmp->clear();
+        res->setValue(j, _pathReg, _traverser->pathToAqlValue(*tmp.builder()));
       }
 
-      if (j > 0) {
-        // re-use already copied AqlValues
-        res->copyValuesFromFirstRow(j, static_cast<RegisterId>(curRegs));
-      }
-
-      ++j;
+      TRI_ASSERT(usesVertexOutput());
+      // This will increase j
+      _traverser->produceLastVertex(vertexCallback);
     }
 
     // Fill statistics before we return

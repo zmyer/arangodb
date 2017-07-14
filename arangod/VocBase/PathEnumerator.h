@@ -99,6 +99,13 @@ class PathEnumerator {
 
   virtual bool next() = 0;
 
+  //////////////////////////////////////////////////////////////////////////////
+  /// @brief Produces the last vertex with a DocumentProducer function, it
+  ///        is able to just return a projection directly.
+  //////////////////////////////////////////////////////////////////////////////
+
+  virtual void produceLastVertex(std::function<void(arangodb::velocypack::Slice)>& callback) = 0;
+
   virtual aql::AqlValue lastVertexToAqlValue() = 0;
   virtual aql::AqlValue lastEdgeToAqlValue() = 0;
   virtual aql::AqlValue pathToAqlValue(arangodb::velocypack::Builder&) = 0;
@@ -125,10 +132,7 @@ class DepthFirstEnumerator final : public PathEnumerator {
 
   bool next() override;
 
-  //////////////////////////////////////////////////////////////////////////////
-  /// @brief Prunes the current path prefix, the next function should not return
-  ///        any path having this prefix anymore.
-  //////////////////////////////////////////////////////////////////////////////
+  void produceLastVertex(std::function<void(arangodb::velocypack::Slice)>& callback);
 
   aql::AqlValue lastVertexToAqlValue() override;
 

@@ -70,6 +70,9 @@ class ClusterTraverser final : public Traverser {
                        uint64_t depth,
                        StringRef& targetVertexId) override;
 
+  /// @brief Function to fetch the real data of a vertex into an AQLValue using a projection
+  void produceVertexData(StringRef vid, std::function<void (arangodb::velocypack::Slice)>& callback) override;
+
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Function to fetch the real data of a vertex into an AQLValue
   //////////////////////////////////////////////////////////////////////////////

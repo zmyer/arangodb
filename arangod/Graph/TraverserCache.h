@@ -75,6 +75,13 @@ class TraverserCache {
    virtual aql::AqlValue fetchAqlResult(arangodb::graph::EdgeDocumentToken const*);
 
    //////////////////////////////////////////////////////////////////////////////
+   /// @brief Inject VPackValue of the given id string into the given callback
+   ///        The document will be looked up in the StorageEngine
+   //////////////////////////////////////////////////////////////////////////////
+  
+   virtual void produceAqlResult(StringRef idString, std::function<void (arangodb::velocypack::Slice)>& callback);
+
+   //////////////////////////////////////////////////////////////////////////////
    /// @brief Return AQL value containing the result
    ///        The document will be looked up in the StorageEngine
    //////////////////////////////////////////////////////////////////////////////

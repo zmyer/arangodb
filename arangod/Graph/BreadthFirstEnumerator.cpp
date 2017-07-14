@@ -175,6 +175,11 @@ bool BreadthFirstEnumerator::next() {
   return true;
 }
 
+void BreadthFirstEnumerator::produceLastVertex(std::function<void(arangodb::velocypack::Slice)>& callback) {
+  TRI_ASSERT(_lastReturned < _schreier.size());
+  _traverser->produceVertexData(StringRef(_schreier[_lastReturned]->vertex), callback);
+}
+
 arangodb::aql::AqlValue BreadthFirstEnumerator::lastVertexToAqlValue() {
   TRI_ASSERT(_lastReturned < _schreier.size());
   return _traverser->fetchVertexData(

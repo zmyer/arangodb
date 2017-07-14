@@ -117,8 +117,25 @@ void ClusterTraverser::fetchVertices() {
   _verticesToFetch.clear();
 }
 
+//////////////////////////////////////////////////////////////////////////////
+/// @brief Produces the last vertex with a DocumentProducer function, it
+///        is able to just return a projection directly.
+//////////////////////////////////////////////////////////////////////////////
+
+void ClusterTraverser::produceVertexData(StringRef idString, std::function<void(arangodb::velocypack::Slice)>& callback) {
+  auto cached = _vertices.find(idString);
+  if (cached == _vertices.end()) {
+    // Vertex not yet cached. Prepare for load.
+    _verticesToFetch.emplace(idString);
+    fetchVertices();
+    cached = _vertices.find(idString);
+  }
+  // Now all vertices are cached!!
+  TRI_ASSERT(cached != _vertices.end());
+  callback(VPackSlice((*cached).second->data()));
+}
+
 aql::AqlValue ClusterTraverser::fetchVertexData(StringRef idString) {
-  //TRI_ASSERT(idString.isString());
   auto cached = _vertices.find(idString);
   if (cached == _vertices.end()) {
     // Vertex not yet cached. Prepare for load.

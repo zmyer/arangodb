@@ -171,6 +171,11 @@ bool DepthFirstEnumerator::next() {
   }  // while (true)
 }
 
+void DepthFirstEnumerator::produceLastVertex(std::function<void(arangodb::velocypack::Slice)>& callback) {
+  return _traverser->produceVertexData(StringRef(_enumeratedPath.vertices.back()), callback);
+}
+
+
 arangodb::aql::AqlValue DepthFirstEnumerator::lastVertexToAqlValue() {
   return _traverser->fetchVertexData(
       StringRef(_enumeratedPath.vertices.back()));

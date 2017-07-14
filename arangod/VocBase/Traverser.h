@@ -97,6 +97,13 @@ class TraversalPath {
                                     arangodb::velocypack::Builder&) = 0;
 
   //////////////////////////////////////////////////////////////////////////////
+  /// @brief Produces the last vertex with a DocumentProducer function, it
+  ///        is able to just return a projection directly.
+  //////////////////////////////////////////////////////////////////////////////
+
+  virtual void produceLastVertex(std::function<void(arangodb::velocypack::Slice)>& callback) = 0;
+
+  //////////////////////////////////////////////////////////////////////////////
   /// @brief Builds only the last vertex as VelocyPack
   //////////////////////////////////////////////////////////////////////////////
 
@@ -233,6 +240,13 @@ class Traverser {
  public:
  
   //////////////////////////////////////////////////////////////////////////////
+  /// @brief Produces the last vertex with a DocumentProducer function, it
+  ///        is able to just return a projection directly.
+  //////////////////////////////////////////////////////////////////////////////
+
+  void produceLastVertex(std::function<void(arangodb::velocypack::Slice)>& callback);
+
+  //////////////////////////////////////////////////////////////////////////////
   /// @brief Builds only the last vertex as AQLValue
   //////////////////////////////////////////////////////////////////////////////
 
@@ -313,6 +327,9 @@ class Traverser {
   TraverserOptions* _opts;
   
   bool _canUseOptimizedNeighbors;
+
+  /// @brief Function to fetch the real data of a vertex into an AQLValue using a projection
+  virtual void produceVertexData(StringRef vid, std::function<void(arangodb::velocypack::Slice)>& callback) = 0;
 
   /// @brief Function to fetch the real data of a vertex into an AQLValue
   virtual aql::AqlValue fetchVertexData(StringRef vid) = 0;

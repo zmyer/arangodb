@@ -188,6 +188,10 @@ TraverserCache* arangodb::traverser::Traverser::traverserCache() {
   return _opts->cache();
 }
 
+void Traverser::produceLastVertex(std::function<void(arangodb::velocypack::Slice)>& callback) {
+  return _enumerator->produceLastVertex(callback);
+}
+
 arangodb::aql::AqlValue arangodb::traverser::Traverser::lastVertexToAqlValue() {
   return _enumerator->lastVertexToAqlValue();
 }

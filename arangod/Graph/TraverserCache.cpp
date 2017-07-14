@@ -108,6 +108,10 @@ aql::AqlValue TraverserCache::fetchAqlResult(StringRef idString) {
   return aql::AqlValue(lookupInCollection(idString));
 }
 
+void TraverserCache::produceAqlResult(StringRef idString, std::function<void (arangodb::velocypack::Slice)>& callback) {
+  callback(lookupInCollection(idString));
+}
+
 aql::AqlValue TraverserCache::fetchAqlResult(EdgeDocumentToken const* idToken) {
   TRI_ASSERT(!ServerState::instance()->isCoordinator());
   return aql::AqlValue(lookupInCollection(static_cast<SingleServerEdgeDocumentToken const*>(idToken)));

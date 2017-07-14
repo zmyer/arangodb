@@ -136,6 +136,13 @@ class BreadthFirstEnumerator final
 
   bool next() override;
 
+  //////////////////////////////////////////////////////////////////////////////
+  /// @brief Produces the last vertex with a DocumentProducer function, it
+  ///        is able to just return a projection directly.
+  //////////////////////////////////////////////////////////////////////////////
+
+  void produceLastVertex(std::function<void(arangodb::velocypack::Slice)>& callback) override;
+
   aql::AqlValue lastVertexToAqlValue() override;
 
   aql::AqlValue lastEdgeToAqlValue() override;
