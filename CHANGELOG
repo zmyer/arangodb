@@ -1,6 +1,8 @@
 devel
 -----
 
+* added function `db._parse(query)` for parse an AQL query and return information about it
+
 * documentation and js fixes for secondaries
 
 * enabled permissions on database and collection level
