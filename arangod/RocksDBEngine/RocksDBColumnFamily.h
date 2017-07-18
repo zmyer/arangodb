@@ -57,6 +57,8 @@ struct RocksDBColumnFamily {
 
   static rocksdb::ColumnFamilyHandle* fulltext() { return _fulltext; }
 
+  static std::vector<rocksdb::ColumnFamilyHandle*>& all() { return _allHandles; }
+
   static char const* columnFamilyName(rocksdb::ColumnFamilyHandle* cf) {
     if (cf == _definitions) {
       return "definitions";

@@ -716,6 +716,12 @@ void RocksDBCollection::truncate(transaction::Methods* trx,
     rindex->truncate(trx);
   }
   _needToPersistIndexEstimates = true;
+
+  //flush
+  auto fo = rocksdb::FlushOptions();
+  for (auto& handle : RocksDBColumnFamily::all() ){
+    rocksutils::globalRocksDB()->Flush(fo,handle);
+  }
 }
 
 DocumentIdentifierToken RocksDBCollection::lookupKey(transaction::Methods* trx,
