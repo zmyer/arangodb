@@ -32,6 +32,7 @@
 #include "VocBase/vocbase.h"
 
 #include <velocypack/Buffer.h>
+#include <memory>
 
 namespace arangodb {
 
@@ -76,11 +77,12 @@ class ChecksumResult: public Result {
   VPackBuilder _builder;
 };
 
-class LogicalCollection {
+class LogicalCollection : public std::enable_shared_from_this<LogicalCollection> {
   friend struct ::TRI_vocbase_t;
 
  public:
-  LogicalCollection(TRI_vocbase_t*, velocypack::Slice const&);
+  LogicalCollection(TRI_vocbase_t*, velocypack::Slice const&, bool);
+  void init_new(velocypack::Slice const&);
 
   virtual ~LogicalCollection();
 
@@ -88,12 +90,15 @@ class LogicalCollection {
 
  protected:  // If you need a copy outside the class, use clone below.
   explicit LogicalCollection(LogicalCollection const&);
+  void init_copy(PhysicalCollection*);
 
  private:
   LogicalCollection& operator=(LogicalCollection const&) = delete;
 
  public:
   LogicalCollection() = delete;
+ 
+  bool isInitialized() const;
 
   virtual std::unique_ptr<LogicalCollection> clone() {
     auto p = new LogicalCollection(*this);
@@ -396,6 +401,8 @@ class LogicalCollection {
   bool _isDeleted;
 
   bool const _isSystem;
+  bool _isInitialized;
+  bool _isSliceCtor;
 
   uint32_t _version;
   bool _waitForSync;

@@ -156,6 +156,8 @@ LogicalCollection::LogicalCollection(LogicalCollection const& other)
       _isLocal(false),
       _isDeleted(other._isDeleted),
       _isSystem(other.isSystem()),
+      _isInitialized(false),
+      _isSliceCtor(false),
       _version(other._version),
       _waitForSync(other.waitForSync()),
       _replicationFactor(other.replicationFactor()),
@@ -174,11 +176,16 @@ LogicalCollection::LogicalCollection(LogicalCollection const& other)
   }
 }
 
+void LogicalCollection::init_copy(PhysicalCollection* other){
+  _physical = std::unique_ptr<PhysicalCollection>(other->clone(this, other));
+  _isInitialized = true;
+}
+
 // @brief Constructor used in coordinator case.
 // The Slice contains the part of the plan that
 // is relevant for this collection.
 LogicalCollection::LogicalCollection(TRI_vocbase_t* vocbase,
-                                     VPackSlice const& info)
+                                     VPackSlice const& info, bool)
     : _internalVersion(0),
       _cid(ReadCid(info)),
       _planId(ReadPlanId(info, _cid)),
@@ -193,6 +200,8 @@ LogicalCollection::LogicalCollection(TRI_vocbase_t* vocbase,
       _isDeleted(Helper::readBooleanValue(info, "deleted", false)),
       _isSystem(IsSystemName(_name) &&
                 Helper::readBooleanValue(info, "isSystem", false)),
+      _isInitialized(false),
+      _isSliceCtor(false),
       _version(Helper::readNumericValue<uint32_t>(info, "version",
                                                   currentVersion())),
       _waitForSync(Helper::readBooleanValue(info, "waitForSync", false)),
@@ -204,9 +213,12 @@ LogicalCollection::LogicalCollection(TRI_vocbase_t* vocbase,
       _vocbase(vocbase),
       _keyOptions(nullptr),
       _keyGenerator(),
-      _physical(
-          EngineSelectorFeature::ENGINE->createPhysicalCollection(this, info)),
+      _physical(nullptr),
       _clusterEstimateTTL(0) {
+}
+
+void LogicalCollection::init_new(velocypack::Slice const& info){
+  _physical = std::unique_ptr<PhysicalCollection>(EngineSelectorFeature::ENGINE->createPhysicalCollection(this, info));
   // add keyoptions from slice
   TRI_ASSERT(info.isObject());
   VPackSlice keyOpts = info.get("keyOptions");
@@ -222,7 +234,9 @@ LogicalCollection::LogicalCollection(TRI_vocbase_t* vocbase,
 
   // This has to be called AFTER _phyiscal and _logical are properly linked
   // together.
+  _isSliceCtor = true;
   prepareIndexes(info.get("indexes"));
+  _isSliceCtor = false;
 
   if (_version < minimumVersion()) {
     // collection is too "old"
@@ -367,11 +381,25 @@ LogicalCollection::LogicalCollection(TRI_vocbase_t* vocbase,
 
   // update server's tick value
   TRI_UpdateTickServer(static_cast<TRI_voc_tick_t>(_cid));
+
+  _isInitialized = true;
 }
+
+bool LogicalCollection::isInitialized() const {
+  if(!_isInitialized){
+    LOG_TOPIC(ERR, Logger::ENGINES) << "logical colletion not initialzed";
+  }
+  TRI_ASSERT(_isInitialized);
+  return true;
+}
+
 
 LogicalCollection::~LogicalCollection() {}
 
 void LogicalCollection::prepareIndexes(VPackSlice indexesSlice) {
+  if(!_isSliceCtor){
+    isInitialized();
+  }
   TRI_ASSERT(_physical != nullptr);
 
   if (!indexesSlice.isArray()) {
@@ -384,21 +412,25 @@ void LogicalCollection::prepareIndexes(VPackSlice indexesSlice) {
 
 std::unique_ptr<IndexIterator> LogicalCollection::getAllIterator(
     transaction::Methods* trx, ManagedDocumentResult* mdr, bool reverse) {
+  isInitialized();
   return _physical->getAllIterator(trx, mdr, reverse);
 }
 
 std::unique_ptr<IndexIterator> LogicalCollection::getAnyIterator(
     transaction::Methods* trx, ManagedDocumentResult* mdr) {
+  isInitialized();
   return _physical->getAnyIterator(trx, mdr);
 }
 
 void LogicalCollection::invokeOnAllElements(
     transaction::Methods* trx,
     std::function<bool(DocumentIdentifierToken const&)> callback) {
+  isInitialized();
   _physical->invokeOnAllElements(trx, callback);
 }
 
 bool LogicalCollection::IsAllowedName(VPackSlice parameters) {
+  isInitialized();
   bool allowSystem = Helper::readBooleanValue(parameters, "isSystem", false);
   std::string name = ReadStringValue(parameters, "name", "");
   if (name.empty()) {
@@ -443,6 +475,7 @@ bool LogicalCollection::IsAllowedName(VPackSlice parameters) {
 /// Returns true if the name is allowed and false otherwise
 bool LogicalCollection::IsAllowedName(bool allowSystem,
                                       std::string const& name) {
+  isInitialized();
   bool ok;
   char const* ptr;
   size_t length = 0;
@@ -479,65 +512,89 @@ bool LogicalCollection::IsAllowedName(bool allowSystem,
 
 // @brief Return the number of documents in this collection
 uint64_t LogicalCollection::numberDocuments(transaction::Methods* trx) const {
+  isInitialized();
   return getPhysical()->numberDocuments(trx);
 }
 
-uint32_t LogicalCollection::internalVersion() const { return _internalVersion; }
+uint32_t LogicalCollection::internalVersion() const {
+  isInitialized();
+  return _internalVersion;
+}
 
 std::string LogicalCollection::cid_as_string() const {
+  isInitialized();
   return basics::StringUtils::itoa(_cid);
 }
 
-TRI_voc_cid_t LogicalCollection::planId() const { return _planId; }
+TRI_voc_cid_t LogicalCollection::planId() const {
+  isInitialized();
+  return _planId;
+}
 
 std::string LogicalCollection::planId_as_string() const {
+  isInitialized();
   return basics::StringUtils::itoa(_planId);
 }
 
-TRI_col_type_e LogicalCollection::type() const { return _type; }
+TRI_col_type_e LogicalCollection::type() const {
+  isInitialized();
+  return _type;
+}
 
 std::string LogicalCollection::name() const {
   // TODO Activate this lock. Right now we have some locks outside.
   // READ_LOCKER(readLocker, _lock);
+  isInitialized();
   return _name;
 }
 
 std::string const LogicalCollection::distributeShardsLike() const {
+  isInitialized();
   return _distributeShardsLike;
 }
 
 void LogicalCollection::distributeShardsLike(std::string const& cid) {
+  isInitialized();
   _distributeShardsLike = cid;
 }
 
 std::vector<std::string> const& LogicalCollection::avoidServers() const {
+  isInitialized();
   return _avoidServers;
 }
 
 void LogicalCollection::avoidServers(std::vector<std::string> const& a) {
+  isInitialized();
   _avoidServers = a;
 }
 
 std::string LogicalCollection::dbName() const {
   TRI_ASSERT(_vocbase != nullptr);
+  isInitialized();
   return _vocbase->name();
 }
 
-TRI_vocbase_col_status_e LogicalCollection::status() const { return _status; }
+TRI_vocbase_col_status_e LogicalCollection::status() const {
+  isInitialized();
+  return _status;
+}
 
 TRI_vocbase_col_status_e LogicalCollection::getStatusLocked() {
+  isInitialized();
   READ_LOCKER(readLocker, _lock);
   return _status;
 }
 
 void LogicalCollection::executeWhileStatusLocked(
     std::function<void()> const& callback) {
+  isInitialized();
   READ_LOCKER(readLocker, _lock);
   callback();
 }
 
 bool LogicalCollection::tryExecuteWhileStatusLocked(
     std::function<void()> const& callback) {
+  isInitialized();
   TRY_READ_LOCKER(readLocker, _lock);
   if (!readLocker.isLocked()) {
     return false;
@@ -548,6 +605,7 @@ bool LogicalCollection::tryExecuteWhileStatusLocked(
 }
 
 TRI_vocbase_col_status_e LogicalCollection::tryFetchStatus(bool& didFetch) {
+  isInitialized();
   TRY_READ_LOCKER(locker, _lock);
   if (locker.isLocked()) {
     didFetch = true;
@@ -559,34 +617,56 @@ TRI_vocbase_col_status_e LogicalCollection::tryFetchStatus(bool& didFetch) {
 
 /// @brief returns a translation of a collection status
 std::string LogicalCollection::statusString() const {
+  isInitialized();
   READ_LOCKER(readLocker, _lock);
   return ::translateStatus(_status);
 }
 
 // SECTION: Properties
 TRI_voc_rid_t LogicalCollection::revision(transaction::Methods* trx) const {
+  isInitialized();
   // TODO CoordinatorCase
   return _physical->revision(trx);
 }
 
-bool LogicalCollection::isLocal() const { return _isLocal; }
+bool LogicalCollection::isLocal() const {
+  isInitialized();
+  return _isLocal;
+}
 
-bool LogicalCollection::deleted() const { return _isDeleted; }
+bool LogicalCollection::deleted() const {
+  isInitialized();
+  return _isDeleted;
+}
 
-bool LogicalCollection::isSystem() const { return _isSystem; }
+bool LogicalCollection::isSystem() const {
+  isInitialized();
+  return _isSystem;
+}
 
-bool LogicalCollection::waitForSync() const { return _waitForSync; }
+bool LogicalCollection::waitForSync() const {
+  isInitialized();
+  return _waitForSync;
+}
 
-bool LogicalCollection::isSmart() const { return _isSmart; }
+bool LogicalCollection::isSmart() const {
+  isInitialized();
+  return _isSmart;
+}
 
 std::unique_ptr<FollowerInfo> const& LogicalCollection::followers() const {
+  isInitialized();
   return _followers;
 }
 
-void LogicalCollection::setDeleted(bool newValue) { _isDeleted = newValue; }
+void LogicalCollection::setDeleted(bool newValue) {
+  isInitialized();
+  _isDeleted = newValue;
+}
 
 // SECTION: Indexes
 std::unordered_map<std::string, double> LogicalCollection::clusterIndexEstimates(bool doNotUpdate){
+  isInitialized();
   READ_LOCKER(readlock, _clusterEstimatesLock);
   if (doNotUpdate) {
     return _clusterEstimates;
@@ -617,22 +697,26 @@ std::unordered_map<std::string, double> LogicalCollection::clusterIndexEstimates
 }
 
 void LogicalCollection::clusterIndexEstimates(std::unordered_map<std::string, double>&& estimates){
+  isInitialized();
   WRITE_LOCKER(lock, _clusterEstimatesLock);
   _clusterEstimates = std::move(estimates);
 }
 
 std::vector<std::shared_ptr<arangodb::Index>>
 LogicalCollection::getIndexes() const {
+  isInitialized();
   return getPhysical()->getIndexes();
 }
 
 void LogicalCollection::getIndexesVPack(VPackBuilder& result, bool withFigures,
                                         bool forPersistence) const {
+  isInitialized();
   getPhysical()->getIndexesVPack(result, withFigures, forPersistence);
 }
 
 // SECTION: Replication
 int LogicalCollection::replicationFactor() const {
+  isInitialized();
   return static_cast<int>(_replicationFactor);
 }
 void LogicalCollection::replicationFactor(int r) {
@@ -641,32 +725,40 @@ void LogicalCollection::replicationFactor(int r) {
 
 // SECTION: Sharding
 int LogicalCollection::numberOfShards() const {
+  isInitialized();
   return static_cast<int>(_numberOfShards);
 }
 void LogicalCollection::numberOfShards(int n) {
   _numberOfShards = static_cast<size_t>(n);
 }
 
-bool LogicalCollection::allowUserKeys() const { return _allowUserKeys; }
+bool LogicalCollection::allowUserKeys() const {
+  isInitialized();
+  return _allowUserKeys;
+}
 
 #ifndef USE_ENTERPRISE
 bool LogicalCollection::usesDefaultShardKeys() const {
+  isInitialized();
   return (_shardKeys.size() == 1 && _shardKeys[0] == StaticStrings::KeyString);
 }
 #endif
 
 std::vector<std::string> const& LogicalCollection::shardKeys() const {
+  isInitialized();
   return _shardKeys;
 }
 
 std::shared_ptr<ShardMap> LogicalCollection::shardIds() const {
   // TODO make threadsafe update on the cache.
+  isInitialized();
   return _shardIds;
 }
 
 // return a filtered list of the collection's shards
 std::shared_ptr<ShardMap> LogicalCollection::shardIds(
     std::unordered_set<std::string> const& includedShards) const {
+  isInitialized();
   if (includedShards.empty()) {
     return _shardIds;
   }
@@ -685,6 +777,7 @@ std::shared_ptr<ShardMap> LogicalCollection::shardIds(
 }
 
 void LogicalCollection::setShardMap(std::shared_ptr<ShardMap>& map) {
+  isInitialized();
   _shardIds = map;
 }
 
@@ -702,6 +795,7 @@ void LogicalCollection::setShardMap(std::shared_ptr<ShardMap>& map) {
 // to "renameCollection" returns
 
 int LogicalCollection::rename(std::string const& newName) {
+  isInitialized();
   // Should only be called from inside vocbase.
   // Otherwise caching is destroyed.
   TRI_ASSERT(!ServerState::instance()->isCoordinator());  // NOT YET IMPLEMENTED
@@ -756,19 +850,23 @@ int LogicalCollection::rename(std::string const& newName) {
 }
 
 int LogicalCollection::close() {
+  isInitialized();
   // This was unload() in 3.0
   return getPhysical()->close();
 }
 
 void LogicalCollection::load() {
+  isInitialized();
   _physical->load();
 }
 
 void LogicalCollection::unload() {
+  isInitialized();
   _physical->unload();
 }
 
 void LogicalCollection::drop() {
+  isInitialized();
   // make sure collection has been closed
   this->close();
 
@@ -781,6 +879,7 @@ void LogicalCollection::drop() {
 }
 
 void LogicalCollection::setStatus(TRI_vocbase_col_status_e status) {
+  isInitialized();
   _status = status;
 
   if (status == TRI_VOC_COL_STATUS_LOADED) {
@@ -790,6 +889,7 @@ void LogicalCollection::setStatus(TRI_vocbase_col_status_e status) {
 
 void LogicalCollection::toVelocyPackForClusterInventory(VPackBuilder& result,
                                                         bool useSystem) const {
+  isInitialized();
   if (_isSystem && !useSystem) {
     return;
   }
@@ -822,6 +922,7 @@ void LogicalCollection::toVelocyPackForClusterInventory(VPackBuilder& result,
 
 void LogicalCollection::toVelocyPack(VPackBuilder& result, bool translateCids,
                                      bool forPersistence) const {
+  isInitialized();
   // We write into an open object
   TRI_ASSERT(result.isOpenObject());
 
@@ -920,6 +1021,7 @@ void LogicalCollection::toVelocyPack(VPackBuilder& result, bool translateCids,
 VPackBuilder LogicalCollection::toVelocyPackIgnore(
     std::unordered_set<std::string> const& ignoreKeys, bool translateCids,
     bool forPersistence) const {
+  isInitialized();
   VPackBuilder full;
   full.openObject();
   toVelocyPack(full, translateCids, forPersistence);
@@ -928,13 +1030,18 @@ VPackBuilder LogicalCollection::toVelocyPackIgnore(
 }
 
 void LogicalCollection::includeVelocyPackEnterprise(VPackBuilder&) const {
+  isInitialized();
   // We ain't no enterprise
 }
 
-void LogicalCollection::increaseInternalVersion() { ++_internalVersion; }
+void LogicalCollection::increaseInternalVersion() {
+  isInitialized();
+  ++_internalVersion;
+}
 
 arangodb::Result LogicalCollection::updateProperties(VPackSlice const& slice,
                                                      bool doSync) {
+  isInitialized();
   // the following collection properties are intentionally not updated as
   // updating
   // them would be very complicated:
@@ -975,6 +1082,7 @@ arangodb::Result LogicalCollection::updateProperties(VPackSlice const& slice,
 
 /// @brief return the figures for a collection
 std::shared_ptr<arangodb::velocypack::Builder> LogicalCollection::figures() {
+  isInitialized();
   if (ServerState::instance()->isCoordinator()) {
     auto builder = std::make_shared<VPackBuilder>();
     builder->openObject();
@@ -991,6 +1099,7 @@ std::shared_ptr<arangodb::velocypack::Builder> LogicalCollection::figures() {
 
 /// @brief opens an existing collection
 void LogicalCollection::open(bool ignoreErrors) {
+  isInitialized();
   getPhysical()->open(ignoreErrors);
   TRI_UpdateTickServer(_cid);
 }
@@ -999,11 +1108,13 @@ void LogicalCollection::open(bool ignoreErrors) {
 
 std::shared_ptr<Index> LogicalCollection::lookupIndex(
     TRI_idx_iid_t idxId) const {
+  isInitialized();
   return getPhysical()->lookupIndex(idxId);
 }
 
 std::shared_ptr<Index> LogicalCollection::lookupIndex(
     VPackSlice const& info) const {
+  isInitialized();
   if (!info.isObject()) {
     // Compatibility with old v8-vocindex.
     THROW_ARANGO_EXCEPTION(TRI_ERROR_OUT_OF_MEMORY);
@@ -1014,11 +1125,13 @@ std::shared_ptr<Index> LogicalCollection::lookupIndex(
 std::shared_ptr<Index> LogicalCollection::createIndex(transaction::Methods* trx,
                                                       VPackSlice const& info,
                                                       bool& created) {
+  isInitialized();
   return _physical->createIndex(trx, info, created);
 }
 
 /// @brief drops an index, including index file removal and replication
 bool LogicalCollection::dropIndex(TRI_idx_iid_t iid) {
+  isInitialized();
   TRI_ASSERT(!ServerState::instance()->isCoordinator());
   arangodb::aql::PlanCache::instance()->invalidate(_vocbase);
   arangodb::aql::QueryCache::instance()->invalidate(_vocbase, name());
@@ -1029,6 +1142,7 @@ bool LogicalCollection::dropIndex(TRI_idx_iid_t iid) {
 ///        This should be called AFTER the collection is successfully
 ///        created and only on Sinlge/DBServer
 void LogicalCollection::persistPhysicalCollection() {
+  isInitialized();
   // Coordinators are not allowed to have local collections!
   TRI_ASSERT(!ServerState::instance()->isCoordinator());
 
@@ -1045,6 +1159,7 @@ void LogicalCollection::persistPhysicalCollection() {
 ///        it at that moment.
 void LogicalCollection::deferDropCollection(
     std::function<bool(LogicalCollection*)> callback) {
+  isInitialized();
   _physical->deferDropCollection(callback);
 }
 
@@ -1052,11 +1167,13 @@ void LogicalCollection::deferDropCollection(
 Result LogicalCollection::read(transaction::Methods* trx,
                                std::string const& key,
                                ManagedDocumentResult& result, bool lock) {
+  isInitialized();
   return read(trx, StringRef(key.c_str(), key.size()), result, lock);
 }
 
 Result LogicalCollection::read(transaction::Methods* trx, StringRef const& key,
                                ManagedDocumentResult& result, bool lock) {
+  isInitialized();
   transaction::BuilderLeaser builder(trx);
   builder->add(VPackValuePair(key.data(), key.size(), VPackValueType::String));
   return getPhysical()->read(trx, builder->slice(), result, lock);
@@ -1069,6 +1186,7 @@ Result LogicalCollection::read(transaction::Methods* trx, StringRef const& key,
 
 void LogicalCollection::truncate(transaction::Methods* trx,
                                  OperationOptions& options) {
+  isInitialized();
   getPhysical()->truncate(trx, options);
 }
 
@@ -1081,6 +1199,7 @@ Result LogicalCollection::insert(transaction::Methods* trx,
                                  ManagedDocumentResult& result,
                                  OperationOptions& options,
                                  TRI_voc_tick_t& resultMarkerTick, bool lock) {
+  isInitialized();
   resultMarkerTick = 0;
   return getPhysical()->insert(trx, slice, result, options, resultMarkerTick,
                                lock);
@@ -1094,6 +1213,7 @@ Result LogicalCollection::update(transaction::Methods* trx,
                                  TRI_voc_tick_t& resultMarkerTick, bool lock,
                                  TRI_voc_rid_t& prevRev,
                                  ManagedDocumentResult& previous) {
+  isInitialized();
   resultMarkerTick = 0;
 
   if (!newSlice.isObject()) {
@@ -1137,6 +1257,7 @@ Result LogicalCollection::replace(transaction::Methods* trx,
                                   TRI_voc_tick_t& resultMarkerTick, bool lock,
                                   TRI_voc_rid_t& prevRev,
                                   ManagedDocumentResult& previous) {
+  isInitialized();
   resultMarkerTick = 0;
 
   if (!newSlice.isObject()) {
@@ -1188,6 +1309,7 @@ Result LogicalCollection::remove(transaction::Methods* trx,
                                  TRI_voc_tick_t& resultMarkerTick, bool lock,
                                  TRI_voc_rid_t& prevRev,
                                  ManagedDocumentResult& previous) {
+  isInitialized();
   resultMarkerTick = 0;
 
   TRI_voc_rid_t revisionId = 0;
@@ -1216,12 +1338,14 @@ Result LogicalCollection::remove(transaction::Methods* trx,
 bool LogicalCollection::readDocument(transaction::Methods* trx,
                                      DocumentIdentifierToken const& token,
                                      ManagedDocumentResult& result) {
+  isInitialized();
   return getPhysical()->readDocument(trx, token, result);
 }
 
 bool LogicalCollection::readDocumentWithCallback(transaction::Methods* trx,
                                                  DocumentIdentifierToken const& token,
                                                  IndexIterator::DocumentCallback const& cb) {
+  isInitialized();
   return getPhysical()->readDocumentWithCallback(trx, token, cb);
 }
 
@@ -1230,14 +1354,19 @@ bool LogicalCollection::readDocumentWithCallback(transaction::Methods* trx,
 #ifndef USE_ENTERPRISE
 bool LogicalCollection::skipForAqlWrite(arangodb::velocypack::Slice document,
                                         std::string const& key) const {
+  isInitialized();
   return false;
 }
 #endif
 
-bool LogicalCollection::isSatellite() const { return _replicationFactor == 0; }
+bool LogicalCollection::isSatellite() const {
+  isInitialized();
+  return _replicationFactor == 0;
+}
 
 // SECTION: Key Options
 VPackSlice LogicalCollection::keyOptions() const {
+  isInitialized();
   if (_keyOptions == nullptr) {
     return arangodb::basics::VelocyPackHelper::NullValue();
   }
