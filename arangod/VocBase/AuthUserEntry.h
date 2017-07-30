@@ -90,6 +90,14 @@ class AuthUserEntry {
  private:
   AuthUserEntry() {}
 
+  AuthLevel collectionAuthLevelCom(std::string const& dbname,
+                                   std::string const& collection) const;
+
+#ifdef USE_ENTERPRISE
+  AuthLevel collectionAuthLevelEE(std::string const& dbname,
+                                  std::string const& collection) const;
+#endif
+
   struct DBAuthContext {
     DBAuthContext(AuthLevel dbLvl,
                   std::unordered_map<std::string, AuthLevel> const& coll)

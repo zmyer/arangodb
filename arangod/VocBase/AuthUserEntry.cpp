@@ -476,6 +476,15 @@ AuthLevel AuthUserEntry::collectionAuthLevel(
     return AuthLevel::RW;
   }
 
+#ifdef USE_ENTERPRISE
+  return collectionAuthLevelEE(dbname, collectionName);
+#else
+  return collectionAuthLevelCom(dbname, collectionName);
+#endif
+}
+
+AuthLevel AuthUserEntry::collectionAuthLevelCom(
+    std::string const& dbname, std::string const& collectionName) const {
   AuthLevel lvl = AuthLevel::NONE;
   auto it = _dbAccess.find(dbname);
   if (it != _dbAccess.end()) {
