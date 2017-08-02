@@ -1,6 +1,8 @@
 v3.1.27 (XXXX-XX-XX)
 --------------------
 
+* fixed issue #2337: LIMIT operator on static arrays
+
 * fixed revision cache cleanup behavior in out-of-memory situations
 
 * fixed issue #2889: Traversal query using incorrect collection id
