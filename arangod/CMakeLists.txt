@@ -318,6 +318,7 @@ SET(ARANGOD_SOURCES
   RestServer/ServerFeature.cpp
   RestServer/ServerIdFeature.cpp
   RestServer/TransactionManagerFeature.cpp
+  RestServer/TransactionRegistryFeature.cpp
   RestServer/TraverserEngineRegistryFeature.cpp
   RestServer/UnitTestsFeature.cpp
   RestServer/UpgradeFeature.cpp
@@ -349,6 +350,7 @@ SET(ARANGOD_SOURCES
   Transaction/Methods.cpp
   Transaction/Options.cpp
   Transaction/StandaloneContext.cpp
+  Transaction/TransactionRegistry.cpp
   Transaction/V8Context.cpp
   Utils/Authentication.cpp
   Utils/CollectionKeys.cpp

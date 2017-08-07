@@ -183,6 +183,9 @@ class Methods {
   /// @brief abort the transaction
   Result abort();
 
+  /// @brief external call to abort transaction asynchroneously
+  void abortExternal();
+
   /// @brief finish a transaction (commit or abort), based on the previous state
   Result finish(int errorNum);
   Result finish(Result const& res);
@@ -551,6 +554,9 @@ class Methods {
  protected:
   /// @brief the state
   TransactionState* _state;
+
+  /// @brief
+  bool _aborted;
 
   /// @brief the transaction context
   std::shared_ptr<transaction::Context> _transactionContext;

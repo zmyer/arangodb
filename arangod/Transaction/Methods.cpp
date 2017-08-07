@@ -55,7 +55,6 @@
 #include "Utils/SingleCollectionTransaction.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ManagedDocumentResult.h"
-#include "VocBase/Methods/Indexes.h"
 #include "VocBase/ticks.h"
 
 #include <velocypack/Builder.h>
@@ -559,6 +558,7 @@ transaction::Methods::Methods(
     std::shared_ptr<transaction::Context> const& transactionContext,
     transaction::Options const& options)
     : _state(nullptr),
+      _aborted(false),
       _transactionContext(transactionContext),
       _transactionContextPtr(transactionContext.get()) {
   TRI_ASSERT(_transactionContextPtr != nullptr);
@@ -709,23 +709,35 @@ void transaction::Methods::buildDocumentIdentity(
 
 /// @brief begin the transaction
 Result transaction::Methods::begin() {
-  if (_state == nullptr) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL,
-                                   "invalid transaction state");
-  }
 
+  MUTEX_LOCKER(al, _abortLock);
+  if (_aborted) {
+    return TRI_ERROR_TRANSACTION_ABORTED;
+  }
+  
+  if (_state == nullptr) {
+    THROW_ARANGO_EXCEPTION_MESSAGE(
+      TRI_ERROR_INTERNAL, "invalid transaction state");
+  }
+  
   if (_state->isCoordinator()) {
     if (_state->isTopLevelTransaction()) {
       _state->updateStatus(transaction::Status::RUNNING);
     }
     return TRI_ERROR_NO_ERROR;
   }
-
+  
   return _state->beginTransaction(_localHints);
 }
 
 /// @brief commit / finish the transaction
 Result transaction::Methods::commit() {
+
+  MUTEX_LOCKER(al, _abortLock);
+  if (_aborted) {
+    return TRI_ERROR_TRANSACTION_ABORTED;
+  }
+  
   if (_state == nullptr || _state->status() != transaction::Status::RUNNING) {
     // transaction not created or not running
     return TRI_ERROR_TRANSACTION_INTERNAL;
@@ -745,6 +757,12 @@ Result transaction::Methods::commit() {
 
 /// @brief abort the transaction
 Result transaction::Methods::abort() {
+
+  MUTEX_LOCKER(al, _abortLock);
+  if (_aborted) {
+    return TRI_ERROR_NO_ERROR;
+  }
+
   if (_state == nullptr || _state->status() != transaction::Status::RUNNING) {
     // transaction not created or not running
     return TRI_ERROR_TRANSACTION_INTERNAL;
@@ -2332,7 +2350,7 @@ OperationResult transaction::Methods::truncateLocal(
     collection->truncate(this, options);
   } catch (basics::Exception const& ex) {
     unlock(trxCollection(cid), AccessMode::Type::WRITE);
-    return OperationResult(ex.code(), ex.what());
+    return OperationResult(ex.code());
   }
 
   // Now see whether or not we have to do synchronous replication:
@@ -2865,19 +2883,9 @@ std::shared_ptr<Index> transaction::Methods::indexForCollectionCoordinator(
 std::vector<std::shared_ptr<Index>>
 transaction::Methods::indexesForCollectionCoordinator(
     std::string const& name) const {
-
-  auto dbname = databaseName();
   auto clusterInfo = arangodb::ClusterInfo::instance();
-  std::shared_ptr<LogicalCollection> collection = clusterInfo->getCollection(databaseName(), name);
-  std::vector<std::shared_ptr<Index>> indexes = collection->getIndexes();
-
-  collection->clusterIndexEstimates(); // update estiamtes in logical collection
-  // push updated values into indexes
-  for(auto i : indexes){
-    i->updateClusterEstimate();
-  }
-
-  return indexes;
+  auto collectionInfo = clusterInfo->getCollection(databaseName(), name);
+  return collectionInfo->getIndexes();
 }
 
 /// @brief get the index by it's identifier. Will either throw or
@@ -3040,6 +3048,13 @@ Result transaction::Methods::resolveId(char const* handle, size_t length,
   return TRI_ERROR_NO_ERROR;
 }
 
+/// @brief public abort transaction method
+void transaction::Methods::abortExternal() {
+  MUTEX_LOCKER(al, _abortLock);
+  _aborted = true;
+}
+
+
 /// @brief invoke a callback method when a transaction has finished
 void transaction::CallbackInvoker::invoke() noexcept {
   if (!_trx->_onFinish) {
@@ -3052,3 +3067,6 @@ void transaction::CallbackInvoker::invoke() noexcept {
     // we must not propagate exceptions from here
   }
 }
+
+
+
