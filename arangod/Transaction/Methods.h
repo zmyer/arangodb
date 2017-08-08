@@ -28,6 +28,7 @@
 #include "Basics/Exceptions.h"
 #include "Basics/StringRef.h"
 #include "Basics/Result.h"
+#include "Basics/Mutex.h"
 #include "Utils/OperationResult.h"
 #include "Transaction/Hints.h"
 #include "Transaction/Options.h"
@@ -557,6 +558,7 @@ class Methods {
 
   /// @brief
   bool _aborted;
+  arangodb::Mutex _abortLock;
 
   /// @brief the transaction context
   std::shared_ptr<transaction::Context> _transactionContext;

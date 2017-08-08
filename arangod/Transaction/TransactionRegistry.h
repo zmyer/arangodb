@@ -29,6 +29,8 @@
 
 #include "Basics/Common.h"
 #include "Basics/Mutex.h"
+#include "Basics/MutexLocker.h"
+#include "Cluster/ClusterInfo.h"
 
 struct TRI_vocbase_t;
 
@@ -37,17 +39,54 @@ namespace transaction {
 class Methods;
 
 class TransactionRegistry {
- public:
+
+  struct UniqueRange {
+
+    UniqueRange(uint64_t chunks = 10000) {
+      getSomeNoLock();
+    }
+    
+    UniqueRange(uint64_t n, uint64_t t, uint64_t chunks = 10000) :
+      next(n), last(t) {}
+    
+    // offer and burn an id
+    inline uint64_t operator()() {
+      MUTEX_LOCKER(guard, lock);
+      if (next == last) {
+        getSomeNoLock();
+      }
+      return next++;
+    }
+
+  private:
+
+    // update a bunch
+    inline void getSomeNoLock() {
+      next = ClusterInfo::instance()->uniqid(chunks);
+      last = next + chunks - 1;
+    }
+
+    uint64_t next;
+    uint64_t last;
+    uint64_t chunks;
+    arangodb::Mutex lock;
+    
+  };
+  
+
+
+public:
   TransactionRegistry() {}
-
+  
   ~TransactionRegistry();
-
+  
   /// @brief insert, this inserts the transaction <transaction> for the vocbase <vocbase>
   /// and the id <id> into the registry. It is in error if there is already
   /// a transaction for this <vocbase> and <id> combination and an exception will
   /// be thrown in that case. The time to live <ttl> is in seconds and the
   /// transaction will be deleted if it is not opened for that amount of time.
   void insert(TransactionId id, Methods* transaction, double ttl = 60.0);
+  TransactionId insert(Methods* transaction, double ttl = 60.0);
 
   /// @brief Lease and open a transaction
   Methods* open(TRI_vocbase_t* vocbase, TransactionId id);
@@ -97,6 +136,10 @@ class TransactionRegistry {
 
   /// @brief _lock, the read/write lock for access
   arangodb::Mutex _lock;
+
+  /// @brief unique range from agency for creating transaction ids
+  UniqueRange _uniqueRange;
+
 };
 
 }  // namespace arangodb::transaction

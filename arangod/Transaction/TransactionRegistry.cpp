@@ -27,10 +27,13 @@
 #include "Basics/ReadLocker.h"
 #include "Basics/WriteLocker.h"
 #include "Cluster/CollectionLockState.h"
+#include "Cluster/ClusterInfo.h"
+#include "Cluster/ServerState.h"
 #include "Logger/Logger.h"
 
 using namespace arangodb;
 using namespace arangodb::transaction;
+
 
 /// @brief destroy all open transactions
 TransactionRegistry::~TransactionRegistry() {
@@ -62,6 +65,47 @@ TransactionRegistry::~TransactionRegistry() {
       destroy(p.first, p.second, TRI_ERROR_TRANSACTION_ABORTED);
     } catch (...) { }
   }
+}
+
+/// @brief insert new transaction (coordinator)
+TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
+
+  TRI_ASSERT(transaction != nullptr);
+  TRI_ASSERT(ServerState::instance()->isCoordinator());
+
+  auto vocbase = transaction->vocbase();
+  TransactionId id(0, _uniqueRange());
+
+  MUTEX_LOCKER(locker, _lock);
+  auto m = _transactions.find(vocbase->name());
+  if (m == _transactions.end()) {
+    m = _transactions.emplace(
+      vocbase->name(), std::unordered_map<TransactionId, TransactionInfo*>()).first;
+    TRI_ASSERT(_transactions.find(vocbase->name()) != _transactions.end());
+  }  
+
+  auto t = m->second.find(id);
+  if (t == m->second.end()) {
+    auto p = std::make_unique<TransactionInfo>();
+    p->_vocbase = vocbase;
+    p->_id = id;
+    p->_transaction = transaction;
+    p->_isOpen = false;
+    p->_timeToLive = ttl;
+    p->_expires = TRI_microtime() + ttl;
+    m->second.emplace(id, p.get());
+    p.release();
+    
+    TRI_ASSERT(_transactions.find(vocbase->name())->second.find(id) !=
+               _transactions.find(vocbase->name())->second.end());
+    
+  } else {
+    THROW_ARANGO_EXCEPTION_MESSAGE(
+      TRI_ERROR_INTERNAL, "transaction with given vocbase and id already there");
+  }
+
+  return id;
+  
 }
 
 /// @brief insert

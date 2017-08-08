@@ -29,6 +29,7 @@
 #include "Aql/SortCondition.h"
 #include "Basics/AttributeNameParser.h"
 #include "Basics/Exceptions.h"
+#include "Basics/MutexLocker.h"
 #include "Basics/StaticStrings.h"
 #include "Basics/StringUtils.h"
 #include "Basics/VelocyPackHelper.h"
@@ -569,7 +570,14 @@ transaction::Methods::Methods(
   // this will first check if the transaction is embedded in a parent
   // transaction. if not, it will create a transaction of its own
   // check in the context if we are running embedded
-  TransactionState* parent = _transactionContextPtr->getParentTransaction();
+  TransactionState* parent = nullptr;
+
+  // no support for subtransactions in the cluster yet.
+  // so we will just not perform the check. effectively raising every
+  // operation to the top level.
+  if (!_state->isRunningInCluster()) {
+    parent = _transactionContextPtr->getParentTransaction();
+  }
 
   if (parent != nullptr) {
     // yes, we are embedded
@@ -1303,6 +1311,14 @@ OperationResult transaction::Methods::documentLocal(
 OperationResult transaction::Methods::insert(std::string const& collectionName,
                                              VPackSlice const value,
                                              OperationOptions const& options) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+  
   TRI_ASSERT(_state->status() == transaction::Status::RUNNING);
 
   if (!value.isObject() && !value.isArray()) {
@@ -1383,6 +1399,14 @@ static double chooseTimeout(size_t count) {
 OperationResult transaction::Methods::insertLocal(
     std::string const& collectionName, VPackSlice const value,
     OperationOptions& options) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+  
   TRI_voc_cid_t cid = addCollectionAtRuntime(collectionName);
   LogicalCollection* collection = documentCollection(trxCollection(cid));
 
@@ -1596,6 +1620,14 @@ OperationResult transaction::Methods::insertLocal(
 OperationResult transaction::Methods::update(std::string const& collectionName,
                                              VPackSlice const newValue,
                                              OperationOptions const& options) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+
   TRI_ASSERT(_state->status() == transaction::Status::RUNNING);
 
   if (!newValue.isObject() && !newValue.isArray()) {
@@ -1646,6 +1678,14 @@ OperationResult transaction::Methods::updateCoordinator(
 OperationResult transaction::Methods::replace(std::string const& collectionName,
                                               VPackSlice const newValue,
                                               OperationOptions const& options) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+
   TRI_ASSERT(_state->status() == transaction::Status::RUNNING);
 
   if (!newValue.isObject() && !newValue.isArray()) {
@@ -1696,6 +1736,14 @@ OperationResult transaction::Methods::replaceCoordinator(
 OperationResult transaction::Methods::modifyLocal(
     std::string const& collectionName, VPackSlice const newValue,
     OperationOptions& options, TRI_voc_document_operation_e operation) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+
   TRI_voc_cid_t cid = addCollectionAtRuntime(collectionName);
   LogicalCollection* collection = documentCollection(trxCollection(cid));
 
@@ -1947,6 +1995,14 @@ OperationResult transaction::Methods::modifyLocal(
 OperationResult transaction::Methods::remove(std::string const& collectionName,
                                              VPackSlice const value,
                                              OperationOptions const& options) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+
   TRI_ASSERT(_state->status() == transaction::Status::RUNNING);
 
   if (!value.isObject() && !value.isArray() && !value.isString()) {
@@ -1994,6 +2050,14 @@ OperationResult transaction::Methods::removeCoordinator(
 OperationResult transaction::Methods::removeLocal(
     std::string const& collectionName, VPackSlice const value,
     OperationOptions& options) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+
   TRI_voc_cid_t cid = addCollectionAtRuntime(collectionName);
   LogicalCollection* collection = documentCollection(trxCollection(cid));
 
@@ -2223,6 +2287,14 @@ OperationResult transaction::Methods::removeLocal(
 OperationResult transaction::Methods::all(std::string const& collectionName,
                                           uint64_t skip, uint64_t limit,
                                           OperationOptions const& options) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+
   TRI_ASSERT(_state->status() == transaction::Status::RUNNING);
 
   OperationOptions optionsCopy = options;
@@ -2245,6 +2317,14 @@ OperationResult transaction::Methods::allCoordinator(
 OperationResult transaction::Methods::allLocal(
     std::string const& collectionName, uint64_t skip, uint64_t limit,
     OperationOptions& options) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+
   TRI_voc_cid_t cid = addCollectionAtRuntime(collectionName);
 
   pinData(cid);  // will throw when it fails
@@ -2288,6 +2368,14 @@ OperationResult transaction::Methods::allLocal(
 /// @brief remove all documents in a collection
 OperationResult transaction::Methods::truncate(
     std::string const& collectionName, OperationOptions const& options) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+
   TRI_ASSERT(_state->status() == transaction::Status::RUNNING);
 
   OperationOptions optionsCopy = options;
@@ -2315,6 +2403,14 @@ OperationResult transaction::Methods::truncateCoordinator(
 /// @brief remove all documents in a collection, local
 OperationResult transaction::Methods::truncateLocal(
     std::string const& collectionName, OperationOptions& options) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+    }
+  }
+
   TRI_voc_cid_t cid = addCollectionAtRuntime(collectionName);
 
   LogicalCollection* collection = documentCollection(trxCollection(cid));
@@ -2791,18 +2887,42 @@ Result transaction::Methods::addCollection(TRI_voc_cid_t cid, char const* name,
 Result transaction::Methods::addCollection(TRI_voc_cid_t cid,
                                            std::string const& name,
                                            AccessMode::Type type) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      return TRI_ERROR_TRANSACTION_ABORTED;
+    }
+  }
+
   return addCollection(cid, name.c_str(), type);
 }
 
 /// @brief add a collection by id
 Result transaction::Methods::addCollection(TRI_voc_cid_t cid,
                                            AccessMode::Type type) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      return TRI_ERROR_TRANSACTION_ABORTED;
+    }
+  }
+
   return addCollection(cid, nullptr, type);
 }
 
 /// @brief add a collection by name
 Result transaction::Methods::addCollection(std::string const& name,
                                            AccessMode::Type type) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      return TRI_ERROR_TRANSACTION_ABORTED;
+    }
+  }
+
   return addCollection(resolver()->getCollectionId(name), name.c_str(), type);
 }
 
@@ -2823,6 +2943,14 @@ bool transaction::Methods::isLocked(LogicalCollection* document,
 /// @brief read- or write-lock a collection
 Result transaction::Methods::lock(TransactionCollection* trxCollection,
                                   AccessMode::Type type) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      return TRI_ERROR_TRANSACTION_ABORTED;
+    }
+  }
+
   if (_state == nullptr || _state->status() != transaction::Status::RUNNING) {
     return TRI_ERROR_TRANSACTION_INTERNAL;
   }
@@ -2833,6 +2961,14 @@ Result transaction::Methods::lock(TransactionCollection* trxCollection,
 /// @brief read- or write-unlock a collection
 Result transaction::Methods::unlock(TransactionCollection* trxCollection,
                                     AccessMode::Type type) {
+
+  {
+    MUTEX_LOCKER(al, _abortLock);
+    if (_aborted) {
+      return TRI_ERROR_TRANSACTION_ABORTED;
+    }
+  }
+
   if (_state == nullptr || _state->status() != transaction::Status::RUNNING) {
     return TRI_ERROR_TRANSACTION_INTERNAL;
   }
