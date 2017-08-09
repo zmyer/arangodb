@@ -40,14 +40,10 @@ class Methods;
 
 class TransactionRegistry {
 
-  struct UniqueRange {
+  struct UniqueGenerator {
 
-    UniqueRange(uint64_t chunks = 10000) {
-      getSomeNoLock();
-    }
-    
-    UniqueRange(uint64_t n, uint64_t t, uint64_t chunks = 10000) :
-      next(n), last(t) {}
+   UniqueGenerator(uint64_t n = 0, uint64_t c = 10000) :
+    next(n), last(0), chunks(c) {}
     
     // offer and burn an id
     inline uint64_t operator()() {
@@ -55,15 +51,25 @@ class TransactionRegistry {
       if (next == last) {
         getSomeNoLock();
       }
-      return next++;
+      uint64_t ret = next;
+      next+=4;
+      return ret;
     }
 
   private:
 
     // update a bunch
     inline void getSomeNoLock() {
-      next = 10000;//ClusterInfo::instance()->uniqid(chunks);
+      next = ClusterInfo::instance()->uniqid(chunks);
       last = next + chunks - 1;
+      uint64_t r = next%4; 
+      if(r != 0) {
+        next += 4-r;
+      }
+      r = last%4;
+      if(r != 0) {
+        last -= r;
+      }
     }
 
     uint64_t next;
@@ -138,7 +144,7 @@ public:
   arangodb::Mutex _lock;
 
   /// @brief unique range from agency for creating transaction ids
-  UniqueRange _uniqueRange;
+  UniqueGenerator _generator;
 
 };
 

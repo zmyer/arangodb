@@ -33,6 +33,7 @@
 #include "Transaction/Hints.h"
 #include "Transaction/Options.h"
 #include "Transaction/Status.h"
+#include "Transaction/types.h"
 #include "VocBase/AccessMode.h"
 #include "VocBase/vocbase.h"
 #include "VocBase/voc-types.h"
@@ -140,6 +141,9 @@ class Methods {
     ALL = 0,
     ANY
   };
+
+  /// @brief get id
+  TransactionId id() const;
 
   /// @brief register a callback for transaction commit or abort
   void registerCallback(std::function<void(arangodb::transaction::Methods* trx)> const& onFinish) { _onFinish = onFinish; }

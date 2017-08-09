@@ -76,7 +76,7 @@ TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
   transaction->begin();
 
   auto vocbase = transaction->vocbase();
-  TransactionId id(0, _uniqueRange());
+  auto id = transaction->id();
 
   MUTEX_LOCKER(locker, _lock);
   auto m = _transactions.find(vocbase->name());
@@ -110,7 +110,7 @@ TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
   
 }
 
-/// @brief insert
+/// @brief insert transaction on db servers
 void TransactionRegistry::insert(TransactionId id, Methods* transaction, double ttl) {
   TRI_ASSERT(transaction != nullptr);
 
