@@ -216,6 +216,8 @@ void inlineSubqueriesRule(Optimizer*, std::unique_ptr<ExecutionPlan>, OptimizerR
   
 void geoIndexRule(aql::Optimizer* opt, std::unique_ptr<aql::ExecutionPlan> plan, aql::OptimizerRule const* rule);
 
+void reduceExtractionToProjectionRule(aql::Optimizer* opt, std::unique_ptr<aql::ExecutionPlan> plan, aql::OptimizerRule const* rule);
+
 }  // namespace aql
 }  // namespace arangodb
 

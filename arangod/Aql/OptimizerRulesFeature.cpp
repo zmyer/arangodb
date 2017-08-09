@@ -204,6 +204,9 @@ void OptimizerRulesFeature::addRules() {
   // try to find a filter after an enumerate collection and find indexes
   registerRule("use-indexes", useIndexesRule, OptimizerRule::useIndexesRule_pass6, DoesNotCreateAdditionalPlans, CanBeDisabled);
 
+  // simplify an EnumerationCollectionNode that fetches an entire document to a projection of this document
+  registerRule("reduce-extraction-to-projection", reduceExtractionToProjectionRule, OptimizerRule::reduceExtractionToProjectionRule_pass6, DoesNotCreateAdditionalPlans, CanBeDisabled);
+
   // try to remove filters which are covered by index ranges
   registerRule("remove-filter-covered-by-index",
                removeFiltersCoveredByIndexRule,

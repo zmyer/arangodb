@@ -27,17 +27,9 @@
 #include "Basics/Common.h"
 
 namespace arangodb {
-namespace aql {
-class ExecutionPlan;
-class Optimizer;
-struct OptimizerRule;
-}
 
 struct RocksDBOptimizerRules {
   static void registerResources();
-  
-  // simplify an EnumerationCollectionNode that fetches an entire document to a projection of this document
-  static void reduceExtractionToProjectionRule(aql::Optimizer* opt, std::unique_ptr<aql::ExecutionPlan> plan, aql::OptimizerRule const* rule);
 };
 
 } // namespace arangodb
