@@ -142,7 +142,7 @@ void TRI_vocbase_t::signalCleanup() {
 /// @brief adds a new collection
 /// caller must hold _collectionsLock in write mode or set doLock
 void TRI_vocbase_t::registerCollection(
-    bool doLock, arangodb::LogicalCollection* collection) {
+    bool doLock, std::shared_ptr<arangodb::LogicalCollection> collection) {
   std::string name = collection->name();
   TRI_voc_cid_t cid = collection->cid();
   {
@@ -328,7 +328,7 @@ bool TRI_vocbase_t::DropCollectionCallback(
 }
 
 /// @brief creates a new collection, worker function
-arangodb::LogicalCollection* TRI_vocbase_t::createCollectionWorker(
+std::shared_ptr<arangodb::LogicalCollection> TRI_vocbase_t::createCollectionWorker(
     VPackSlice parameters) {
   std::string name = arangodb::basics::VelocyPackHelper::getStringValue(
       parameters, "name", "");
@@ -336,10 +336,11 @@ arangodb::LogicalCollection* TRI_vocbase_t::createCollectionWorker(
 
   // Try to create a new collection. This is not registered yet
 
-  std::unique_ptr<arangodb::LogicalCollection> collection =
-      std::make_unique<arangodb::LogicalCollection>(this, parameters);
-  TRI_ASSERT(collection != nullptr);
+  std::shared_ptr<arangodb::LogicalCollection> collection =
+      std::make_shared<arangodb::LogicalCollection>(this, parameters,true);
+  collection->init_new(parameters);
 
+  TRI_ASSERT(collection != nullptr);
   WRITE_LOCKER(writeLocker, _collectionsLock);
 
   // reserve room for the new collection
@@ -353,7 +354,7 @@ arangodb::LogicalCollection* TRI_vocbase_t::createCollectionWorker(
     THROW_ARANGO_EXCEPTION(TRI_ERROR_ARANGO_DUPLICATE_NAME);
   }
 
-  registerCollection(basics::ConditionalLocking::DoNotLock, collection.get());
+  registerCollection(basics::ConditionalLocking::DoNotLock, collection);
 
   try {
     collection->setStatus(TRI_VOC_COL_STATUS_LOADED);
@@ -364,7 +365,7 @@ arangodb::LogicalCollection* TRI_vocbase_t::createCollectionWorker(
     collection->persistPhysicalCollection();
 
     events::CreateCollection(name, TRI_ERROR_NO_ERROR);
-    return collection.release();
+    return collection;
   } catch (...) {
     unregisterCollection(collection.get());
     throw;

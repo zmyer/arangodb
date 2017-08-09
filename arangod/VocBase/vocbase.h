@@ -166,9 +166,9 @@ struct TRI_vocbase_t {
                          // dropped that can be
                          // removed later
 
-  std::unordered_map<std::string, arangodb::LogicalCollection*>
+  std::unordered_map<std::string, std::shared_ptr<arangodb::LogicalCollection>>
       _collectionsByName;  // collections by name
-  std::unordered_map<TRI_voc_cid_t, arangodb::LogicalCollection*>
+  std::unordered_map<TRI_voc_cid_t, std::shared_ptr<arangodb::LogicalCollection>>
       _collectionsById;  // collections by id
 
   arangodb::basics::ReadWriteLock _viewsLock;  // views management lock
@@ -212,7 +212,7 @@ struct TRI_vocbase_t {
   getReplicationClients();
   /// garbage collect replication clients
   void garbageCollectReplicationClients(double ttl);
-  
+
   TRI_replication_applier_t* replicationApplier() const {
     return _replicationApplier.get();
   }
@@ -359,14 +359,14 @@ struct TRI_vocbase_t {
 
   /// @brief adds a new collection
   /// caller must hold _collectionsLock in write mode or set doLock
-  void registerCollection(bool doLock, arangodb::LogicalCollection* collection);
+  void registerCollection(bool doLock, std::shared_ptr<arangodb::LogicalCollection> collection);
 
   /// @brief removes a collection from the global list of collections
   /// This function is called when a collection is dropped.
   bool unregisterCollection(arangodb::LogicalCollection* collection);
 
   /// @brief creates a new collection, worker function
-  arangodb::LogicalCollection* createCollectionWorker(
+  std::shared_ptr<arangodb::LogicalCollection> createCollectionWorker(
       arangodb::velocypack::Slice parameters);
 
   /// @brief drops a collection, worker function

@@ -393,8 +393,8 @@ class StorageEngine : public application_features::ApplicationFeature {
 
  protected:
   void registerCollection(TRI_vocbase_t* vocbase,
-                          arangodb::LogicalCollection* collection) {
-    vocbase->registerCollection(true, collection);
+                          std::shared_ptr<arangodb::LogicalCollection> collection) {
+    vocbase->registerCollection(true, std::move(collection));
   }
   
   void registerView(TRI_vocbase_t* vocbase,

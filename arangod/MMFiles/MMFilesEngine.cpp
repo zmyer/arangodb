@@ -1966,6 +1966,7 @@ std::string MMFilesEngine::viewDirectory(TRI_voc_tick_t databaseId,
         "trying to determine directory for unknown database");
   }
 
+
   auto it2 = (*it).second.find(id);
 
   if (it2 == (*it).second.end()) {
@@ -2075,9 +2076,8 @@ TRI_vocbase_t* MMFilesEngine::openExistingDatabase(TRI_voc_tick_t id,
       uniqCol->init_new(it);
       auto collection = uniqCol.get();
       TRI_ASSERT(collection != nullptr);
-      StorageEngine::registerCollection(vocbase.get(), uniqCol.get());
+      StorageEngine::registerCollection(vocbase.get(), std::move(uniqCol));
       // The vocbase has taken over control
-      uniqCol.release();
 
       auto physical =
           static_cast<MMFilesCollection*>(collection->getPhysical());
