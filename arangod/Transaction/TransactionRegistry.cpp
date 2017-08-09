@@ -73,6 +73,8 @@ TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
   TRI_ASSERT(transaction != nullptr);
   TRI_ASSERT(ServerState::instance()->isCoordinator());
 
+  transaction->begin();
+
   auto vocbase = transaction->vocbase();
   TransactionId id(0, _uniqueRange());
 
@@ -82,7 +84,7 @@ TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
     m = _transactions.emplace(
       vocbase->name(), std::unordered_map<TransactionId, TransactionInfo*>()).first;
     TRI_ASSERT(_transactions.find(vocbase->name()) != _transactions.end());
-  }  
+  }
 
   auto t = m->second.find(id);
   if (t == m->second.end()) {
@@ -112,6 +114,7 @@ TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
 void TransactionRegistry::insert(TransactionId id, Methods* transaction, double ttl) {
   TRI_ASSERT(transaction != nullptr);
 
+  transaction->begin();
   auto vocbase = transaction->vocbase();
 
   MUTEX_LOCKER(locker, _lock);

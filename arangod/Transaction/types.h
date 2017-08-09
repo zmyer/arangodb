@@ -34,10 +34,25 @@ struct TransactionId {
   TransactionId(uint64_t c = 0, uint64_t i = 0) : coordinator(c), identifier(i) {}
   uint64_t coordinator;
   uint64_t identifier;
+  std::string to_string() const;
+  
+  static TransactionId zero();
 };
+
+inline TransactionId TransactionId::zero() {return TransactionId(0,0);}
+
+static std::string const SEPARATOR = "-";
+inline std::string TransactionId::to_string() const {
+  return std::to_string(coordinator) + SEPARATOR + std::to_string(identifier);
+}
 
 inline bool operator==(TransactionId const& lhs, TransactionId const& rhs) {
   return (lhs.coordinator==rhs.coordinator && lhs.identifier==rhs.identifier);
+}
+
+inline std::ostream& operator<<(std::ostream& o, TransactionId const& t) {
+  o << t.coordinator << SEPARATOR << t.identifier;
+  return o;
 }
 
 }}

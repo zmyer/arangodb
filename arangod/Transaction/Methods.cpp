@@ -564,6 +564,8 @@ transaction::Methods::Methods(
       _transactionContextPtr(transactionContext.get()) {
   TRI_ASSERT(_transactionContextPtr != nullptr);
 
+  
+
   TRI_vocbase_t* vocbase = _transactionContextPtr->vocbase();
 
   // brief initialize the transaction
@@ -575,9 +577,9 @@ transaction::Methods::Methods(
   // no support for subtransactions in the cluster yet.
   // so we will just not perform the check. effectively raising every
   // operation to the top level.
-  if (!_state->isRunningInCluster()) {
+  //if (!_state->isRunningInCluster()) {
     parent = _transactionContextPtr->getParentTransaction();
-  }
+    //}
 
   if (parent != nullptr) {
     // yes, we are embedded
@@ -609,7 +611,7 @@ transaction::Methods::~Methods() {
     TRI_ASSERT(_state->status() != transaction::Status::RUNNING);
     // store result
     _transactionContextPtr->storeTransactionResult(
-        _state->id(), _state->hasFailedOperations());
+      _state->id().identifier, _state->hasFailedOperations());
     _transactionContextPtr->unregisterTransaction();
 
     delete _state;

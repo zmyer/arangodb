@@ -129,6 +129,7 @@ MMFilesLogfileManager::MMFilesLogfileManager(ApplicationServer* server)
   startsBefore("Bootstrap");
   startsBefore("GeneralServer");
   startsBefore("QueryRegistry");
+  startsBefore("TransactionRegistry");
   startsBefore("TraverserEngineRegistry");
   
   onlyEnabledWith("MMFilesEngine");

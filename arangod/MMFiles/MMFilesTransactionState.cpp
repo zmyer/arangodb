@@ -51,11 +51,12 @@ static inline MMFilesLogfileManager* GetMMFilesLogfileManager() {
 }
 
 /// @brief transaction type
-MMFilesTransactionState::MMFilesTransactionState(TRI_vocbase_t* vocbase, transaction::Options const& options)
-    : TransactionState(vocbase, options),
-      _rocksTransaction(nullptr),
-      _beginWritten(false),
-      _hasOperations(false) {}
+MMFilesTransactionState::MMFilesTransactionState(
+  TRI_vocbase_t* vocbase, transaction::Options const& options)
+  : TransactionState(vocbase, options),
+    _rocksTransaction(nullptr),
+    _beginWritten(false),
+    _hasOperations(false) {}
 
 /// @brief free a transaction container
 MMFilesTransactionState::~MMFilesTransactionState() {
@@ -103,10 +104,13 @@ Result MMFilesTransactionState::beginTransaction(transaction::Hints hints) {
     _hints = hints;
 
     // get a new id
-    _id = TRI_NewTickServer();
+    if (_id == transaction::TransactionId::zero()) {
+      _id = transaction::TransactionId(0,TRI_NewTickServer());
+    }
 
     // register a protector
-    int res = logfileManager->registerTransaction(_id, isReadOnlyTransaction());
+    int res = logfileManager->registerTransaction(
+      _id.identifier, isReadOnlyTransaction());
     result.reset(res);
  
     if (!result.ok()) {
@@ -388,7 +392,7 @@ int MMFilesTransactionState::writeBeginMarker() {
   int res;
 
   try {
-    MMFilesTransactionMarker marker(TRI_DF_MARKER_VPACK_BEGIN_TRANSACTION, _vocbase->id(), _id);
+    MMFilesTransactionMarker marker(TRI_DF_MARKER_VPACK_BEGIN_TRANSACTION, _vocbase->id(), _id.identifier);
     res = GetMMFilesLogfileManager()->allocateAndWrite(marker, false).errorCode;
     
     TRI_IF_FAILURE("TransactionWriteBeginMarkerThrow") { 
@@ -431,7 +435,7 @@ int MMFilesTransactionState::writeAbortMarker() {
   int res;
 
   try {
-    MMFilesTransactionMarker marker(TRI_DF_MARKER_VPACK_ABORT_TRANSACTION, _vocbase->id(), _id);
+    MMFilesTransactionMarker marker(TRI_DF_MARKER_VPACK_ABORT_TRANSACTION, _vocbase->id(), _id.identifier);
     res = GetMMFilesLogfileManager()->allocateAndWrite(marker, false).errorCode;
     
     TRI_IF_FAILURE("TransactionWriteAbortMarkerThrow") { 
@@ -468,7 +472,7 @@ int MMFilesTransactionState::writeCommitMarker() {
   int res;
 
   try {
-    MMFilesTransactionMarker marker(TRI_DF_MARKER_VPACK_COMMIT_TRANSACTION, _vocbase->id(), _id);
+    MMFilesTransactionMarker marker(TRI_DF_MARKER_VPACK_COMMIT_TRANSACTION, _vocbase->id(), _id.identifier);
     res = GetMMFilesLogfileManager()->allocateAndWrite(marker, _options.waitForSync).errorCode;
     
     TRI_IF_FAILURE("TransactionWriteCommitMarkerSegfault") { 

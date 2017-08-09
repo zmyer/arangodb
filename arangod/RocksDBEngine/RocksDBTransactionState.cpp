@@ -115,13 +115,13 @@ Result RocksDBTransactionState::beginTransaction(transaction::Hints hints) {
 
   if (_nestingLevel == 0) {
     // get a new id
-    _id = TRI_NewTickServer();
+    _id = transaction::TransactionId(0,TRI_NewTickServer());
 
     // register a protector
     auto data =
         std::make_unique<RocksDBTransactionData>();  // intentionally empty
-    TransactionManagerFeature::manager()->registerTransaction(_id,
-                                                              std::move(data));
+    TransactionManagerFeature::manager()->registerTransaction(
+      _id.identifier, std::move(data));
 
     TRI_ASSERT(_rocksTransaction == nullptr);
     TRI_ASSERT(_cacheTx == nullptr);
@@ -171,7 +171,7 @@ void RocksDBTransactionState::createTransaction() {
   _rocksTransaction->SetSnapshot();
   if (!hasHint(transaction::Hints::Hint::SINGLE_OPERATION)) {
     RocksDBLogValue header =
-        RocksDBLogValue::BeginTransaction(_vocbase->id(), _id);
+        RocksDBLogValue::BeginTransaction(_vocbase->id(), _id.identifier);
     _rocksTransaction->PutLogData(header.slice());
 #ifdef ARANGODB_ENABLE_MAINTAINER_MODE
     ++_numLogdata;

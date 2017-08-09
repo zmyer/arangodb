@@ -30,6 +30,7 @@
 #include "StorageEngine/TransactionState.h"
 #include "Transaction/Methods.h"
 #include "Transaction/Hints.h"
+#include "Transaction/types.h"
 #include "VocBase/AccessMode.h"
 #include "VocBase/voc-types.h"
                                 
@@ -53,6 +54,8 @@ class TransactionCollection;
 class MMFilesTransactionState final : public TransactionState {
  public:
   MMFilesTransactionState(TRI_vocbase_t* vocbase, transaction::Options const&);
+  MMFilesTransactionState(TRI_vocbase_t* vocbase, transaction::Options const&,
+                          arangodb::transaction::TransactionId const&);
   ~MMFilesTransactionState();
 
   /// @brief begin a transaction
@@ -76,7 +79,7 @@ class MMFilesTransactionState final : public TransactionState {
     if (isSingleOperation()) {
       return 0;
     }
-    return _id;
+    return _id.identifier;
   }
   
   /// @brief get (or create) a rocksdb WriteTransaction

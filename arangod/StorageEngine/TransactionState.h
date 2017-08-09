@@ -31,6 +31,7 @@
 #include "Transaction/Hints.h"
 #include "Transaction/Options.h"
 #include "Transaction/Status.h"
+#include "Transaction/types.h"
 #include "Utils/CollectionNameResolver.h"
 #include "VocBase/AccessMode.h"
 #include "VocBase/voc-types.h"
@@ -69,7 +70,7 @@ class TransactionState {
   virtual ~TransactionState();
 
   bool isRunningInCluster() const {
-    return ServerState::isRunningInCluster(_serverRole);
+    return ServerState::instance()->isRunningInCluster();
   }
   bool isDBServer() const { return ServerState::isDBServer(_serverRole); }
   bool isCoordinator() const { return ServerState::isCoordinator(_serverRole); }
@@ -77,7 +78,7 @@ class TransactionState {
   transaction::Options& options() { return _options; }
   transaction::Options const& options() const { return _options; }
   TRI_vocbase_t* vocbase() const { return _vocbase; }
-  TRI_voc_tid_t id() const { return _id; }
+  transaction::TransactionId id() const { return _id; }
   transaction::Status status() const { return _status; }
   bool isRunning() const { return _status == transaction::Status::RUNNING; }
 
@@ -176,7 +177,7 @@ class TransactionState {
 
  protected:
   TRI_vocbase_t* _vocbase;      // vocbase
-  TRI_voc_tid_t _id;            // local trx id
+  transaction::TransactionId _id;            // local trx id
   AccessMode::Type _type;       // access type (read|write)
   transaction::Status _status;  // current status
 

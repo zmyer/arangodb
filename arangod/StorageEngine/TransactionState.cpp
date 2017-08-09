@@ -41,7 +41,7 @@ using namespace arangodb;
 TransactionState::TransactionState(TRI_vocbase_t* vocbase,
                                    transaction::Options const& options)
     : _vocbase(vocbase),
-      _id(0),
+      _id(0,0),
       _type(AccessMode::Type::READ),
       _status(transaction::Status::CREATED),
       _arena(),

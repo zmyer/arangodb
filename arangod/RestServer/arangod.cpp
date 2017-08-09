@@ -69,6 +69,7 @@
 #include "RestServer/InitDatabaseFeature.h"
 #include "RestServer/LockfileFeature.h"
 #include "RestServer/QueryRegistryFeature.h"
+#include "RestServer/TransactionRegistryFeature.h"
 #include "RestServer/ScriptFeature.h"
 #include "RestServer/ServerFeature.h"
 #include "RestServer/ServerIdFeature.h"
@@ -164,6 +165,7 @@ static int runServer(int argc, char** argv, ArangoGlobalContext &context) {
     server.addFeature(new PrivilegeFeature(&server));
     server.addFeature(new RandomFeature(&server));
     server.addFeature(new QueryRegistryFeature(&server));
+    server.addFeature(new TransactionRegistryFeature(&server));
     server.addFeature(new SchedulerFeature(&server));
     server.addFeature(new ScriptFeature(&server, &ret));
     server.addFeature(new ServerFeature(&server, &ret));

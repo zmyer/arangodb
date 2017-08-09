@@ -62,7 +62,7 @@ class TransactionRegistry {
 
     // update a bunch
     inline void getSomeNoLock() {
-      next = ClusterInfo::instance()->uniqid(chunks);
+      next = 10000;//ClusterInfo::instance()->uniqid(chunks);
       last = next + chunks - 1;
     }
 
