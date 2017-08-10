@@ -33,11 +33,14 @@
 #include "Transaction/Hints.h"
 #include "Transaction/Options.h"
 #include "Transaction/Status.h"
+#include "Transaction/types.h"
 #include "VocBase/AccessMode.h"
 #include "VocBase/vocbase.h"
 #include "VocBase/voc-types.h"
 
 #include <velocypack/Slice.h>
+
+#include <list>
 
 namespace arangodb {
 
@@ -140,6 +143,9 @@ class Methods {
     ALL = 0,
     ANY
   };
+
+  /// @brief get id
+  TransactionId id() const;
 
   /// @brief register a callback for transaction commit or abort
   void registerCallback(std::function<void(arangodb::transaction::Methods* trx)> const& onFinish) { _onFinish = onFinish; }
@@ -576,6 +582,9 @@ class Methods {
     std::string name;
   }
   _collectionCache;
+
+  /// @brief subordinate transactors
+  std::list<std::string> _subActors;
 
   /// @brief optional callback function that will be called on transaction
   /// commit or abort

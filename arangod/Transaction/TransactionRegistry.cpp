@@ -23,17 +23,49 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "TransactionRegistry.h"
+
 #include "Methods.h"
+
 #include "Basics/ReadLocker.h"
 #include "Basics/WriteLocker.h"
 #include "Cluster/CollectionLockState.h"
 #include "Cluster/ClusterInfo.h"
 #include "Cluster/ServerState.h"
 #include "Logger/Logger.h"
+#include "Random/RandomGenerator.h"
 
 using namespace arangodb;
 using namespace arangodb::transaction;
 
+uint64_t TransactionRegistry::UniqueGenerator::registryId = 0;
+
+
+TransactionRegistry::UniqueGenerator::UniqueGenerator(uint64_t n, uint64_t c) :
+  next(n), last(0), chunks(c) {
+  registryId = RandomGenerator::interval(static_cast<uint64_t>(0x0000FFFFFFFFFFFFULL));
+}
+
+// offer and burn an id increment by 4
+inline TransactionId TransactionRegistry::UniqueGenerator::operator()() {
+  MUTEX_LOCKER(guard, lock);
+  if (next == last) {
+    getSomeNoLock();
+  }
+  return TransactionId(registryId, next+=4);
+}
+
+inline void TransactionRegistry::UniqueGenerator::getSomeNoLock() {
+  next = 0;
+  last = next + chunks - 1;
+  uint64_t r = next%4; 
+  if(r != 0) {
+    next += 4-r;
+  }
+  r = last%4;
+  if(r != 0) {
+    last -= r;
+  }
+}
 
 /// @brief destroy all open transactions
 TransactionRegistry::~TransactionRegistry() {
@@ -76,7 +108,7 @@ TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
   transaction->begin();
 
   auto vocbase = transaction->vocbase();
-  TransactionId id(0, _uniqueRange());
+  auto id = transaction->id();
 
   MUTEX_LOCKER(locker, _lock);
   auto m = _transactions.find(vocbase->name());
@@ -110,7 +142,7 @@ TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
   
 }
 
-/// @brief insert
+/// @brief insert transaction on db servers
 void TransactionRegistry::insert(TransactionId id, Methods* transaction, double ttl) {
   TRI_ASSERT(transaction != nullptr);
 
@@ -305,4 +337,8 @@ void TransactionRegistry::destroyAll() {
       // ignore any errors here
     }
   }
+}
+
+TransactionId TransactionRegistry::generateId () {
+  return _generator();
 }

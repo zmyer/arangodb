@@ -40,36 +40,24 @@ class Methods;
 
 class TransactionRegistry {
 
-  struct UniqueRange {
+  struct UniqueGenerator {
 
-    UniqueRange(uint64_t chunks = 10000) {
-      getSomeNoLock();
-    }
-    
-    UniqueRange(uint64_t n, uint64_t t, uint64_t chunks = 10000) :
-      next(n), last(t) {}
+    // Construct with next id in line
+    UniqueGenerator(uint64_t n = 0, uint64_t c = 10000);
     
     // offer and burn an id
-    inline uint64_t operator()() {
-      MUTEX_LOCKER(guard, lock);
-      if (next == last) {
-        getSomeNoLock();
-      }
-      return next++;
-    }
-
+    TransactionId operator()();
+    
   private:
 
-    // update a bunch
-    inline void getSomeNoLock() {
-      next = 10000;//ClusterInfo::instance()->uniqid(chunks);
-      last = next + chunks - 1;
-    }
+    // update a bunch of ids
+    void getSomeNoLock();
 
-    uint64_t next;
-    uint64_t last;
-    uint64_t chunks;
-    arangodb::Mutex lock;
+    uint64_t next;        // next in line
+    uint64_t last;        // last in succession
+    uint64_t chunks;      // chunks to get every getSomeNoLock
+    arangodb::Mutex lock; // guard the guts
+    static uint64_t registryId;
     
   };
   
@@ -119,6 +107,8 @@ public:
   /// @brief for shutdown, we need to shut down all transactions:
   void destroyAll();
 
+  TransactionId generateId();
+
  private:
   /// @brief a struct for all information regarding one transaction in the registry
   struct TransactionInfo {
@@ -138,7 +128,7 @@ public:
   arangodb::Mutex _lock;
 
   /// @brief unique range from agency for creating transaction ids
-  UniqueRange _uniqueRange;
+  UniqueGenerator _generator;
 
 };
 

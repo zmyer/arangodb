@@ -619,6 +619,11 @@ transaction::Methods::~Methods() {
   }
 }
 
+/// @brief get id
+transaction::TransactionId transaction::Methods::id() const {
+  return _state->id();
+}
+
 /// @brief return the collection name resolver
 CollectionNameResolver const* transaction::Methods::resolver() const {
   return _transactionContextPtr->getResolver();

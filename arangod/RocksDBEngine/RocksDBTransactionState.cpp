@@ -29,6 +29,7 @@
 #include "Cache/Transaction.h"
 #include "Logger/Logger.h"
 #include "RestServer/TransactionManagerFeature.h"
+#include "RestServer/TransactionRegistryFeature.h"
 #include "RocksDBEngine/RocksDBCollection.h"
 #include "RocksDBEngine/RocksDBCommon.h"
 #include "RocksDBEngine/RocksDBCounterManager.h"
@@ -41,6 +42,7 @@
 #include "StorageEngine/TransactionCollection.h"
 #include "StorageEngine/TransactionManager.h"
 #include "Transaction/Methods.h"
+#include "Transaction/TransactionRegistry.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/modes.h"
 #include "VocBase/ticks.h"
@@ -114,8 +116,13 @@ Result RocksDBTransactionState::beginTransaction(transaction::Hints hints) {
   }
 
   if (_nestingLevel == 0) {
+
+    auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
+    
     // get a new id
-    _id = transaction::TransactionId(0,TRI_NewTickServer());
+    if (_id == transaction::TransactionId::zero()) {
+      _id = transactionRegistry->generateId();
+    }
 
     // register a protector
     auto data =

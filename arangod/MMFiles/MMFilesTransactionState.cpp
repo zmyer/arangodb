@@ -32,8 +32,10 @@
 #include "MMFiles/MMFilesLogfileManager.h"
 #include "MMFiles/MMFilesPersistentIndexFeature.h"
 #include "MMFiles/MMFilesTransactionCollection.h"
+#include "RestServer/TransactionRegistryFeature.h"
 #include "StorageEngine/TransactionCollection.h"
 #include "Transaction/Methods.h"
+#include "Transaction/TransactionRegistry.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/modes.h"
 #include "VocBase/ticks.h"
@@ -103,9 +105,11 @@ Result MMFilesTransactionState::beginTransaction(transaction::Hints hints) {
     // set hints
     _hints = hints;
 
+    auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
+    
     // get a new id
     if (_id == transaction::TransactionId::zero()) {
-      _id = transaction::TransactionId(0,TRI_NewTickServer());
+      _id = transactionRegistry->generateId();
     }
 
     // register a protector

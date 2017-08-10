@@ -475,9 +475,7 @@ static void JS_ReloadAuth(v8::FunctionCallbackInfo<v8::Value> const& args) {
   
   auto authentication = application_features::ApplicationServer::getFeature<AuthenticationFeature>(
     "Authentication");
-  if (authentication->isActive()) {
-    authentication->authInfo()->outdate();
-  }
+  authentication->authInfo()->outdate();
 
   TRI_V8_RETURN_TRUE();
   TRI_V8_TRY_CATCH_END
@@ -855,7 +853,9 @@ static void JS_ExecuteAql(v8::FunctionCallbackInfo<v8::Value> const& args) {
   // return the array value as it is. this is a performance optimization
   v8::Handle<v8::Object> result = v8::Object::New(isolate);
 
-  result->ForceSet(TRI_V8_ASCII_STRING("json"), queryResult.result);
+  if (!queryResult.result.IsEmpty()) {
+    result->ForceSet(TRI_V8_ASCII_STRING("json"), queryResult.result);
+  }
 
   if (queryResult.stats != nullptr) {
     VPackSlice stats = queryResult.stats->slice();
