@@ -40,6 +40,8 @@
 
 #include <velocypack/Slice.h>
 
+#include <list>
+
 namespace arangodb {
 
 namespace basics {
@@ -580,6 +582,9 @@ class Methods {
     std::string name;
   }
   _collectionCache;
+
+  /// @brief subordinate transactors
+  std::list<std::string> _subActors;
 
   /// @brief optional callback function that will be called on transaction
   /// commit or abort

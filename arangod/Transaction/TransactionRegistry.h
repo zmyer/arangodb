@@ -42,40 +42,21 @@ class TransactionRegistry {
 
   struct UniqueGenerator {
 
-   UniqueGenerator(uint64_t n = 0, uint64_t c = 10000) :
-    next(n), last(0), chunks(c) {}
+    // Construct with next id in line
+    UniqueGenerator(uint64_t n = 0, uint64_t c = 10000);
     
     // offer and burn an id
-    inline uint64_t operator()() {
-      MUTEX_LOCKER(guard, lock);
-      if (next == last) {
-        getSomeNoLock();
-      }
-      uint64_t ret = next;
-      next+=4;
-      return ret;
-    }
-
+    uint64_t operator()();
+    
   private:
 
-    // update a bunch
-    inline void getSomeNoLock() {
-      next = ClusterInfo::instance()->uniqid(chunks);
-      last = next + chunks - 1;
-      uint64_t r = next%4; 
-      if(r != 0) {
-        next += 4-r;
-      }
-      r = last%4;
-      if(r != 0) {
-        last -= r;
-      }
-    }
+    // update a bunch of ids
+    void getSomeNoLock();
 
-    uint64_t next;
-    uint64_t last;
-    uint64_t chunks;
-    arangodb::Mutex lock;
+    uint64_t next;        // next in line
+    uint64_t last;        // last in succession
+    uint64_t chunks;      // chunks to get every getSomeNoLock
+    arangodb::Mutex lock; // guard the guts
     
   };
   
@@ -124,6 +105,8 @@ public:
 
   /// @brief for shutdown, we need to shut down all transactions:
   void destroyAll();
+
+  TransactionId generateId();
 
  private:
   /// @brief a struct for all information regarding one transaction in the registry

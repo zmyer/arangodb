@@ -35,6 +35,33 @@ using namespace arangodb;
 using namespace arangodb::transaction;
 
 
+TransactionRegistry::UniqueGenerator::UniqueGenerator(uint64_t n, uint64_t c) :
+  next(n), last(0), chunks(c) {}
+
+// offer and burn an id
+inline uint64_t TransactionRegistry::UniqueGenerator::operator()() {
+  MUTEX_LOCKER(guard, lock);
+  if (next == last) {
+    getSomeNoLock();
+  }
+  uint64_t ret = next;
+  next+=4;
+  return ret;
+}
+
+inline void TransactionRegistry::UniqueGenerator::getSomeNoLock() {
+  next = 0;//ClusterInfo::instance()->uniqid(chunks);
+  last = next + chunks - 1;
+  uint64_t r = next%4; 
+  if(r != 0) {
+    next += 4-r;
+  }
+  r = last%4;
+  if(r != 0) {
+    last -= r;
+  }
+}
+
 /// @brief destroy all open transactions
 TransactionRegistry::~TransactionRegistry() {
   std::vector<std::pair<std::string, TransactionId>> toDelete;
@@ -305,4 +332,8 @@ void TransactionRegistry::destroyAll() {
       // ignore any errors here
     }
   }
+}
+
+TransactionId TransactionRegistry::generateId () {
+  return TransactionId(0,_generator());
 }
