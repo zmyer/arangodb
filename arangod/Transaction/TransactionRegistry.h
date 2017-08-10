@@ -46,7 +46,7 @@ class TransactionRegistry {
     UniqueGenerator(uint64_t n = 0, uint64_t c = 10000);
     
     // offer and burn an id
-    uint64_t operator()();
+    TransactionId operator()();
     
   private:
 
@@ -57,6 +57,7 @@ class TransactionRegistry {
     uint64_t last;        // last in succession
     uint64_t chunks;      // chunks to get every getSomeNoLock
     arangodb::Mutex lock; // guard the guts
+    static uint64_t registryId;
     
   };
   

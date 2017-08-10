@@ -23,34 +23,39 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "TransactionRegistry.h"
+
 #include "Methods.h"
+
 #include "Basics/ReadLocker.h"
 #include "Basics/WriteLocker.h"
 #include "Cluster/CollectionLockState.h"
 #include "Cluster/ClusterInfo.h"
 #include "Cluster/ServerState.h"
 #include "Logger/Logger.h"
+#include "Random/RandomGenerator.h"
 
 using namespace arangodb;
 using namespace arangodb::transaction;
 
+uint64_t TransactionRegistry::UniqueGenerator::registryId = 0;
+
 
 TransactionRegistry::UniqueGenerator::UniqueGenerator(uint64_t n, uint64_t c) :
-  next(n), last(0), chunks(c) {}
+  next(n), last(0), chunks(c) {
+  registryId = RandomGenerator::interval(static_cast<uint64_t>(0x0000FFFFFFFFFFFFULL));
+}
 
-// offer and burn an id
-inline uint64_t TransactionRegistry::UniqueGenerator::operator()() {
+// offer and burn an id increment by 4
+inline TransactionId TransactionRegistry::UniqueGenerator::operator()() {
   MUTEX_LOCKER(guard, lock);
   if (next == last) {
     getSomeNoLock();
   }
-  uint64_t ret = next;
-  next+=4;
-  return ret;
+  return TransactionId(registryId, next+=4);
 }
 
 inline void TransactionRegistry::UniqueGenerator::getSomeNoLock() {
-  next = 0;//ClusterInfo::instance()->uniqid(chunks);
+  next = 0;
   last = next + chunks - 1;
   uint64_t r = next%4; 
   if(r != 0) {
@@ -335,5 +340,5 @@ void TransactionRegistry::destroyAll() {
 }
 
 TransactionId TransactionRegistry::generateId () {
-  return TransactionId(0,_generator());
+  return _generator();
 }
