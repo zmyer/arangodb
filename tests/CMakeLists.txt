@@ -54,6 +54,7 @@ add_executable(
   Cluster/ClusterHelpersTest.cpp
   Geo/georeg.cpp
   Pregel/typedbuffer.cpp
+  RestHandler/RestTransactionHandlerTest.cpp
   RocksDBEngine/KeyTest.cpp
   RocksDBEngine/IndexEstimatorTest.cpp
   RocksDBEngine/TypeConversionTest.cpp
@@ -67,6 +68,7 @@ target_link_libraries(
 
 target_include_directories(arangodbtests PRIVATE
   ${INCLUDE_DIRECTORIES}
+  ${CMAKE_SOURCE_DIR}/tests
 )
 
 # add these includes as system includes because otherwise

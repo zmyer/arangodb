@@ -1450,6 +1450,17 @@ TRI_vocbase_t::TRI_vocbase_t(TRI_vocbase_type_e type, TRI_voc_tick_t id,
   TRI_CreateUserStructuresVocBase(this);
 }
 
+/// @brief create a vocbase object FOR UNIT TESTS
+TRI_vocbase_t::TRI_vocbase_t()
+    : _id(42),
+      _name("MOCK"),
+      _type(TRI_VOCBASE_TYPE_NORMAL),
+      _refCount(0),
+      _state(TRI_vocbase_t::State::NORMAL),
+      _isOwnAppsDirectory(true),
+      _deadlockDetector(false),
+      _userStructures(nullptr) {};
+
 /// @brief destroy a vocbase object
 TRI_vocbase_t::~TRI_vocbase_t() {
   if (_userStructures != nullptr) {

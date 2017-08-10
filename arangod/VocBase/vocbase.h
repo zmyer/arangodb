@@ -140,6 +140,9 @@ struct TRI_vocbase_t {
                 std::string const& name);
   ~TRI_vocbase_t();
 
+ protected:
+  TRI_vocbase_t();  // for mock / unit test purposes only!
+
  private:
   /// @brief sleep interval used when polling for a loading collection's status
   static constexpr unsigned collectionStatusPollInterval() { return 10 * 1000; }
