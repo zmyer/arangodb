@@ -355,14 +355,23 @@ struct ClusterCommRequest {
 
   ClusterCommRequest() : done(false) {}
 
-  ClusterCommRequest(std::string const& dest, rest::RequestType type,
-                     std::string const& path,
-                     std::shared_ptr<std::string const> body)
+  ClusterCommRequest(
+    std::string const& dest, rest::RequestType type, std::string const& path,
+    std::shared_ptr<std::string const> body,
+    std::shared_ptr<std::unordered_map<std::string, std::string> const> headers =
+      nullptr)
       : destination(dest),
         requestType(type),
         path(path),
         body(body),
-        done(false) {}
+        done(false) {
+    if (headers != nullptr) {
+      for (auto const& i : *headers) {
+        headerFields = std::make_unique<std::unordered_map<std::string, std::string>>();
+        headerFields->emplace(i.first, i.second);
+      }
+    }
+  }
 
   void setHeaders(
       std::unique_ptr<std::unordered_map<std::string, std::string>>& headers) {
