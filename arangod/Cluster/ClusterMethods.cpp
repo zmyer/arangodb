@@ -1334,6 +1334,7 @@ int deleteDocumentOnCoordinator(
 int truncateCollectionOnCoordinator(std::string const& dbname,
                                     std::string const& collname,
                                     OperationOptions const& options) {
+
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
   auto cc = ClusterComm::instance();
@@ -1357,7 +1358,7 @@ int truncateCollectionOnCoordinator(std::string const& dbname,
   CoordTransactionID coordTransactionID = TRI_NewTickServer();
   for (auto const& p : *shards) {
     auto headers =
-        std::make_unique<std::unordered_map<std::string, std::string>>();
+      std::make_unique<std::unordered_map<std::string, std::string>>();
     *headers = {{TRX_COORDINATOR,std::to_string(options.trxCoordinator)},
                 {TRX_IDENTIFIER, std::to_string(options.trxIdentifier)}};
 

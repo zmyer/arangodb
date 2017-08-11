@@ -255,11 +255,11 @@ void TransactionRegistry::close(
   }
 
   if (lc == COMMITTED) {
-    q->first->commit();
-    qi->_lifeCycly = lc;    
+    qi->_transaction->commit();
+    qi->_lifeCycle = lc;    
   } else if (lc == ABORTED) {
-    q->first->abortExternal();
-    qi->_lifeCycly = lc;    
+    qi->_transaction->abortExternal();
+    qi->_lifeCycle = lc;    
   }
 
   qi->_isOpen = false;

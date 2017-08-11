@@ -233,7 +233,8 @@ int modifyDocumentOnCoordinator(
 ////////////////////////////////////////////////////////////////////////////////
 
 int truncateCollectionOnCoordinator(std::string const& dbname,
-                                    std::string const& collname);
+                                    std::string const& collname,
+                                    OperationOptions const& options);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief flush Wal on all DBservers
