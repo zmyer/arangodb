@@ -40,6 +40,8 @@ class Methods;
 
 class TransactionRegistry {
 
+  enum LifeCycle {LIVE, COMMITTED, ABORTED};
+
   struct UniqueGenerator {
 
     // Construct with next id in line
@@ -73,20 +75,23 @@ public:
   /// a transaction for this <vocbase> and <id> combination and an exception will
   /// be thrown in that case. The time to live <ttl> is in seconds and the
   /// transaction will be deleted if it is not opened for that amount of time.
-  void insert(TransactionId id, Methods* transaction, double ttl = 60.0);
-  TransactionId insert(Methods* transaction, double ttl = 60.0);
+  void insert(TransactionId id, Methods* transaction, double ttl = 600.0);
+
+  /// @brief insert a transaction into registry and return its id
+  /// called from storage engine implementations of TransactionState
+  TransactionId insert(Methods* transaction, double ttl = 600.0);
 
   /// @brief Lease and open a transaction
   Methods* open(TRI_vocbase_t* vocbase, TransactionId id);
 
   /// @brief Return a leased open transaction 
-  void close(TRI_vocbase_t* vocbase, TransactionId id, double ttl = -1.0);
+  void close(TRI_vocbase_t* vocbase, TransactionId id, double ttl = 600.0, LifeCycle lc = LIVE);
 
   /// @brief Return and commit an open transaction
-  void closeCommit(TRI_vocbase_t* vocbase, TransactionId id, double ttl = -1.0);
+  void closeCommit(TRI_vocbase_t* vocbase, TransactionId id, double ttl = 600.0);
 
   /// @brief Return and abort an open transaction
-  void closeAbort(TRI_vocbase_t* vocbase, TransactionId id, double ttl = -1.0);
+  void closeAbort(TRI_vocbase_t* vocbase, TransactionId id, double ttl = 600.0);
 
   /// @brief destroy, this removes the entry from the registry and calls
   /// delete on the Transaction*. It is allowed to call this regardless of whether
@@ -116,6 +121,7 @@ public:
     TransactionId _id;        // id of the transaction
     Methods* _transaction;    // the actual transaction pointer
     bool _isOpen;  // flag indicating whether or not the transaction is in use
+    LifeCycle _lifeCycle;
     double _timeToLive;       // in seconds
     double _expires;          // UNIX UTC timestamp of expiration
   };

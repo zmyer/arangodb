@@ -743,6 +743,7 @@ Result transaction::Methods::begin() {
   }
   
   return _state->beginTransaction(_localHints);
+
 }
 
 /// @brief commit / finish the transaction
@@ -2422,7 +2423,7 @@ OperationResult transaction::Methods::truncateCoordinator(
 
   // TODO: Truncate needs transactional awareness
   return OperationResult(arangodb::truncateCollectionOnCoordinator(
-      databaseName(), collectionName));
+                           databaseName(), collectionName, options));
   
 }
 #endif
@@ -3216,7 +3217,6 @@ void transaction::Methods::abortExternal() {
   MUTEX_LOCKER(al, _abortLock);
   _aborted = true;
 }
-
 
 /// @brief invoke a callback method when a transaction has finished
 void transaction::CallbackInvoker::invoke() noexcept {

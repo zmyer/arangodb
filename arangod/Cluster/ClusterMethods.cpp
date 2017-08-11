@@ -1008,7 +1008,7 @@ int createDocumentOnCoordinator(
   auto body = std::make_shared<std::string>();
   auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
   *headers = {{TRX_COORDINATOR,std::to_string(options.trxCoordinator)},
-              {TRX_IDENTIFIER,std::to_string(options.trxIdentifier)}};
+              {TRX_IDENTIFIER, std::to_string(options.trxIdentifier)}};
 
   for (auto const& it : shardMap) {
     if (!useMultiple) {
@@ -1102,6 +1102,11 @@ int deleteDocumentOnCoordinator(
     return TRI_ERROR_SHUTTING_DOWN;
   }
 
+  // Transaction ID 
+  auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+  *headers = {{TRX_COORDINATOR,std::to_string(options.trxCoordinator)},
+              {TRX_IDENTIFIER, std::to_string(options.trxIdentifier)}};
+  
   // First determine the collection ID from the name:
   std::shared_ptr<LogicalCollection> collinfo;
   try {
@@ -1206,14 +1211,14 @@ int deleteDocumentOnCoordinator(
         body = std::make_shared<std::string>(reqBuilder.slice().toJson());
       }
       requests.emplace_back(
-          "shard:" + it.first,
-          arangodb::rest::RequestType::DELETE_REQ,
-          baseUrl + StringUtils::urlEncode(it.first) + optsUrlPart, body);
+        "shard:" + it.first, arangodb::rest::RequestType::DELETE_REQ,
+        baseUrl + StringUtils::urlEncode(it.first) + optsUrlPart, body, headers);
     }
 
     // Perform the requests
     size_t nrDone = 0;
-    cc->performRequests(requests, CL_DEFAULT_TIMEOUT, nrDone, Logger::COMMUNICATION, true);
+    cc->performRequests(
+      requests, CL_DEFAULT_TIMEOUT, nrDone, Logger::COMMUNICATION, true);
 
     // Now listen to the results:
     if (!useMultiple) {
@@ -1252,12 +1257,13 @@ int deleteDocumentOnCoordinator(
   //    if (!skipped) => insert NOT_FOUND
 
   auto body = std::make_shared<std::string>(slice.toJson());
+  
   std::vector<ClusterCommRequest> requests;
   auto shardList = ci->getShardList(collid);
   for (auto const& shard : *shardList) {
     requests.emplace_back(
-        "shard:" + shard, arangodb::rest::RequestType::DELETE_REQ,
-        baseUrl + StringUtils::urlEncode(shard) + optsUrlPart, body);
+      "shard:" + shard, arangodb::rest::RequestType::DELETE_REQ,
+      baseUrl + StringUtils::urlEncode(shard) + optsUrlPart, body, headers);
   }
 
   // Perform the requests
@@ -1326,7 +1332,8 @@ int deleteDocumentOnCoordinator(
 ////////////////////////////////////////////////////////////////////////////////
 
 int truncateCollectionOnCoordinator(std::string const& dbname,
-                                    std::string const& collname) {
+                                    std::string const& collname,
+                                    OperationOptions const& options) {
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
   auto cc = ClusterComm::instance();
@@ -1351,10 +1358,13 @@ int truncateCollectionOnCoordinator(std::string const& dbname,
   for (auto const& p : *shards) {
     auto headers =
         std::make_unique<std::unordered_map<std::string, std::string>>();
+    *headers = {{TRX_COORDINATOR,std::to_string(options.trxCoordinator)},
+                {TRX_IDENTIFIER, std::to_string(options.trxIdentifier)}};
+
     cc->asyncRequest("", coordTransactionID, "shard:" + p.first,
                      arangodb::rest::RequestType::PUT,
                      "/_db/" + StringUtils::urlEncode(dbname) +
-                         "/_api/collection/" + p.first + "/truncate",
+                     "/_api/collection/" + p.first + "/truncate",
                      std::shared_ptr<std::string>(), headers, nullptr, 60.0);
   }
   // Now listen to the results:
