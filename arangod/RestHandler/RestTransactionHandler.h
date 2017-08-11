@@ -26,14 +26,28 @@
 
 #include "Basics/ReadWriteLock.h"
 #include "RestHandler/RestVocbaseBaseHandler.h"
+#include "VocBase/Methods/Transactions.h"
 
 namespace arangodb {
 
 class V8Context;
 
+typedef Result (*executeTransaction_t)(
+    v8::Isolate* isolate,
+    basics::ReadWriteLock& lock,
+    std::atomic<bool>& canceled,
+    VPackSlice slice,
+    std::string portType,
+    VPackBuilder& builder);
+
 class RestTransactionHandler : public arangodb::RestVocbaseBaseHandler {
   V8Context* _v8Context;
   basics::ReadWriteLock _lock;
+
+ public:
+  // this allows swapping out the executeTransaction function
+  //  during unit tests
+  static executeTransaction_t _executeTransactionPtr;
 
  public:
   RestTransactionHandler(GeneralRequest*, GeneralResponse*);
@@ -44,7 +58,7 @@ class RestTransactionHandler : public arangodb::RestVocbaseBaseHandler {
   RestStatus execute() override;
   bool cancel() override final;
 
- private:
+private:
   void returnContext();
 };
 }

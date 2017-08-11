@@ -31,6 +31,7 @@
 #include "GeneralServer/GeneralServerFeature.h"
 #include "VocBase/vocbase.h"
 #include "StorageEngine/StorageEngineMock.h"
+#include "V8Server/V8DealerFeatureMock.h"
 
 //#include "Agency/AddFollower.h"
 //#include "Agency/FailedLeader.h"
@@ -59,17 +60,29 @@ namespace rest_trans_handler_test {
 //#include "AddFollowerTestToDo.json"
 //  ;
 
-  
-struct MOCK_vocbase_t : public TRI_vocbase_t {
 
+struct MOCK_vocbase_t : public TRI_vocbase_t {
   MOCK_vocbase_t() {};
 };
+
+Result executeTransactionMock(
+    v8::Isolate* isolate,
+    basics::ReadWriteLock& lock,
+    std::atomic<bool>& canceled,
+    VPackSlice slice,
+    std::string portType,
+    VPackBuilder& builder) {
+
+  Result result;
+  return result;
+}
   
   
 TEST_CASE("Test pre 3.2", "[unittest][walkme]") {
   MockStorageEngine mock_engine;  // must precede MOCK_vocbase_t
   MOCK_vocbase_t mock_database;
   mock_database.forceUse();       // prevent double delete
+  MockV8DealerFeature mock_dealer;
   
   SECTION("Always fails") {
     char const body[] = "";
@@ -89,7 +102,41 @@ TEST_CASE("Test pre 3.2", "[unittest][walkme]") {
     CHECK( !status.isFailed() );
     REQUIRE ( resp->responseCode() == rest::ResponseCode::METHOD_NOT_ALLOWED);
   } // SECTION
+
+  SECTION("Original TX: succeeds") {
+    static const char *valid_old_tx = R"=(
+{
+  "collections" : {
+    "write" : [
+      "products",
+      "materials"
+    ]
+  },
+  "action" : "function () {var db = require('@arangodb').db;db.products.save({});db.materials.save({});return 'worked!';}" 
+}
+)=";
+    std::unordered_map<std::string, std::string> headers;
+    GeneralRequest* req(HttpRequest::createHttpRequest(ContentType::JSON, valid_old_tx,
+                                                       strlen(valid_old_tx), headers));
+    req->setRequestContext(new VocbaseContext(req, &mock_database), true);
+
+    GeneralResponse* resp(new HttpResponse(rest::ResponseCode::OK));
+
+    // RestTransactionHandler owns and deletes GeneralRequest and GeneralResponse
+    std::unique_ptr<RestTransactionHandler> handler(
+      new RestTransactionHandler(req, resp));
+    RestTransactionHandler::_executeTransactionPtr = & executeTransactionMock;
+
+    // ILLEGAL is default ... but set just to be safe and future proof
+    req->setRequestType(rest::RequestType::POST);
+    RestStatus status = handler->execute();
+
+    CHECK( !status.isFailed() );
+    REQUIRE ( resp->responseCode() == rest::ResponseCode::OK);
+  } // SECTION
 } // TEST_CASE
+
+
   
 }}} // three namespaces
 

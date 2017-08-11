@@ -26,7 +26,6 @@
 #include "RestTransactionHandler.h"
 
 #include "ApplicationFeatures/ApplicationServer.h"
-#include "VocBase/Methods/Transactions.h"
 #include "Rest/HttpRequest.h"
 #include "Basics/voc-errors.h"
 #include "V8Server/V8Context.h"
@@ -38,6 +37,8 @@
 using namespace arangodb;
 using namespace arangodb::basics;
 using namespace arangodb::rest;
+
+executeTransaction_t RestTransactionHandler::_executeTransactionPtr = & executeTransaction;
 
 RestTransactionHandler::RestTransactionHandler(GeneralRequest* request, GeneralResponse* response)
   : RestVocbaseBaseHandler(request, response)
@@ -83,7 +84,7 @@ RestStatus RestTransactionHandler::execute() {
       }
     }
 
-    Result res = executeTransaction(_v8Context->_isolate, _lock, _canceled, slice , portType, result);
+    Result res = (*_executeTransactionPtr)(_v8Context->_isolate, _lock, _canceled, slice , portType, result);
 
     if (res.ok()){
       VPackSlice slice = result.slice();
