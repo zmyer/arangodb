@@ -38,7 +38,7 @@ namespace arangodb {
 class Thread;
 class V8Context;
 
-class V8DealerFeature final : public application_features::ApplicationFeature {
+class V8DealerFeature : public application_features::ApplicationFeature {
  public:
   static V8DealerFeature* DEALER;
 
@@ -76,9 +76,9 @@ class V8DealerFeature final : public application_features::ApplicationFeature {
                                        VPackBuilder* builder);
   void startGarbageCollection();
 
-  V8Context* enterContext(TRI_vocbase_t*, bool allowUseDatabase,
+  virtual V8Context* enterContext(TRI_vocbase_t*, bool allowUseDatabase,
                           ssize_t forceContext = -1);
-  void exitContext(V8Context*);
+  virtual void exitContext(V8Context*);
 
   void defineContextUpdate(
       std::function<void(v8::Isolate*, v8::Handle<v8::Context>, size_t)>,
