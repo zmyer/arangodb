@@ -1336,11 +1336,8 @@ OperationResult transaction::Methods::insert(
     return emptyResult(options.waitForSync);
   }
 
-  // Validate Edges
   OperationOptions optionsCopy = options;
-  options.trxCoordinator = _state->id().coordinator;
-  options.trxIdentifier = _state->id().identifier+1;
-
+  
   if (_state->isCoordinator()) {
     return insertCoordinator(collectionName, value, optionsCopy);
   }
@@ -1355,14 +1352,17 @@ OperationResult transaction::Methods::insert(
 OperationResult transaction::Methods::insertCoordinator(
     std::string const& collectionName, VPackSlice const value,
     OperationOptions& options) {
-  rest::ResponseCode responseCode;
 
+  options.trxCoordinator = id().coordinator;
+  options.trxIdentifier = id().identifier+1;
+  
+  rest::ResponseCode responseCode;
   std::unordered_map<int, size_t> errorCounter;
   auto resultBody = std::make_shared<VPackBuilder>();
 
   int res = arangodb::createDocumentOnCoordinator(
-      databaseName(), collectionName, options, value, responseCode,
-      errorCounter, resultBody);
+    databaseName(), collectionName, options, value, responseCode,
+    errorCounter, resultBody);
 
   if (res == TRI_ERROR_NO_ERROR) {
     return clusterResultInsert(responseCode, resultBody, errorCounter);
@@ -1664,6 +1664,10 @@ OperationResult transaction::Methods::update(std::string const& collectionName,
 OperationResult transaction::Methods::updateCoordinator(
     std::string const& collectionName, VPackSlice const newValue,
     OperationOptions& options) {
+
+  options.trxCoordinator = id().coordinator;
+  options.trxIdentifier = id().identifier+1;
+  
   auto headers =
       std::make_unique<std::unordered_map<std::string, std::string>>();
   rest::ResponseCode responseCode;
@@ -1722,6 +1726,10 @@ OperationResult transaction::Methods::replace(std::string const& collectionName,
 OperationResult transaction::Methods::replaceCoordinator(
     std::string const& collectionName, VPackSlice const newValue,
     OperationOptions& options) {
+
+  options.trxCoordinator = id().coordinator;
+  options.trxIdentifier = id().identifier+1;
+
   auto headers =
       std::make_unique<std::unordered_map<std::string, std::string>>();
   rest::ResponseCode responseCode;
@@ -2038,6 +2046,10 @@ OperationResult transaction::Methods::remove(std::string const& collectionName,
 OperationResult transaction::Methods::removeCoordinator(
     std::string const& collectionName, VPackSlice const value,
     OperationOptions& options) {
+
+  options.trxCoordinator = id().coordinator;
+  options.trxIdentifier = id().identifier+1;
+
   rest::ResponseCode responseCode;
   std::unordered_map<int, size_t> errorCounter;
   auto resultBody = std::make_shared<VPackBuilder>();
@@ -2404,8 +2416,14 @@ OperationResult transaction::Methods::truncate(
 #ifndef USE_ENTERPRISE
 OperationResult transaction::Methods::truncateCoordinator(
     std::string const& collectionName, OperationOptions& options) {
+
+  options.trxCoordinator = id().coordinator;
+  options.trxIdentifier = id().identifier+1;
+
+  // TODO: Truncate needs transactional awareness
   return OperationResult(arangodb::truncateCollectionOnCoordinator(
       databaseName(), collectionName));
+  
 }
 #endif
 

@@ -945,6 +945,7 @@ int createDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
     std::shared_ptr<VPackBuilder>& resultBody) {
+  
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
   auto cc = ClusterComm::instance();
@@ -960,6 +961,7 @@ int createDocumentOnCoordinator(
   } catch (...) {
     return TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND;
   }
+
   TRI_ASSERT(collinfo != nullptr);
 
   std::string const collid = collinfo->cid_as_string();
