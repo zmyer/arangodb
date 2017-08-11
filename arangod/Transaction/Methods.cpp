@@ -1315,9 +1315,9 @@ OperationResult transaction::Methods::documentLocal(
 /// @brief create one or multiple documents in a collection
 /// the single-document variant of this operation will either succeed or,
 /// if it fails, clean up after itself
-OperationResult transaction::Methods::insert(std::string const& collectionName,
-                                             VPackSlice const value,
-                                             OperationOptions const& options) {
+OperationResult transaction::Methods::insert(
+  std::string const& collectionName, VPackSlice const value,
+  OperationOptions const& options) {
 
   {
     MUTEX_LOCKER(al, _abortLock);
@@ -1338,6 +1338,8 @@ OperationResult transaction::Methods::insert(std::string const& collectionName,
 
   // Validate Edges
   OperationOptions optionsCopy = options;
+  options.trxCoordinator = _state->id().coordinator;
+  options.trxIdentifier = _state->id().identifier+1;
 
   if (_state->isCoordinator()) {
     return insertCoordinator(collectionName, value, optionsCopy);

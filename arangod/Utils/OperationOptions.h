@@ -32,7 +32,8 @@ struct OperationOptions {
   OperationOptions() 
       : recoveryData(nullptr), waitForSync(false), keepNull(true),
         mergeObjects(true), silent(false), ignoreRevs(true),
-        returnOld(false), returnNew(false), isRestore(false) {}
+        returnOld(false), returnNew(false), isRestore(false), trxCoordinator(0),
+        trxIdentifier(0) {}
 
   // original marker, set by an engine's recovery procedure only!
   void* recoveryData;
@@ -67,6 +68,11 @@ struct OperationOptions {
   // operation if we are merely a follower. Finally, we must deny replications
   // from the wrong leader.
   std::string isSynchronousReplicationFrom;
+
+  // transaction id for this operation
+  uint64_t trxCoordinator;
+  uint64_t trxIdentifier;
+  
 };
 
 }

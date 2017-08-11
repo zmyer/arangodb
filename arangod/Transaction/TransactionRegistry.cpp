@@ -41,7 +41,7 @@ uint64_t TransactionRegistry::UniqueGenerator::registryId = 0;
 
 
 TransactionRegistry::UniqueGenerator::UniqueGenerator(uint64_t n, uint64_t c) :
-  next(n), last(0), chunks(c) {
+  next(n), last(std::numeric_limits<uint64_t>::max()), chunks(c) {
   registryId = RandomGenerator::interval(static_cast<uint64_t>(0x0000FFFFFFFFFFFFULL));
 }
 
@@ -54,6 +54,7 @@ inline TransactionId TransactionRegistry::UniqueGenerator::operator()() {
   return TransactionId(registryId, next+=4);
 }
 
+// Get a bunch more ids.
 inline void TransactionRegistry::UniqueGenerator::getSomeNoLock() {
   next = 0;
   last = next + chunks - 1;
