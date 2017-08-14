@@ -112,6 +112,7 @@ public:
   /// @brief for shutdown, we need to shut down all transactions:
   void destroyAll();
 
+  /// @brief generate new transaction id
   TransactionId generateId();
 
  private:

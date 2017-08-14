@@ -25,9 +25,39 @@
 #define ARANGOD_REST_HANDLER_REST_DOCUMENT_HANDLER_H 1
 
 #include "Basics/Common.h"
+#include "Transaction/TransactionRegistry.h"
 #include "RestHandler/RestVocbaseBaseHandler.h"
 
 namespace arangodb {
+
+struct TransactionProperties {
+  transaction::TransactionId transactionId;
+  bool isSingle;
+  bool isStart;
+  TransactionProperties(
+    transaction::TransactionId const& id = transaction::TransactionId::zero(),
+    bool single = false, bool start = false)
+    : transactionId(id), isSingle(single), isStart(start) {}
+  TransactionProperties(GeneralRequest const* request) {
+    // Extract from the headers the transaction props
+    auto const headers = request->headers();
+    auto const coordinator = headers.find("trxCoordinator");
+    if (coordinator!=headers.end()) { // We have a transaction header
+      auto const identifier = headers.find("trxIdentifier");
+      auto const single = headers.find("isSingle");
+      auto const start = headers.find("isStart");
+      try {
+        transactionId = transaction::TransactionId(
+          std::stoull(coordinator->second),std::stoull(identifier->second));
+      } catch (std::exception const& e) {
+        LOG_TOPIC(TRACE, arangodb::Logger::TRANSACTIONS) <<
+          "Failed to extract transaction headers ";
+      }
+
+    }
+  }
+};
+
 class RestDocumentHandler : public RestVocbaseBaseHandler {
  public:
   RestDocumentHandler(GeneralRequest*, GeneralResponse*);
@@ -71,6 +101,10 @@ class RestDocumentHandler : public RestVocbaseBaseHandler {
 
   // deletes a document
   bool deleteDocument();
+
+  // transaction stuff
+  TransactionProperties _transProps;
+  
 };
 }
 

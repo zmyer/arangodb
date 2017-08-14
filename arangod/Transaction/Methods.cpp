@@ -41,6 +41,7 @@
 #include "Cluster/ServerState.h"
 #include "Indexes/Index.h"
 #include "Logger/Logger.h"
+#include "RestServer/TransactionRegistryFeature.h"
 #include "RocksDBEngine/RocksDBEngine.h"
 #include "StorageEngine/EngineSelectorFeature.h"
 #include "StorageEngine/StorageEngine.h"
@@ -49,6 +50,7 @@
 #include "Transaction/Context.h"
 #include "Transaction/Helpers.h"
 #include "Transaction/Options.h"
+#include "Transaction/TransactionRegistry.h"
 #include "Utils/CollectionNameResolver.h"
 #include "Utils/Events.h"
 #include "Utils/OperationCursor.h"
@@ -731,8 +733,7 @@ Result transaction::Methods::begin() {
   }
   
   if (_state == nullptr) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(
-      TRI_ERROR_INTERNAL, "invalid transaction state");
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "invalid transaction state");
   }
   
   if (_state->isCoordinator()) {
@@ -741,8 +742,14 @@ Result transaction::Methods::begin() {
     }
     return TRI_ERROR_NO_ERROR;
   }
+
+  auto ret = _state->beginTransaction(_localHints);
+
+  auto transactionRegistry =
+    TransactionRegistryFeature::TRANSACTION_REGISTRY;
+  transactionRegistry->insert(_state->id(), this);
   
-  return _state->beginTransaction(_localHints);
+  return ret;
 
 }
 
@@ -1356,6 +1363,7 @@ OperationResult transaction::Methods::insertCoordinator(
 
   options.trxCoordinator = id().coordinator;
   options.trxIdentifier = id().identifier+1;
+  
   
   rest::ResponseCode responseCode;
   std::unordered_map<int, size_t> errorCounter;

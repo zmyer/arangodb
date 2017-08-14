@@ -105,12 +105,9 @@ TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
 
   TRI_ASSERT(transaction != nullptr);
 
-  transaction->id();
-  transaction->begin();
-
   auto vocbase = transaction->vocbase();
   auto vocbaseName = vocbase->name();
-  auto id = transaction->id();
+  auto id = _generator();
 
   MUTEX_LOCKER(locker, _lock);
   auto m = _transactions.find(vocbaseName);
@@ -150,7 +147,6 @@ void TransactionRegistry::insert(
   
   TRI_ASSERT(transaction != nullptr);
 
-  transaction->begin();
   auto vocbase = transaction->vocbase();
   auto vocbaseName = vocbase->name();
   
@@ -256,10 +252,8 @@ void TransactionRegistry::close(
 
   if (lc == COMMITTED) {
     qi->_transaction->commit();
-    qi->_lifeCycle = lc;    
   } else if (lc == ABORTED) {
     qi->_transaction->abortExternal();
-    qi->_lifeCycle = lc;    
   }
 
   qi->_isOpen = false;
@@ -301,13 +295,8 @@ void TransactionRegistry::destroy(
     return;
   }
 
-  if (errorCode == TRI_ERROR_NO_ERROR) {
-    // commit the operation
-    ti->_transaction->commit();
-  }
-
   // Now we can delete it:
-  delete ti->_transaction;
+  //delete ti->_transaction;
   delete ti;
 
   t->second = nullptr;

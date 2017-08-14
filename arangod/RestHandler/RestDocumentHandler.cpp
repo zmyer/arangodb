@@ -47,6 +47,8 @@ RestStatus RestDocumentHandler::execute() {
   // extract the sub-request type
   auto const type = _request->requestType();
 
+  _transProps = TransactionProperties(_request.get());
+
   // execute one of the CRUD methods
   switch (type) {
     case rest::RequestType::DELETE_REQ:
