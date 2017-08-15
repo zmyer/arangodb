@@ -38,7 +38,7 @@ struct TransactionProperties {
 
   /// @brief default ctor 
   TransactionProperties(
-    transaction::TransactionId const& id = transaction::TransactionId::zero(),
+    transaction::TransactionId const& id = transaction::TransactionId::ZERO,
     bool single = false, bool start = false)
     : transactionId(id), isSingle(single), isStart(start) {}
 
@@ -75,6 +75,10 @@ struct TransactionProperties {
           "Incomplete transaction headers: " << *this;
       }
     }
+  }
+
+  bool empty() {
+    return transactionId == transaction::TransactionId::ZERO;
   }
   
 };

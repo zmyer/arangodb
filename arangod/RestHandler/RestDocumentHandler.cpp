@@ -41,15 +41,19 @@ using namespace arangodb::rest;
 
 RestDocumentHandler::RestDocumentHandler(GeneralRequest* request,
                                          GeneralResponse* response)
-    : RestVocbaseBaseHandler(request, response) {}
+  : RestVocbaseBaseHandler(request, response) {}
 
 RestStatus RestDocumentHandler::execute() {
   // extract the sub-request type
   auto const type = _request->requestType();
 
   _transProps = TransactionProperties(_request.get());
-  LOG_TOPIC(INFO, Logger::TRANSACTIONS) << _transProps;
+  LOG_TOPIC(TRACE, Logger::TRANSACTIONS) << _transProps;
 
+  if (!_transProps.empty()) {
+    LOG_TOPIC(INFO, Logger::TRANSACTIONS) << "None empty transaction properties";
+  }
+  
   // execute one of the CRUD methods
   switch (type) {
     case rest::RequestType::DELETE_REQ:

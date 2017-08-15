@@ -354,6 +354,7 @@ SET(ARANGOD_SOURCES
   Transaction/StandaloneContext.cpp
   Transaction/TransactionRegistry.cpp
   Transaction/V8Context.cpp
+  Transaction/types.cpp
   Utils/Authentication.cpp
   Utils/CollectionKeys.cpp
   Utils/CollectionKeysRepository.cpp

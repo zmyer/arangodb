@@ -120,7 +120,7 @@ Result RocksDBTransactionState::beginTransaction(transaction::Hints hints) {
     auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
     
     // get a new id
-    if (_id == transaction::TransactionId::zero()) {
+    if (_id == transaction::TransactionId::ZERO) {
       _id = transactionRegistry->generateId();
     }
 

@@ -282,10 +282,10 @@ void TransactionRegistry::report(
   }
   auto q = m->second.find(id);
   if (q == m->second.end()) {
+#warning Needs fixing: transaction being reported, which never existed in the registry
     /*THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL,
       "transaction with given vocbase and id not found");*/
-#warning Needs fixing: transaction being reported, which never existed
-    LOG_TOPIC(ERR, Logger::TRANSACTIONS) << "Needs fixing";
+    LOG_TOPIC(WARN, Logger::TRANSACTIONS) << "Needs fixing: transaction was never in the registry";
     return;
   }
   
