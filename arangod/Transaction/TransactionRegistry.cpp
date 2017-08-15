@@ -371,3 +371,16 @@ void TransactionRegistry::destroyAll() {
 TransactionId TransactionRegistry::generateId () {
   return _generator();
 }
+
+void TransactionRegistry::toVelocyPack(VPackBuilder& builder) {
+  TRI_ASSERT(builder.isOpenObject());
+  // Iterate over vocbases
+  for (auto const& vocbase : _transactions) { 
+    builder.add(VPackValue(vocbase.first));
+    VPackArrayBuilder b(&builder);
+    // Iterate over transactions
+    for (auto const& transaction : vocbase.second) { 
+      transaction.second->toVelocyPack(builder);
+    }
+  }
+}

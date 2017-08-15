@@ -34,7 +34,7 @@ struct TransactionId {
   TransactionId(uint64_t c = 0, uint64_t i = 0) : coordinator(c), identifier(i) {}
   uint64_t coordinator;
   uint64_t identifier;
-  std::string to_string() const;
+  std::string toString() const;
   
   static TransactionId zero();
 };
@@ -42,7 +42,7 @@ struct TransactionId {
 inline TransactionId TransactionId::zero() {return TransactionId(0,0);}
 
 static std::string const SEPARATOR = "-";
-inline std::string TransactionId::to_string() const {
+inline std::string TransactionId::toString() const {
   return std::to_string(coordinator) + SEPARATOR + std::to_string(identifier);
 }
 

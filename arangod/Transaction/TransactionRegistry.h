@@ -44,11 +44,14 @@ class TransactionRegistry {
 
   struct UniqueGenerator {
 
-    // Construct with next id in line
+    // @brief Construct with next id in line
     UniqueGenerator(uint64_t n = 0, uint64_t c = 10000);
     
-    // offer and burn an id
+    // @brief offer and burn an id
     TransactionId operator()();
+
+    // @brief get overview over all transactions
+    void toVelocyPack(VPackBuilder const&);
     
   private:
 
@@ -115,16 +118,26 @@ public:
   /// @brief generate new transaction id
   TransactionId generateId();
 
+  /// @brief dump to velocypack
+  void toVelocyPack(VPackBuilder&);
+
  private:
   /// @brief a struct for all information regarding one transaction in the registry
   struct TransactionInfo {
     TRI_vocbase_t* _vocbase;  // the vocbase
     TransactionId _id;        // id of the transaction
     Methods* _transaction;    // the actual transaction pointer
-    bool _isOpen;  // flag indicating whether or not the transaction is in use
+    bool _isOpen;             // flag indicating whether or not the transaction is in use
     LifeCycle _lifeCycle;
     double _timeToLive;       // in seconds
     double _expires;          // UNIX UTC timestamp of expiration
+    inline void toVelocyPack(VPackBuilder& builder) {
+      TRI_ASSERT(builder.isOpenArray());
+      VPackObjectBuilder b(&builder);
+      builder.add("id", VPackValue(_id.toString()));
+      builder.add("open", VPackValue(_isOpen));
+      builder.add("status", VPackValue(_lifeCycle));
+    }
   };
 
   /// @brief _transactions, the actual map of maps for the registry

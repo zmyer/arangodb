@@ -36,26 +36,44 @@ struct TransactionProperties {
   bool isSingle;
   bool isStart;
 
+  /// @brief default ctor 
   TransactionProperties(
     transaction::TransactionId const& id = transaction::TransactionId::zero(),
     bool single = false, bool start = false)
     : transactionId(id), isSingle(single), isStart(start) {}
 
-  TransactionProperties(GeneralRequest const* request) {
-    // Extract from the headers the transaction props
+  /// @brief construct with http headers
+  TransactionProperties(GeneralRequest const* request)
+    : isSingle(false), isStart(false){
+    
     auto const headers = request->headers();
-    auto const coordinator = headers.find("trxCoordinator");
+    auto const coordinator = headers.find("trxcoordinator");
     if (coordinator!=headers.end()) { // We have a transaction header
-      auto const identifier = headers.find("trxIdentifier");
-      try {
-        transactionId = transaction::TransactionId(
-          std::stoull(coordinator->second),std::stoull(identifier->second));
-      } catch (std::exception const& e) {
-        LOG_TOPIC(TRACE, arangodb::Logger::TRANSACTIONS) <<
-          "Failed to extract transaction headers ";
+      auto const identifier = headers.find("trxidentifier");
+      auto const issingle = headers.find("issingle");
+      auto const isstart = headers.find("issstart");
+      if (identifier!=headers.end()) {
+        try {
+          transactionId = transaction::TransactionId(
+            std::stoull(coordinator->second),std::stoull(identifier->second));
+        } catch (std::exception const& e) {
+          LOG_TOPIC(ERR, arangodb::Logger::TRANSACTIONS) <<
+            "Failed to extract transaction headers ";
+        }
+        if (issingle!=headers.end()) {
+          try {
+            isSingle = (std::stoi(issingle->second) == 1);
+          } catch (...) {}
+        }
+        if (isstart!=headers.end()) {
+          try {
+            isStart = (std::stoi(isstart->second) == 1);
+          } catch (...) {}
+        }
+      } else {
+        LOG_TOPIC(ERR, Logger::TRANSACTIONS) <<
+          "Incomplete transaction headers: " << *this;
       }
-      isSingle = (std::stoi(headers.find("isSingle")->second) == 1);
-      isStart = (std::stoi(headers.find("isStart")->second) == 1);
     }
   }
   
@@ -66,7 +84,7 @@ inline std::ostream& operator<<(
   o << "[" << p.transactionId;
   if (p.isStart)  { o << ", start";  }
   if (p.isSingle) { o << ", single"; }
-  o << "]" << std::endl;
+  o << "]";
   return o;
 }
 
