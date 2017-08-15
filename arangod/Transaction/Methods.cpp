@@ -771,6 +771,9 @@ Result transaction::Methods::commit() {
   if (_state->isCoordinator()) {
     if (_state->isTopLevelTransaction()) {
       _state->updateStatus(transaction::Status::COMMITTED);
+      auto transactionRegistry =
+        TransactionRegistryFeature::TRANSACTION_REGISTRY;
+      transactionRegistry->reportCommit(this);
     }
     return TRI_ERROR_NO_ERROR;
   }
@@ -796,8 +799,10 @@ Result transaction::Methods::abort() {
   if (_state->isCoordinator()) {
     if (_state->isTopLevelTransaction()) {
       _state->updateStatus(transaction::Status::ABORTED);
+      auto transactionRegistry =
+        TransactionRegistryFeature::TRANSACTION_REGISTRY;
+      transactionRegistry->reportAbort(this);
     }
-
     return TRI_ERROR_NO_ERROR;
   }
 

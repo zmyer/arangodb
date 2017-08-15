@@ -66,9 +66,25 @@ class TransactionRegistry {
     
   };
   
-
+  struct TransactionInfo {
+    TRI_vocbase_t* _vocbase;  // the vocbase
+    TransactionId _id;        // id of the transaction
+    Methods* _transaction;    // the actual transaction pointer
+    bool _isOpen;             // flag indicating whether or not the transaction is in use
+    LifeCycle _lifeCycle;
+    double _timeToLive;       // in seconds
+    double _expires;          // UNIX UTC timestamp of expiration
+    inline void toVelocyPack(VPackBuilder& builder) {
+      TRI_ASSERT(builder.isOpenArray());
+      VPackObjectBuilder b(&builder);
+      builder.add("id", VPackValue(_id.toString()));
+      builder.add("open", VPackValue(_isOpen));
+      builder.add("status", VPackValue(_lifeCycle));
+    }
+  };
 
 public:
+
   TransactionRegistry() {}
   
   ~TransactionRegistry();
@@ -96,6 +112,15 @@ public:
   /// @brief Return and abort an open transaction
   void closeAbort(TRI_vocbase_t* vocbase, TransactionId id, double ttl = 600.0);
 
+  /// @brief Return and commit an open transaction (called from transaction itself)
+  void report(TRI_vocbase_t* vocbase, TransactionId id, double ttl = 600.0, LifeCycle l = LIVE);
+
+  /// @brief Return and commit an open transaction (called from transaction itself)
+  void reportCommit(Methods* transaction, double ttl = 600.0);
+
+  /// @brief Return and abort an open transaction
+  void reportAbort(Methods* transaction, double ttl = 600.0);
+
   /// @brief destroy, this removes the entry from the registry and calls
   /// delete on the Transaction*. It is allowed to call this regardless of whether
   /// the transaction is open or closed. No check is performed that this call comes
@@ -121,24 +146,12 @@ public:
   /// @brief dump to velocypack
   void toVelocyPack(VPackBuilder&);
 
+  /// @brief get information on specific transaction
+  ///        throws std::out_of_range exception
+  TransactionInfo const* getInfo (
+    TransactionId const&, std::string const& database = std::string()) const ;
+
  private:
-  /// @brief a struct for all information regarding one transaction in the registry
-  struct TransactionInfo {
-    TRI_vocbase_t* _vocbase;  // the vocbase
-    TransactionId _id;        // id of the transaction
-    Methods* _transaction;    // the actual transaction pointer
-    bool _isOpen;             // flag indicating whether or not the transaction is in use
-    LifeCycle _lifeCycle;
-    double _timeToLive;       // in seconds
-    double _expires;          // UNIX UTC timestamp of expiration
-    inline void toVelocyPack(VPackBuilder& builder) {
-      TRI_ASSERT(builder.isOpenArray());
-      VPackObjectBuilder b(&builder);
-      builder.add("id", VPackValue(_id.toString()));
-      builder.add("open", VPackValue(_isOpen));
-      builder.add("status", VPackValue(_lifeCycle));
-    }
-  };
 
   /// @brief _transactions, the actual map of maps for the registry
   std::unordered_map<std::string, std::unordered_map<TransactionId, TransactionInfo*>>
