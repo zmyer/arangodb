@@ -31,21 +31,22 @@
 namespace arangodb {
 
 struct TransactionProperties {
+
   transaction::TransactionId transactionId;
   bool isSingle;
   bool isStart;
+
   TransactionProperties(
     transaction::TransactionId const& id = transaction::TransactionId::zero(),
     bool single = false, bool start = false)
     : transactionId(id), isSingle(single), isStart(start) {}
+
   TransactionProperties(GeneralRequest const* request) {
     // Extract from the headers the transaction props
     auto const headers = request->headers();
     auto const coordinator = headers.find("trxCoordinator");
     if (coordinator!=headers.end()) { // We have a transaction header
       auto const identifier = headers.find("trxIdentifier");
-      auto const single = headers.find("isSingle");
-      auto const start = headers.find("isStart");
       try {
         transactionId = transaction::TransactionId(
           std::stoull(coordinator->second),std::stoull(identifier->second));
@@ -53,10 +54,21 @@ struct TransactionProperties {
         LOG_TOPIC(TRACE, arangodb::Logger::TRANSACTIONS) <<
           "Failed to extract transaction headers ";
       }
-
+      isSingle = (std::stoi(headers.find("isSingle")->second) == 1);
+      isStart = (std::stoi(headers.find("isStart")->second) == 1);
     }
   }
+  
 };
+
+inline std::ostream& operator<<(
+  std::ostream& o, TransactionProperties const& p) {
+  o << "[" << p.transactionId;
+  if (p.isStart)  { o << ", start";  }
+  if (p.isSingle) { o << ", single"; }
+  o << "]" << std::endl;
+  return o;
+}
 
 class RestDocumentHandler : public RestVocbaseBaseHandler {
  public:

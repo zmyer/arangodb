@@ -48,6 +48,7 @@ RestStatus RestDocumentHandler::execute() {
   auto const type = _request->requestType();
 
   _transProps = TransactionProperties(_request.get());
+  LOG_TOPIC(INFO, Logger::TRANSACTIONS) << _transProps;
 
   // execute one of the CRUD methods
   switch (type) {
