@@ -282,8 +282,11 @@ void TransactionRegistry::report(
   }
   auto q = m->second.find(id);
   if (q == m->second.end()) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL,
-                                   "transaction with given vocbase and id not found");
+    /*THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL,
+      "transaction with given vocbase and id not found");*/
+#warning Needs fixing: transaction being reported, which never existed
+    LOG_TOPIC(ERR, Logger::TRANSACTIONS) << "Needs fixing";
+    return;
   }
   
   TransactionInfo* qi = q->second;
