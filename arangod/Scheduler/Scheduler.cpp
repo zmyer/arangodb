@@ -123,7 +123,7 @@ class SchedulerThread : public Thread {
             if (_scheduler->shouldStopThread()) {
               auto n = _scheduler->decRunning();
 
-              if (n <= _scheduler->minimum()) {
+              if (n < _scheduler->minimum()) {
                 _scheduler->incRunning();
               } else {
                 doDecrement = false;
@@ -143,9 +143,11 @@ class SchedulerThread : public Thread {
     } catch (std::exception const& ex) {
       LOG_TOPIC(ERR, Logger::THREADS)
           << "restarting scheduler loop after caught exception: " << ex.what();
+      LOG_TOPIC(ERR, Logger::FIXME) << "############ execption in thread restarting";
       _scheduler->decRunning();
       _scheduler->startNewThread();
     } catch (...) {
+      LOG_TOPIC(ERR, Logger::FIXME) << "############ execption in thread restarting";
       LOG_TOPIC(ERR, Logger::THREADS)
           << "restarting scheduler loop after unknown exception";
       _scheduler->decRunning();
@@ -292,7 +294,7 @@ void Scheduler::startManagerThread() {
 
 void Scheduler::startNewThread() {
   MUTEX_LOCKER(guard, _threadsLock);
-
+  LOG_TOPIC(ERR, Logger::FIXME) << "############ starting new thread";
   auto thread = new SchedulerThread(this, _ioService.get());
   
   try {
@@ -306,11 +308,22 @@ void Scheduler::startNewThread() {
 }
 
 bool Scheduler::shouldStopThread() const {
-  if (_nrRunning <= _nrWorking + _nrQueued + _nrMinimum) {
+  LOG_TOPIC(ERR, Logger::FIXME) << "############ should stop:"
+                                << " running " << _nrRunning
+                                << " - working " << _nrWorking
+                                << " - queued " << _nrQueued
+                                << " - blocked " << _nrBlocked
+                                << " - min " << _nrMinimum
+                                ;
+  if (_nrRunning <=  _nrMinimum) {
+    return false;
+  }
+  if (_nrRunning < _nrWorking + _nrQueued + _nrMinimum) {
     return false;
   }
 
   if (_nrMinimum + _nrBlocked < _nrRunning) {
+    LOG_TOPIC(ERR, Logger::FIXME) << "############ should stop: YES";
     return true;
   }
 
@@ -318,7 +331,15 @@ bool Scheduler::shouldStopThread() const {
 }
 
 bool Scheduler::shouldQueueMore() const {
+  LOG_TOPIC(ERR, Logger::FIXME) << "############ should queue more:"
+                                << " running " << _nrRunning
+                                << " - working " << _nrWorking
+                                << " - queued " << _nrQueued
+                                << " - blocked " << _nrBlocked
+                                << " - min " << _nrMinimum
+                                ;
   if (_nrWorking + _nrQueued + _nrMinimum < _nrMaximum) {
+    LOG_TOPIC(ERR, Logger::FIXME) << "############ should queue more: YES";
     return true;
   }
 
@@ -379,6 +400,7 @@ void Scheduler::deleteOldThreads() {
   }
 
   for (auto thread : deadThreads) {
+    LOG_TOPIC(ERR, Logger::FIXME) << "############ delete dead thread";
     try {
       delete thread;
     } catch (...) {

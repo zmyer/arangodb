@@ -94,8 +94,14 @@ class Scheduler {
 
   uint64_t minimum() const { return _nrMinimum; }
 
-  uint64_t incRunning() { return ++_nrRunning; }
-  uint64_t decRunning() { return --_nrRunning; }
+  uint64_t incRunning() { 
+    LOG_TOPIC(ERR, Logger::FIXME) << "############ inc running";
+    return ++_nrRunning;
+  }
+  uint64_t decRunning() { 
+    LOG_TOPIC(ERR, Logger::FIXME) << "############ dec running";
+    return --_nrRunning;
+  }
 
   std::string infoStatus();
 
