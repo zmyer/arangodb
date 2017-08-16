@@ -37,9 +37,11 @@
 #include "ProgramOptions/Section.h"
 #include "RestServer/DatabaseFeature.h"
 #include "RestServer/FeatureCacheFeature.h"
+#include "RestServer/TransactionRegistryFeature.h"
 #include "Scheduler/Scheduler.h"
 #include "Scheduler/SchedulerFeature.h"
 #include "SimpleHttpClient/ConnectionManager.h"
+#include "Transaction/TransactionRegistry.h"
 #include "V8Server/V8DealerFeature.h"
 
 using namespace arangodb;
@@ -446,6 +448,8 @@ void ClusterFeature::start() {
     try {
       VPackObjectBuilder b(&builder);
       builder.add("endpoint", VPackValue(_myAddress));
+      auto tf = TransactionRegistryFeature::TRANSACTION_REGISTRY;
+      builder.add("transactionId", VPackValue(tf->id()));
     } catch (...) {
       LOG_TOPIC(FATAL, arangodb::Logger::CLUSTER) << "out of memory";
       FATAL_ERROR_EXIT();

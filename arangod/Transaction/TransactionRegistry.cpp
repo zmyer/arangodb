@@ -42,7 +42,8 @@ uint64_t TransactionRegistry::UniqueGenerator::_registryId = 0;
 
 TransactionRegistry::UniqueGenerator::UniqueGenerator(uint64_t n, uint64_t c) :
   _next(n), _last(std::numeric_limits<uint64_t>::max()), _chunks(c) {
-  _registryId = RandomGenerator::interval(static_cast<uint64_t>(0x0000FFFFFFFFFFFFULL));
+  _registryId =
+    RandomGenerator::interval(static_cast<uint64_t>(0x0000FFFFFFFFFFFFULL));
 }
 
 // offer and burn an id increment by 4
@@ -147,7 +148,7 @@ TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
 
 /// @brief insert transaction on db servers
 void TransactionRegistry::insert(
-  TransactionId id, Methods* transaction, double ttl) {
+  TransactionId const& id, Methods* transaction, double ttl) {
   
   TRI_ASSERT(transaction != nullptr);
 
@@ -184,98 +185,85 @@ void TransactionRegistry::insert(
   }
 }
 
-/// @brief open
-Methods* TransactionRegistry::open(TRI_vocbase_t* vocbase, TransactionId id) {
+/// @brief open 
+Methods* TransactionRegistry::open(TransactionId const& id, TRI_vocbase_t* vocbase) {
   // std::cout << "Taking out transaction with ID " << id << std::endl;
   MUTEX_LOCKER(locker, _lock);
 
-  auto m = _transactions.find(vocbase->name());
-  if (m == _transactions.end()) {
-    return nullptr;
-  }
-  auto q = m->second.find(id);
-  if (q == m->second.end()) {
-    return nullptr;
-  }
-  TransactionInfo* qi = q->second;
+  TransactionInfo* ti = getInfo(id, vocbase);
 
-  if (qi->_lifeCycle == ABORTED) {
+  if (ti->_lifeCycle == ABORTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been aborted already");
   }
   
-  if (qi->_lifeCycle == COMMITTED) {
+  if (ti->_lifeCycle == COMMITTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been committed already");
   }
   
-  if (qi->_isOpen) {
+  if (ti->_isOpen) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
         TRI_ERROR_INTERNAL, "transaction with given vocbase and id is already open");
   }
   
-  qi->_isOpen = true;
+  ti->_isOpen = true;
 
-  return qi->_transaction;
+  return ti->_transaction;
   
+}
+
+void TransactionRegistry::closeAbort(TransactionId const& id, double ttl) {
+  close(nullptr, id, ttl, ABORTED);
+}
+
+void TransactionRegistry::closeCommit(TransactionId const& id, double ttl) {
+  close(nullptr, id, ttl, COMMITTED);  
 }
 
 /// @brief close
 void TransactionRegistry::close(
-  TRI_vocbase_t* vocbase, TransactionId id, double ttl, LifeCycle lc) {
+  TRI_vocbase_t* vocbase, TransactionId const& id, double ttl, LifeCycle lc) {
   
-  MUTEX_LOCKER(locker, _lock);
-
-  auto m = _transactions.find(vocbase->name());
-  if (m == _transactions.end()) {
-    m = _transactions.emplace(vocbase->name(),
-                         std::unordered_map<TransactionId, TransactionInfo*>()).first;
-  }
-  auto q = m->second.find(id);
-  if (q == m->second.end()) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL,
-                                   "transaction with given vocbase and id not found");
-  }
+  TransactionInfo* ti = getInfo(id, vocbase);
   
-  TransactionInfo* qi = q->second;
-  
-  if (qi->_lifeCycle == ABORTED) {
+  if (ti->_lifeCycle == ABORTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been aborted already");
   }
   
-  if (qi->_lifeCycle == COMMITTED) {
+  if (ti->_lifeCycle == COMMITTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been committed already");
   }
   
-  if (!qi->_isOpen) {
+  if (!ti->_isOpen) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
         TRI_ERROR_INTERNAL, "transaction with given vocbase and id is not open");
   }
 
   if (lc == COMMITTED) {
-    qi->_transaction->commit();
+    ti->_transaction->commit();
   } else if (lc == ABORTED) {
-    qi->_transaction->abortExternal();
+    ti->_transaction->abortExternal();
   }
 
-  qi->_isOpen = false;
-  qi->_expires = TRI_microtime() + qi->_timeToLive;
+  ti->_isOpen = false;
+  ti->_expires = TRI_microtime() + ti->_timeToLive;
   
 }
 
-void TransactionRegistry::closeAbort(TRI_vocbase_t* vocbase, TransactionId id, double ttl) {
+void TransactionRegistry::closeAbort(TRI_vocbase_t* vocbase, TransactionId const& id, double ttl) {
   close(vocbase, id, ttl, ABORTED);
 }
 
 /// @brief close
-void TransactionRegistry::closeCommit(TRI_vocbase_t* vocbase, TransactionId id, double ttl) {
+void TransactionRegistry::closeCommit(TRI_vocbase_t* vocbase, TransactionId const& id, double ttl) {
   close(vocbase, id, ttl, COMMITTED);
 }
 
 void TransactionRegistry::report(
-  TRI_vocbase_t* vocbase, TransactionId id, double ttl, LifeCycle lc) {
+  TRI_vocbase_t* vocbase, TransactionId const& id, double ttl, LifeCycle lc) {
 
   MUTEX_LOCKER(locker, _lock);
 
@@ -293,26 +281,26 @@ void TransactionRegistry::report(
     return;
   }
   
-  TransactionInfo* qi = q->second;
+  TransactionInfo* ti = q->second;
   
-  if (qi->_lifeCycle == ABORTED) {
+  if (ti->_lifeCycle == ABORTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been aborted already");
   }
   
-  if (qi->_lifeCycle == COMMITTED) {
+  if (ti->_lifeCycle == COMMITTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been committed already");
   }
   
   if (lc == COMMITTED) {
-    qi->_transaction->commit();
+    ti->_transaction->commit();
   } else if (lc == ABORTED) {
-    qi->_transaction->abortExternal();
+    ti->_transaction->abortExternal();
   }
 
-  qi->_isOpen = false;
-  qi->_expires = TRI_microtime() + qi->_timeToLive;
+  ti->_isOpen = false;
+  ti->_expires = TRI_microtime() + ti->_timeToLive;
 
 }
 
@@ -328,7 +316,7 @@ void TransactionRegistry::reportCommit(Methods* transaction, double ttl) {
 
 /// @brief destroy
 void TransactionRegistry::destroy(
-  std::string const& vocbase, TransactionId id, int errorCode) {
+  std::string const& vocbase, TransactionId const& id, int errorCode) {
 
   MUTEX_LOCKER(locker, _lock);
 
@@ -344,7 +332,7 @@ void TransactionRegistry::destroy(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id not found");
   }
   TransactionInfo* ti = t->second;
-
+  
   if (ti->_isOpen) {
     ti->_transaction->abortExternal(); // Thread safe abort
     return;
@@ -360,7 +348,7 @@ void TransactionRegistry::destroy(
 
 /// @brief destroy
 void TransactionRegistry::destroy(
-  TRI_vocbase_t* vocbase, TransactionId id, int errorCode) {
+  TRI_vocbase_t* vocbase, TransactionId const& id, int errorCode) {
   destroy(vocbase->name(), id, errorCode);
 }
 
@@ -377,8 +365,8 @@ void TransactionRegistry::expireTransactions() {
       for (auto& y : x.second) {
         // y.first is a TransactionId and
         // y.second is a TransactionInfo*
-        TransactionInfo*& qi = y.second;
-        if (!qi->_isOpen && now > qi->_expires) {
+        TransactionInfo*& ti = y.second;
+        if (!ti->_isOpen && now > ti->_expires) {
           toDelete.emplace_back(x.first, y.first);
         }
       }
@@ -427,22 +415,39 @@ TransactionId TransactionRegistry::generateId () {
   return _generator();
 }
 
-TransactionRegistry::TransactionInfo const* TransactionRegistry::getInfo(
-  TransactionId const& id, std::string const& database) const {
+TransactionRegistry::TransactionInfo* TransactionRegistry::getInfo(
+  TransactionId const& id, TRI_vocbase_t* vocbase) const {
 
-  if (!database.empty()) {
-    return _transactions.at(database).at(id);
-  } else {
-    for (auto const& vocbasePair : _transactions) {
-      auto vocbase = vocbasePair.second;
-      auto transaction = vocbase.find(id);
-      if (transaction != vocbase.end()) {
-        return transaction->second;
+  vocbaseEntry::const_iterator e;
+
+  // vocbase not specified.
+  if (vocbase == nullptr) {
+    bool found = false;
+    for (auto const v : _transactions) {
+      e = v.second.find(id);
+      if (e != v.second.end()) { // Found
+        found = true;
+        break;
       }
     }
+    if (!found) {
+      THROW_ARANGO_EXCEPTION_MESSAGE(
+        TRI_ERROR_INTERNAL, "transaction with given id not found");
+    }
+  } else {
+    auto m = _transactions.find(vocbase->name());
+    if (m == _transactions.end()) {
+      THROW_ARANGO_EXCEPTION_MESSAGE(
+        TRI_ERROR_INTERNAL, "no transactions found for vocbase");
+    }
+    e = m->second.find(id);
+    if (e == m->second.end()) {
+      THROW_ARANGO_EXCEPTION_MESSAGE(
+        TRI_ERROR_INTERNAL, "transaction with given vocbase and id not found");
+    }
   }
-  
-  throw std::out_of_range(std::string("No such transaction"));
+
+  return e->second;
   
 }
 

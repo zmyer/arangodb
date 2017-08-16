@@ -73,7 +73,7 @@ class TransactionRegistry {
     TRI_vocbase_t* _vocbase;  // the vocbase
     TransactionId _id;        // id of the transaction
     Methods* _transaction;    // the actual transaction pointer
-    bool _isOpen;             // flag indicating whether or not the transaction is in use
+    bool _isOpen;    // flag indicating whether or not the transaction is in use
     LifeCycle _lifeCycle;
     double _timeToLive;       // in seconds
     double _expires;          // UNIX UTC timestamp of expiration
@@ -91,32 +91,39 @@ public:
   TransactionRegistry() {}
   
   ~TransactionRegistry();
-  
+
   /// @brief insert, this inserts the transaction <transaction> for the vocbase <vocbase>
   /// and the id <id> into the registry. It is in error if there is already
   /// a transaction for this <vocbase> and <id> combination and an exception will
   /// be thrown in that case. The time to live <ttl> is in seconds and the
   /// transaction will be deleted if it is not opened for that amount of time.
-  void insert(TransactionId id, Methods* transaction, double ttl = 600.0);
+  void insert(TransactionId const& id, Methods* transaction, double ttl = 600.0);
 
   /// @brief insert a transaction into registry and return its id
   /// called from storage engine implementations of TransactionState
   TransactionId insert(Methods* transaction, double ttl = 600.0);
 
   /// @brief Lease and open a transaction
-  Methods* open(TRI_vocbase_t* vocbase, TransactionId id);
+  Methods* open(TransactionId const& id, TRI_vocbase_t* vocbase = nullptr);
 
   /// @brief Return a leased open transaction 
-  void close(TRI_vocbase_t* vocbase, TransactionId id, double ttl = 600.0, LifeCycle lc = LIVE);
+  void close(TRI_vocbase_t* vocbase, TransactionId const& id, double ttl = 600.0, LifeCycle lc = LIVE);
 
   /// @brief Return and commit an open transaction
-  void closeCommit(TRI_vocbase_t* vocbase, TransactionId id, double ttl = 600.0);
+  void closeCommit(TRI_vocbase_t* vocbase, TransactionId const& id, double ttl = 600.0);
 
   /// @brief Return and abort an open transaction
-  void closeAbort(TRI_vocbase_t* vocbase, TransactionId id, double ttl = 600.0);
+  void closeAbort(TRI_vocbase_t* vocbase, TransactionId const& id, double ttl = 600.0);
+
+  /// @brief Return and commit an open transaction
+  void closeCommit(TransactionId const& id, double ttl = 600.0);
+
+  /// @brief Return and abort an open transaction
+  void closeAbort(TransactionId const& id, double ttl = 600.0);
 
   /// @brief Return and commit an open transaction (called from transaction itself)
-  void report(TRI_vocbase_t* vocbase, TransactionId id, double ttl = 600.0, LifeCycle l = LIVE);
+  void report(TRI_vocbase_t* vocbase, TransactionId const& id, double ttl = 600.0,
+              LifeCycle l = LIVE);
 
   /// @brief Return and commit an open transaction (called from transaction itself)
   void reportCommit(Methods* transaction, double ttl = 600.0);
@@ -130,9 +137,9 @@ public:
   /// from the same thread that has opened it! Note that if the transaction is
   /// "open", then this will set the "killed" flag in the transaction and do not
   /// more.
-  void destroy(std::string const& vocbase, TransactionId id, int errorCode);
+  void destroy(std::string const& vocbase, TransactionId const& id, int errorCode);
 
-  void destroy(TRI_vocbase_t* vocbase, TransactionId id, int errorCode);
+  void destroy(TRI_vocbase_t* vocbase, TransactionId const& id, int errorCode);
 
   /// @brief expireTransactions, this deletes all expired transactions from the registry
   void expireTransactions();
@@ -151,8 +158,8 @@ public:
 
   /// @brief get information on specific transaction
   ///        throws std::out_of_range exception
-  TransactionInfo const* getInfo (
-    TransactionId const&, std::string const& database = std::string()) const ;
+  TransactionInfo* getInfo (
+    TransactionId const&, TRI_vocbase_t* vocbase) const;
 
   /// @brief this coordinators registry Id
   uint64_t id() const;
@@ -160,8 +167,8 @@ public:
  private:
 
   /// @brief _transactions, the actual map of maps for the registry
-  std::unordered_map<std::string, std::unordered_map<TransactionId, TransactionInfo*>>
-      _transactions;
+  using vocbaseEntry = std::unordered_map<TransactionId, TransactionInfo*>;
+  std::unordered_map<std::string, vocbaseEntry> _transactions;
 
   /// @brief _lock, the read/write lock for access
   arangodb::Mutex _lock;
