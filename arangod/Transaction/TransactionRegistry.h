@@ -159,11 +159,14 @@ public:
   /// @brief get information on specific transaction
   ///        throws std::out_of_range exception
   TransactionInfo* getInfo (
-    TransactionId const&, TRI_vocbase_t* vocbase) const;
+    TransactionId const&, TRI_vocbase_t* vocbase = nullptr) const;
 
   /// @brief this coordinators registry Id
   uint64_t id() const;
 
+  /// @brief give access to generator's registryId for coordinator validation
+  uint64_t registryId() const {return _generator.registryId();};
+  
  private:
 
   /// @brief _transactions, the actual map of maps for the registry
