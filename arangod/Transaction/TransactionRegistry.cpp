@@ -221,6 +221,14 @@ void TransactionRegistry::closeCommit(TransactionId const& id, double ttl) {
   close(nullptr, id, ttl, COMMITTED);  
 }
 
+void TransactionRegistry::closeAbort(Methods* transaction, double ttl) {
+  close(transaction->vocbase(), transaction->id(), ttl, ABORTED);
+}
+
+void TransactionRegistry::closeCommit(Methods* transaction, double ttl) {
+  close(transaction->vocbase(), transaction->id(), ttl, COMMITTED);  
+}
+
 /// @brief close
 void TransactionRegistry::close(
   TRI_vocbase_t* vocbase, TransactionId const& id, double ttl, LifeCycle lc) {

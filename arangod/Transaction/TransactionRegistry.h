@@ -121,6 +121,12 @@ public:
   /// @brief Return and abort an open transaction
   void closeAbort(TransactionId const& id, double ttl = 600.0);
 
+  /// @brief Return and commit an open transaction
+  void closeCommit(Methods* transaction, double ttl = 600.0);
+
+  /// @brief Return and abort an open transaction
+  void closeAbort(Methods* transaction, double ttl = 600.0);
+
   /// @brief Return and commit an open transaction (called from transaction itself)
   void report(TRI_vocbase_t* vocbase, TransactionId const& id, double ttl = 600.0,
               LifeCycle l = LIVE);
