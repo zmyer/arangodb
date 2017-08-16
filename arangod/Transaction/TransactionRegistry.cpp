@@ -37,35 +37,39 @@
 using namespace arangodb;
 using namespace arangodb::transaction;
 
-uint64_t TransactionRegistry::UniqueGenerator::registryId = 0;
+uint64_t TransactionRegistry::UniqueGenerator::_registryId = 0;
 
 
 TransactionRegistry::UniqueGenerator::UniqueGenerator(uint64_t n, uint64_t c) :
-  next(n), last(std::numeric_limits<uint64_t>::max()), chunks(c) {
-  registryId = RandomGenerator::interval(static_cast<uint64_t>(0x0000FFFFFFFFFFFFULL));
+  _next(n), _last(std::numeric_limits<uint64_t>::max()), _chunks(c) {
+  _registryId = RandomGenerator::interval(static_cast<uint64_t>(0x0000FFFFFFFFFFFFULL));
 }
 
 // offer and burn an id increment by 4
 inline TransactionId TransactionRegistry::UniqueGenerator::operator()() {
-  MUTEX_LOCKER(guard, lock);
-  if (next == last) {
+  MUTEX_LOCKER(guard, _lock);
+  if (_next == _last) {
     getSomeNoLock();
   }
-  return TransactionId(registryId, next+=4);
+  return TransactionId(_registryId, _next+=4);
 }
 
 // Get a bunch more ids.
 inline void TransactionRegistry::UniqueGenerator::getSomeNoLock() {
-  next = 0;
-  last = next + chunks - 1;
-  uint64_t r = next%4; 
+  _next = 0;
+  _last = _next + _chunks - 1;
+  uint64_t r = _next%4; 
   if(r != 0) {
-    next += 4-r;
+    _next += 4-r;
   }
-  r = last%4;
+  r = _last%4;
   if(r != 0) {
-    last -= r;
+    _last -= r;
   }
+}
+
+inline uint64_t TransactionRegistry::UniqueGenerator::registryId() const {
+  return _registryId;
 }
 
 /// @brief destroy all open transactions
@@ -454,4 +458,8 @@ void TransactionRegistry::toVelocyPack(VPackBuilder& builder) {
       transaction.second->toVelocyPack(builder);
     }
   }
+}
+
+uint64_t TransactionRegistry::id() const {
+  return _generator.registryId();
 }

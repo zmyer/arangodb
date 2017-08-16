@@ -52,17 +52,20 @@ class TransactionRegistry {
 
     // @brief get overview over all transactions
     void toVelocyPack(VPackBuilder const&);
+
+    // @brief registry id
+    uint64_t registryId() const;
     
   private:
 
     // update a bunch of ids
     void getSomeNoLock();
 
-    uint64_t next;        // next in line
-    uint64_t last;        // last in succession
-    uint64_t chunks;      // chunks to get every getSomeNoLock
-    arangodb::Mutex lock; // guard the guts
-    static uint64_t registryId;
+    uint64_t _next;        // next in line
+    uint64_t _last;        // last in succession
+    uint64_t _chunks;      // chunks to get every getSomeNoLock
+    arangodb::Mutex _lock; // guard the guts
+    static uint64_t _registryId;
     
   };
   
@@ -150,6 +153,9 @@ public:
   ///        throws std::out_of_range exception
   TransactionInfo const* getInfo (
     TransactionId const&, std::string const& database = std::string()) const ;
+
+  /// @brief this coordinators registry Id
+  uint64_t id() const;
 
  private:
 
