@@ -101,7 +101,8 @@ int createDocumentOnCoordinator(
     OperationOptions const& options, arangodb::velocypack::Slice const& slice,
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounters,
-    std::shared_ptr<arangodb::velocypack::Builder>& resultBody);
+    std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
+    std::unordered_set<std::string>& shards);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief delete a document in a coordinator
@@ -112,7 +113,8 @@ int deleteDocumentOnCoordinator(
     VPackSlice const slice, OperationOptions const& options,
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounters,
-    std::shared_ptr<arangodb::velocypack::Builder>& resultBody);
+    std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
+    std::unordered_set<std::string>& shards);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief get a document in a coordinator
@@ -226,7 +228,8 @@ int modifyDocumentOnCoordinator(
     std::unique_ptr<std::unordered_map<std::string, std::string>>& headers,
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
-    std::shared_ptr<arangodb::velocypack::Builder>& resultBody);
+    std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
+    std::unordered_set<std::string>& shards);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief truncate a cluster collection on a coordinator
@@ -234,7 +237,8 @@ int modifyDocumentOnCoordinator(
 
 int truncateCollectionOnCoordinator(std::string const& dbname,
                                     std::string const& collname,
-                                    OperationOptions const& options);
+                                    OperationOptions const& options,
+                                    std::unordered_set<std::string>& shards);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief flush Wal on all DBservers

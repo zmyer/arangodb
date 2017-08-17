@@ -245,7 +245,7 @@ void Agent::reportIn(std::string const& peerId, index_t index, size_t toLog) {
         << peerId << " was received more than minPing ago: " << d.count();
     }
     _lastAcked[peerId] = t;
-
+    
     if (index > _confirmed[peerId]) {  // progress this follower?
       _confirmed[peerId] = index;
       if (toLog > 0) { // We want to reset the wait time only if a package callback
@@ -253,18 +253,18 @@ void Agent::reportIn(std::string const& peerId, index_t index, size_t toLog) {
         _earliestPackage[peerId] = system_clock::now();
       }
     }
-
+    
     if (index > _commitIndex) {  // progress last commit?
-
+      
       size_t n = 0;
-
+      
       for (auto const& i : _config.active()) {
         n += (_confirmed[i] >= index);
       }
-
+      
       // catch up read database and commit index
       if (n > size() / 2) {
-
+        
         LOG_TOPIC(TRACE, Logger::AGENCY)
           << "Critical mass for commiting " << _commitIndex + 1
           << " through " << index << " to read db";
@@ -273,17 +273,17 @@ void Agent::reportIn(std::string const& peerId, index_t index, size_t toLog) {
           _readDB.applyLogEntries(
             _state.slices(
               _commitIndex + 1, index), _commitIndex, _constituent.term(),
-              true /* inform others by callbacks */ );
+            true /* inform others by callbacks */ );
         }
-
+        
         MUTEX_LOCKER(liLocker, _liLock);
         _commitIndex = index;
         if (_commitIndex >= _nextCompactionAfter) {
           _compactor.wakeUp();
         }
-
+        
       }
-
+      
     }
   } // MUTEX_LOCKER
 

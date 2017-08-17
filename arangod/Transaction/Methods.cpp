@@ -1369,14 +1369,15 @@ OperationResult transaction::Methods::insertCoordinator(
   options.trxCoordinator = id().coordinator;
   options.trxIdentifier = id().identifier+1;
   
-  
   rest::ResponseCode responseCode;
   std::unordered_map<int, size_t> errorCounter;
   auto resultBody = std::make_shared<VPackBuilder>();
 
   int res = arangodb::createDocumentOnCoordinator(
     databaseName(), collectionName, options, value, responseCode,
-    errorCounter, resultBody);
+    errorCounter, resultBody, _subActors);
+
+  LOG_TOPIC(INFO, Logger::TRANSACTIONS) << _subActors;
 
   if (res == TRI_ERROR_NO_ERROR) {
     return clusterResultInsert(responseCode, resultBody, errorCounter);
@@ -1690,7 +1691,7 @@ OperationResult transaction::Methods::updateCoordinator(
 
   int res = arangodb::modifyDocumentOnCoordinator(
       databaseName(), collectionName, newValue, options, true /* isPatch */,
-      headers, responseCode, errorCounter, resultBody);
+      headers, responseCode, errorCounter, resultBody, _subActors);
 
   if (res == TRI_ERROR_NO_ERROR) {
     return clusterResultModify(responseCode, resultBody, errorCounter);
@@ -1752,7 +1753,7 @@ OperationResult transaction::Methods::replaceCoordinator(
 
   int res = arangodb::modifyDocumentOnCoordinator(
       databaseName(), collectionName, newValue, options, false /* isPatch */,
-      headers, responseCode, errorCounter, resultBody);
+      headers, responseCode, errorCounter, resultBody, _subActors);
 
   if (res == TRI_ERROR_NO_ERROR) {
     return clusterResultModify(responseCode, resultBody, errorCounter);
@@ -2070,7 +2071,7 @@ OperationResult transaction::Methods::removeCoordinator(
 
   int res = arangodb::deleteDocumentOnCoordinator(
       databaseName(), collectionName, value, options, responseCode,
-      errorCounter, resultBody);
+      errorCounter, resultBody, _subActors);
 
   if (res == TRI_ERROR_NO_ERROR) {
     return clusterResultRemove(responseCode, resultBody, errorCounter);
@@ -2436,7 +2437,7 @@ OperationResult transaction::Methods::truncateCoordinator(
 
   // TODO: Truncate needs transactional awareness
   return OperationResult(arangodb::truncateCollectionOnCoordinator(
-                           databaseName(), collectionName, options));
+                           databaseName(), collectionName, options, _subActors));
   
 }
 #endif

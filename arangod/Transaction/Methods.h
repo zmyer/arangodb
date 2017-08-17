@@ -584,7 +584,7 @@ class Methods {
   _collectionCache;
 
   /// @brief subordinate transactors
-  std::list<std::string> _subActors;
+  std::unordered_set<std::string> _subActors;
 
   /// @brief optional callback function that will be called on transaction
   /// commit or abort

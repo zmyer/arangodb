@@ -34,10 +34,12 @@
 #include "GeneralServer/AuthenticationFeature.h"
 #include "Logger/Logger.h"
 #include "RestServer/FeatureCacheFeature.h"
+#include "RestServer/TransactionRegistryFeature.h"
 #include "Scheduler/JobGuard.h"
 #include "Scheduler/SchedulerFeature.h"
 #include "SimpleHttpClient/ConnectionManager.h"
 #include "SimpleHttpClient/SimpleHttpCommunicatorResult.h"
+#include "Transaction/TransactionRegistry.h"
 #include "Transaction/Methods.h"
 #include "VocBase/ticks.h"
 
