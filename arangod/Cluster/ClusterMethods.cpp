@@ -948,7 +948,8 @@ int createDocumentOnCoordinator(
     arangodb::OperationOptions const& options, VPackSlice const& slice,
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
-    std::shared_ptr<VPackBuilder>& resultBody) {
+    std::shared_ptr<VPackBuilder>& resultBody,
+    std::list<std::string>& tshards) {
   
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
@@ -1042,9 +1043,12 @@ int createDocumentOnCoordinator(
     }
 
     requests.emplace_back(
-        "shard:" + it.first, arangodb::rest::RequestType::POST,
-        baseUrl + StringUtils::urlEncode(it.first) + optsUrlPart, body,
-        headers);
+      "shard:" + it.first, arangodb::rest::RequestType::POST,
+      baseUrl + StringUtils::urlEncode(it.first) + optsUrlPart, body,
+      headers);
+
+    tshards.emplace_back(it.first);
+    
   }
   
   // Perform the requests
@@ -1093,7 +1097,8 @@ int deleteDocumentOnCoordinator(
     VPackSlice const slice, arangodb::OperationOptions const& options,
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
-    std::shared_ptr<arangodb::velocypack::Builder>& resultBody) {
+    std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
+    std::list<std::string>& tshards) {
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
   auto cc = ClusterComm::instance();
@@ -1138,7 +1143,7 @@ int deleteDocumentOnCoordinator(
 
     std::unordered_map<ShardID, std::vector<VPackValueLength>> shardMap;
     std::vector<std::pair<ShardID, VPackValueLength>> reverseMapping;
-    auto workOnOneNode = [&shardMap, &ci, &collid, &collinfo, &reverseMapping](
+    auto workOnOneNode = [&shardMap, &ci, &collid, &collinfo, &reverseMapping, &tshards](
         VPackSlice const node, VPackValueLength const index) -> int {
       // Sort out the _key attribute and identify the shard responsible for it.
 
@@ -1166,6 +1171,7 @@ int deleteDocumentOnCoordinator(
 
       // We found the responsible shard. Add it to the list.
       auto it = shardMap.find(shardID);
+      tshards.emplace_back(shardID);
       if (it == shardMap.end()) {
         std::vector<VPackValueLength> counter({index});
         shardMap.emplace(shardID, counter);
@@ -1333,7 +1339,8 @@ int deleteDocumentOnCoordinator(
 
 int truncateCollectionOnCoordinator(std::string const& dbname,
                                     std::string const& collname,
-                                    OperationOptions const& options) {
+                                    OperationOptions const& options,
+                                    std::list<std::string>& tshards) {
 
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
@@ -1367,6 +1374,9 @@ int truncateCollectionOnCoordinator(std::string const& dbname,
                      "/_db/" + StringUtils::urlEncode(dbname) +
                      "/_api/collection/" + p.first + "/truncate",
                      std::shared_ptr<std::string>(), headers, nullptr, 60.0);
+
+    tshards.emplace_back(p.first);
+    
   }
   // Now listen to the results:
   unsigned int count;
@@ -2074,7 +2084,8 @@ int modifyDocumentOnCoordinator(
     std::unique_ptr<std::unordered_map<std::string, std::string>>& headers,
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
-    std::shared_ptr<VPackBuilder>& resultBody) {
+    std::shared_ptr<VPackBuilder>& resultBody,
+    std::list<std::string>& tshards) {
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
   auto cc = ClusterComm::instance();
@@ -2192,6 +2203,7 @@ int modifyDocumentOnCoordinator(
             baseUrl + StringUtils::urlEncode(it.first) + "/" +
                 StringUtils::urlEncode(slice.get(StaticStrings::KeyString).copyString()) + optsUrlPart,
             body);
+        tshards.emplace_back(it.first);
       } else {
         reqBuilder.clear();
         reqBuilder.openArray();
@@ -2204,6 +2216,7 @@ int modifyDocumentOnCoordinator(
         requests.emplace_back(
             "shard:" + it.first, reqType,
             baseUrl + StringUtils::urlEncode(it.first) + optsUrlPart, body);
+        tshards.emplace_back(it.first);
       }
     }
 
