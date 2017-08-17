@@ -58,6 +58,7 @@ add_executable(
   RocksDBEngine/KeyTest.cpp
   RocksDBEngine/IndexEstimatorTest.cpp
   RocksDBEngine/TypeConversionTest.cpp
+  Transaction/typesTest.cpp
   main.cpp
 )
 

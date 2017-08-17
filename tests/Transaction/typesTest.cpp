@@ -35,7 +35,7 @@ namespace tests {
 namespace types_test {
 
 
-TEST_CASE("TransactionId tests", "[unittest][walkme]") {
+TEST_CASE("TransactionId tests", "[unittest]") {
 
   SECTION("Valid initializations") {
     transaction::TransactionId new_id;

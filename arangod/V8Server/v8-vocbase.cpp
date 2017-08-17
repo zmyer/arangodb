@@ -132,7 +132,12 @@ static void JS_Transaction(v8::FunctionCallbackInfo<v8::Value> const& args) {
   // filled by function
   v8::Handle<v8::Value> result;
   v8::TryCatch tryCatch;
-  Result rv = executeTransactionJS(isolate, args[0], result, tryCatch);
+
+  // "true" ensures request is rejected if missing an "action" block
+  Result rv;
+  std::tuple<Result, std::string> rvTuple = executeTransactionJS(isolate, args[0], result,
+                                                                 tryCatch, true);
+  rv = std::get<0>(rvTuple);
 
   // do not rethrow if already canceled
   if(isContextCanceled(isolate)){
