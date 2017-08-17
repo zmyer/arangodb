@@ -2008,7 +2008,7 @@ int RocksDBRestReplicationHandler::processRestoreCollectionCoordinator(
               TRI_ERROR_CLUSTER_MUST_NOT_DROP_COLL_OTHER_DISTRIBUTESHARDSLIKE) {
         // some collections must not be dropped
         OperationOptions options;
-        std::list<std::string> tmp;
+        std::unordered_set<std::string> tmp;
 
         res = truncateCollectionOnCoordinator(dbName, name, options, tmp);
         if (res != TRI_ERROR_NO_ERROR) {

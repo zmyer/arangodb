@@ -102,7 +102,7 @@ int createDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounters,
     std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
-    std::list<std::string>& shards);
+    std::unordered_set<std::string>& shards);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief delete a document in a coordinator
@@ -114,7 +114,7 @@ int deleteDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounters,
     std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
-    std::list<std::string>& shards);
+    std::unordered_set<std::string>& shards);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief get a document in a coordinator
@@ -229,7 +229,7 @@ int modifyDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
     std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
-    std::list<std::string>& shards);
+    std::unordered_set<std::string>& shards);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief truncate a cluster collection on a coordinator
@@ -238,7 +238,7 @@ int modifyDocumentOnCoordinator(
 int truncateCollectionOnCoordinator(std::string const& dbname,
                                     std::string const& collname,
                                     OperationOptions const& options,
-                                    std::list<std::string>& shards);
+                                    std::unordered_set<std::string>& shards);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief flush Wal on all DBservers

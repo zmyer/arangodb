@@ -1377,6 +1377,8 @@ OperationResult transaction::Methods::insertCoordinator(
     databaseName(), collectionName, options, value, responseCode,
     errorCounter, resultBody, _subActors);
 
+  LOG_TOPIC(INFO, Logger::TRANSACTIONS) << _subActors;
+
   if (res == TRI_ERROR_NO_ERROR) {
     return clusterResultInsert(responseCode, resultBody, errorCounter);
   }
