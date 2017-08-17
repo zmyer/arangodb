@@ -32,13 +32,23 @@ namespace transaction {
 /// @brief type of a transaction id
 struct TransactionId {
   TransactionId(uint64_t c = 0, uint64_t i = 0) : coordinator(c), identifier(i) {}
+  TransactionId(std::string &);
+  TransactionId(const char *);
+  TransactionId & operator=(std::string &);
+  TransactionId & operator=(char const *);
+
   uint64_t coordinator;
   uint64_t identifier;
+
   std::string toString() const;
-  static const TransactionId ZERO; 
+  void clear() {coordinator=0; identifier=0;};
+  bool operator!=(TransactionId const & rhs) const
+    {return coordinator != rhs.coordinator && identifier != rhs.identifier;}
+
+  static const TransactionId ZERO;
 };
 
-static std::string const SEPARATOR = "-";
+static char const SEPARATOR = '-';
 inline std::string TransactionId::toString() const {
   return std::to_string(coordinator) + SEPARATOR + std::to_string(identifier);
 }
@@ -64,4 +74,3 @@ template<> struct hash<arangodb::transaction::TransactionId> {
 }
 
 #endif
-
