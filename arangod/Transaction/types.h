@@ -33,30 +33,29 @@ namespace transaction {
 /// @brief type of a transaction id
 
 struct TransactionId {
+
   TransactionId(uint32_t c = 0, uint32_t i = 0) : coordinator(c), identifier(i) {}
-  uint32_t coordinator;
-  uint32_t identifier;
+  TransactionId(std::string const&);
+
+  TransactionId& operator=(std::string const&);
+
+  bool operator== (TransactionId const&) const;
+  bool operator!= (TransactionId const&) const;
+  
   std::string toString() const;
   TRI_voc_tid_t id() const;
+  void clear();
+
+  uint32_t coordinator;
+  uint32_t identifier;
+
   static const TransactionId ZERO; 
 };
 
-static std::string const SEPARATOR = "-";
-inline std::string TransactionId::toString() const {
-  return std::to_string(coordinator) + SEPARATOR + std::to_string(identifier);
-}
-
-inline bool operator==(TransactionId const& lhs, TransactionId const& rhs) {
-  return (lhs.coordinator==rhs.coordinator && lhs.identifier==rhs.identifier);
-}
-
+static char const SEPARATOR = '-';
 inline std::ostream& operator<<(std::ostream& o, TransactionId const& t) {
   o << t.coordinator << SEPARATOR << t.identifier;
   return o;
-}
-
-inline TRI_voc_tid_t TransactionId::id() const {
-  return (TRI_voc_tid_t) coordinator << 32 | identifier;
 }
 
 }}
@@ -71,4 +70,3 @@ template<> struct hash<arangodb::transaction::TransactionId> {
 }
 
 #endif
-

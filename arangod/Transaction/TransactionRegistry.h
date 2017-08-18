@@ -46,7 +46,7 @@ class TransactionRegistry {
 
     // @brief Construct with next id in line
     UniqueGenerator(uint64_t n = 0, uint64_t c = 10000);
-    
+
     // @brief offer and burn an id
     TransactionId operator()();
 
@@ -55,7 +55,7 @@ class TransactionRegistry {
 
     // @brief registry id
     uint64_t registryId() const;
-    
+
   private:
 
     // update a bunch of ids
@@ -66,9 +66,10 @@ class TransactionRegistry {
     uint64_t _chunks;      // chunks to get every getSomeNoLock
     arangodb::Mutex _lock; // guard the guts
     static uint64_t _registryId;
-    
+
   };
-  
+
+ protected:
   struct TransactionInfo {
     TRI_vocbase_t* _vocbase;  // the vocbase
     TransactionId _id;        // id of the transaction
@@ -89,8 +90,8 @@ class TransactionRegistry {
 public:
 
   TransactionRegistry() {}
-  
-  ~TransactionRegistry();
+
+  virtual ~TransactionRegistry();
 
   /// @brief insert, this inserts the transaction <transaction> for the vocbase <vocbase>
   /// and the id <id> into the registry. It is in error if there is already
@@ -106,7 +107,7 @@ public:
   /// @brief Lease and open a transaction
   Methods* open(TransactionId const& id, TRI_vocbase_t* vocbase = nullptr);
 
-  /// @brief Return a leased open transaction 
+  /// @brief Return a leased open transaction
   void close(TRI_vocbase_t* vocbase, TransactionId const& id, double ttl = 600.0, LifeCycle lc = LIVE);
 
   /// @brief Return and commit an open transaction
@@ -164,15 +165,15 @@ public:
 
   /// @brief get information on specific transaction
   ///        throws std::out_of_range exception
-  TransactionInfo* getInfo (
+  virtual TransactionInfo* getInfo (
     TransactionId const&, TRI_vocbase_t* vocbase = nullptr) const;
 
   /// @brief this coordinators registry Id
   uint64_t id() const;
 
   /// @brief give access to generator's registryId for coordinator validation
-  uint64_t registryId() const {return _generator.registryId();};
-  
+  virtual uint64_t registryId() const {return _generator.registryId();};
+
  private:
 
   /// @brief _transactions, the actual map of maps for the registry

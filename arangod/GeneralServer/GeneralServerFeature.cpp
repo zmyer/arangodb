@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// DISCLAIMER
 ///
-/// Copyright 2016 ArangoDB GmbH, Cologne, Germany
+/// Copyright 2016-2017 ArangoDB GmbH, Cologne, Germany
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -475,7 +475,7 @@ void GeneralServerFeature::defineHandlers() {
   _handlerFactory->addHandler(
       "/_api/version", RestHandlerCreator<RestVersionHandler>::createNoData);
   
-  _handlerFactory->addHandler(
+  _handlerFactory->addPrefixHandler(
       "/_api/transaction", RestHandlerCreator<RestTransactionHandler>::createNoData);
 
 #ifdef ARANGODB_ENABLE_MAINTAINER_MODE

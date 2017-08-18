@@ -25,76 +25,58 @@
 /// @author Copyright 2017, ArangoDB GmbH, Cologne, Germany
 ////////////////////////////////////////////////////////////////////////////////
 #include "catch.hpp"
-#include "fakeit.hpp"
 
-#include "RestHandler/RestTransactionHandler.h"
 #include "GeneralServer/GeneralServerFeature.h"
-#include "VocBase/vocbase.h"
+#include "RestHandler/RestTransactionHandler.h"
 #include "StorageEngine/StorageEngineMock.h"
+#include "Transaction/TransactionRegistryMock.h"
 #include "V8Server/V8DealerFeatureMock.h"
-
-//#include "Agency/AddFollower.h"
-//#include "Agency/FailedLeader.h"
-//#include "Agency/MoveShard.h"
-//#include "Agency/AgentInterface.h"
-//#include "Agency/Node.h"
-//#include "lib/Basics/StringUtils.h"
-//#include "lib/Random/RandomGenerator.h"
-//#include <iostream>
-//#include <velocypack/Parser.h>
-//#include <velocypack/Slice.h>
-//#include <velocypack/velocypack-aliases.h>
+#include "VocBase/vocbase.h"
 
 using namespace arangodb;
 using namespace arangodb::basics;
-using namespace fakeit;
 
 namespace arangodb {
 namespace tests {
 namespace rest_trans_handler_test {
-
-//const char *agency =
-//#include "AddFollowerTest.json"
-//  ;
-//const char *todo =
-//#include "AddFollowerTestToDo.json"
-//  ;
 
 
 struct MOCK_vocbase_t : public TRI_vocbase_t {
   MOCK_vocbase_t() {};
 };
 
-Result executeTransactionMock(
+
+std::tuple<Result, std::string> executeTransactionMock(
     v8::Isolate* isolate,
     basics::ReadWriteLock& lock,
     std::atomic<bool>& canceled,
     VPackSlice slice,
     std::string portType,
-    VPackBuilder& builder) {
+    VPackBuilder& builder,
+    bool expectAction) {
 
   Result result;
-  return result;
+  return std::make_tuple(result, std::string());
 }
-  
-  
-TEST_CASE("Test pre 3.2", "[unittest][walkme]") {
+
+
+TEST_CASE("Test pre 3.2", "[unittest]") {
   MockStorageEngine mock_engine;  // must precede MOCK_vocbase_t
   MOCK_vocbase_t mock_database;
   mock_database.forceUse();       // prevent double delete
   MockV8DealerFeature mock_dealer;
-  
+
   SECTION("Always fails") {
     char const body[] = "";
     std::unordered_map<std::string, std::string> headers;
     GeneralRequest* req(HttpRequest::createHttpRequest(ContentType::JSON, body, 0, headers));
     req->setRequestContext(new VocbaseContext(req, &mock_database), true);
-    
+
     GeneralResponse* resp(new HttpResponse(rest::ResponseCode::OK));
     // RestTransactionHandler owns and deletes GeneralRequest and GeneralResponse
     std::unique_ptr<RestTransactionHandler> handler(
       new RestTransactionHandler(req, resp));
-    
+
     // ILLEGAL is default ... but set just to be safe and future proof
     req->setRequestType(rest::RequestType::ILLEGAL);
     RestStatus status = handler->execute();
@@ -112,7 +94,7 @@ TEST_CASE("Test pre 3.2", "[unittest][walkme]") {
       "materials"
     ]
   },
-  "action" : "function () {var db = require('@arangodb').db;db.products.save({});db.materials.save({});return 'worked!';}" 
+  "action" : "function () {var db = require('@arangodb').db;db.products.save({});db.materials.save({});return 'worked!';}"
 }
 )=";
     std::unordered_map<std::string, std::string> headers;
@@ -137,6 +119,183 @@ TEST_CASE("Test pre 3.2", "[unittest][walkme]") {
 } // TEST_CASE
 
 
-  
-}}} // three namespaces
+TEST_CASE("Retrieve Tx Id", "[unittest][walkme]") {
+  MockStorageEngine mock_engine;  // must precede MOCK_vocbase_t
+  MOCK_vocbase_t mock_database;
+  mock_database.forceUse();       // prevent double delete
 
+  SECTION("Header only") {
+    MockTransactionRegistry mock_registry;
+    transaction::TransactionId tx_id;
+    char const body[] = "";
+    std::unordered_map<std::string, std::string> headers;
+    headers.insert({RestTransactionHandler::kTransactionHeaderLowerCase, "345-987"});
+    GeneralRequest* req(HttpRequest::createHttpRequest(ContentType::JSON, body,
+                                                       0, headers));
+    req->setRequestContext(new VocbaseContext(req, &mock_database), true);
+
+    GeneralResponse* resp(new HttpResponse(rest::ResponseCode::OK));
+
+    mock_registry.mock_registry_id_ = 345;
+    Result rs = RestTransactionHandler::ExtractTransactionId(req, resp, tx_id);
+
+    REQUIRE( rs.ok() );
+    REQUIRE( 345==tx_id.coordinator );
+    REQUIRE( 987==tx_id.identifier );
+
+    delete resp;
+    delete req;
+  } // SECTION
+
+  SECTION("URL only") {
+    MockTransactionRegistry mock_registry;
+    transaction::TransactionId tx_id;
+    char const body[] = "";
+    std::unordered_map<std::string, std::string> headers;
+
+    GeneralRequest* req(HttpRequest::createHttpRequest(ContentType::JSON, body,
+                                                       0, headers));
+    req->setRequestContext(new VocbaseContext(req, &mock_database), true);
+    req->addSuffix("32259-2556");
+
+    GeneralResponse* resp(new HttpResponse(rest::ResponseCode::OK));
+
+    mock_registry.mock_registry_id_ = 32259;
+    Result rs = RestTransactionHandler::ExtractTransactionId(req, resp, tx_id);
+
+    REQUIRE( rs.ok() );
+    REQUIRE( 32259==tx_id.coordinator );
+    REQUIRE( 2556==tx_id.identifier );
+
+    delete resp;
+    delete req;
+  } // SECTION
+
+  SECTION("Matching Header & URL") {
+    MockTransactionRegistry mock_registry;
+    transaction::TransactionId tx_id;
+    char const body[] = "";
+    std::unordered_map<std::string, std::string> headers;
+
+    headers.insert({RestTransactionHandler::kTransactionHeaderLowerCase, "2983-56774"});
+    GeneralRequest* req(HttpRequest::createHttpRequest(ContentType::JSON, body,
+                                                       0, headers));
+    req->setRequestContext(new VocbaseContext(req, &mock_database), true);
+    req->addSuffix("2983-56774");
+
+    GeneralResponse* resp(new HttpResponse(rest::ResponseCode::OK));
+
+    mock_registry.mock_registry_id_ = 2983;
+    Result rs = RestTransactionHandler::ExtractTransactionId(req, resp, tx_id);
+
+    REQUIRE( rs.ok() );
+    REQUIRE( 2983==tx_id.coordinator );
+    REQUIRE( 56774==tx_id.identifier );
+
+    delete resp;
+    delete req;
+  } // SECTION
+
+  SECTION("Non-matching Header & URL") {
+    MockTransactionRegistry mock_registry;
+    transaction::TransactionId tx_id;
+    char const body[] = "";
+    std::unordered_map<std::string, std::string> headers;
+
+    headers.insert({RestTransactionHandler::kTransactionHeaderLowerCase, "52330-9865"});
+    GeneralRequest* req(HttpRequest::createHttpRequest(ContentType::JSON, body,
+                                                       0, headers));
+    req->setRequestContext(new VocbaseContext(req, &mock_database), true);
+    req->addSuffix("2983-56774");
+
+    GeneralResponse* resp(new HttpResponse(rest::ResponseCode::OK));
+
+    mock_registry.mock_registry_id_ = 52330;
+    Result rs = RestTransactionHandler::ExtractTransactionId(req, resp, tx_id);
+
+    REQUIRE( rs.fail() );
+    REQUIRE( 0==tx_id.coordinator );
+    REQUIRE( 0==tx_id.identifier );
+
+    delete resp;
+    delete req;
+  } // SECTION
+
+  SECTION("Wrong Coordinator") {
+    MockTransactionRegistry mock_registry;
+    transaction::TransactionId tx_id;
+    char const body[] = "";
+    std::unordered_map<std::string, std::string> headers;
+
+    headers.insert({RestTransactionHandler::kTransactionHeaderLowerCase, "2983-56774"});
+    GeneralRequest* req(HttpRequest::createHttpRequest(ContentType::JSON, body,
+                                                       0, headers));
+    req->setRequestContext(new VocbaseContext(req, &mock_database), true);
+    req->addSuffix("2983-56774");
+
+    GeneralResponse* resp(new HttpResponse(rest::ResponseCode::OK));
+
+    mock_registry.mock_registry_id_ = 1111;
+    Result rs = RestTransactionHandler::ExtractTransactionId(req, resp, tx_id);
+
+    REQUIRE( rs.fail() );
+    REQUIRE( 0==tx_id.coordinator );
+    REQUIRE( 0==tx_id.identifier );
+
+    delete resp;
+    delete req;
+  } // SECTION
+
+  SECTION("Bad Tx ID") {
+    MockTransactionRegistry mock_registry;
+    transaction::TransactionId tx_id;
+    char const body[] = "";
+    std::unordered_map<std::string, std::string> headers;
+
+    GeneralRequest* req(HttpRequest::createHttpRequest(ContentType::JSON, body,
+                                                       0, headers));
+    req->setRequestContext(new VocbaseContext(req, &mock_database), true);
+    req->addSuffix("76998");
+
+    GeneralResponse* resp(new HttpResponse(rest::ResponseCode::OK));
+
+    mock_registry.mock_registry_id_ = 1111;
+    Result rs = RestTransactionHandler::ExtractTransactionId(req, resp, tx_id);
+
+    REQUIRE( rs.fail() );
+    REQUIRE( 0==tx_id.coordinator );
+    REQUIRE( 0==tx_id.identifier );
+
+    delete resp;
+    delete req;
+  } // SECTION
+
+  SECTION("Tx not in registry") {
+    MockTransactionRegistry mock_registry;
+    transaction::TransactionId tx_id;
+    char const body[] = "";
+    std::unordered_map<std::string, std::string> headers;
+
+    GeneralRequest* req(HttpRequest::createHttpRequest(ContentType::JSON, body,
+                                                       0, headers));
+    req->setRequestContext(new VocbaseContext(req, &mock_database), true);
+    req->addSuffix("4343-9999");
+
+    GeneralResponse* resp(new HttpResponse(rest::ResponseCode::OK));
+
+    mock_registry.throw_getInfo_ = true;
+    mock_registry.mock_registry_id_ = 4343;
+    Result rs = RestTransactionHandler::ExtractTransactionId(req, resp, tx_id);
+
+    REQUIRE( rs.fail() );
+    REQUIRE( 0==tx_id.coordinator );
+    REQUIRE( 0==tx_id.identifier );
+
+    delete resp;
+    delete req;
+  } // SECTION
+
+
+} // TEST_CASE
+
+}}} // three namespaces

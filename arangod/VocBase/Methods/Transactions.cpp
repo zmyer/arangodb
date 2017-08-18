@@ -1,9 +1,32 @@
+////////////////////////////////////////////////////////////////////////////////
+/// DISCLAIMER
+///
+/// Copyright 2017 ArangoDB GmbH, Cologne, Germany
+///
+/// Licensed under the Apache License, Version 2.0 (the "License");
+/// you may not use this file except in compliance with the License.
+/// You may obtain a copy of the License at
+///
+///     http://www.apache.org/licenses/LICENSE-2.0
+///
+/// Unless required by applicable law or agreed to in writing, software
+/// distributed under the License is distributed on an "AS IS" BASIS,
+/// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+/// See the License for the specific language governing permissions and
+/// limitations under the License.
+///
+/// Copyright holder is ArangoDB GmbH, Cologne, Germany
+///
+/// @author
+////////////////////////////////////////////////////////////////////////////////
+
 #include "Transactions.h"
 #include <v8.h>
 
 #include "Transaction/Options.h"
 #include "Transaction/UserTransaction.h"
 #include "Transaction/V8Context.h"
+#include "Transaction/types.h"
 #include "V8/v8-conv.h"
 #include "V8/v8-vpack.h"
 #include "V8/v8-helper.h"
@@ -17,14 +40,15 @@
 
 namespace arangodb {
 
-
-Result executeTransaction(
+/// @brief RestHandler interface to single transaction and start transactin
+std::tuple<Result, std::string> executeTransaction(
     v8::Isolate* isolate,
     basics::ReadWriteLock& lock,
     std::atomic<bool>& canceled,
     VPackSlice slice,
     std::string portType,
-    VPackBuilder& builder){
+    VPackBuilder& builder,
+    bool expectAction){
 
   // YOU NEED A TRY CATCH BLOCK like:
   //    TRI_V8_TRY_CATCH_BEGIN(isolate);
@@ -33,9 +57,11 @@ Result executeTransaction(
 
   READ_LOCKER(readLock, lock);
   Result rv;
+  std::string txnString;
+
   if(canceled){
     rv.reset(TRI_ERROR_REQUEST_CANCELED,"handler canceled");
-    return rv;
+    return std::make_tuple(rv, txnString);;
   }
 
   v8::HandleScope scope(isolate);
@@ -49,14 +75,17 @@ Result executeTransaction(
   v8::Handle<v8::Value> jsPortTypeValue = TRI_V8_ASCII_STRING(portType.c_str());
   if (!request->Set(jsPortTypeKey, jsPortTypeValue)){
     rv.reset(TRI_ERROR_INTERNAL, "could not set portType");
-    return rv;
+    return std::make_tuple(rv, txnString);;
   }
   {
     auto requestVal = v8::Handle<v8::Value>::Cast(request);
     auto responseVal = v8::Handle<v8::Value>::Cast(v8::Undefined(isolate));
     v8gHelper globalVars(isolate, tryCatch, requestVal, responseVal);
     readLock.unlock(); //unlock
-    rv = executeTransactionJS(isolate, in, result, tryCatch);
+    std::tuple<Result, std::string> rvTuple;
+    rvTuple = executeTransactionJS(isolate, in, result, tryCatch, expectAction);
+    rv = std::get<0>(rvTuple);
+    txnString = std::get<1>(rvTuple);
     globalVars.cancel(canceled);
   }
 
@@ -69,10 +98,10 @@ Result executeTransaction(
     } else {
       rv.reset(TRI_ERROR_REQUEST_CANCELED,"handler canceled");
     }
-    return rv;
+    return std::make_tuple(rv, txnString);;
   }
 
-  if(rv.fail()){ return rv; };
+  if(rv.fail()){ return std::make_tuple(rv, txnString);; };
 
   if (tryCatch.HasCaught()){
     //we have some javascript error that is not an arangoError
@@ -80,7 +109,7 @@ Result executeTransaction(
     rv.reset(TRI_ERROR_HTTP_SERVER_ERROR, msg);
   }
 
-  if(rv.fail()){ return rv; };
+  if(rv.fail()){ return std::make_tuple(rv, txnString);; };
 
   if(result->IsUndefined()){
     // turn undefined to none
@@ -88,21 +117,26 @@ Result executeTransaction(
   } else {
     TRI_V8ToVPack(isolate, builder, result, false);
   }
-  return rv;
+  return std::make_tuple(rv, txnString);;
 }
 
-Result executeTransactionJS(
+
+/// @brief AQL interface to single transaction, code reuse
+///  for RestHandler too.
+std::tuple<Result, std::string> executeTransactionJS(
     v8::Isolate* isolate,
     v8::Handle<v8::Value> const& arg,
     v8::Handle<v8::Value>& result,
-    v8::TryCatch& tryCatch
-    )
-{
+    v8::TryCatch& tryCatch,
+    bool expectAction) {
+
   Result rv;
+  std::string txnString;
+
   TRI_vocbase_t* vocbase = GetContextVocBase(isolate);
   if (vocbase == nullptr) {
     rv.reset(TRI_ERROR_ARANGO_DATABASE_NOT_FOUND);
-    return rv;
+    return std::make_tuple(rv, txnString);;
   }
 
   // treat the value as an object from now on
@@ -130,7 +164,7 @@ Result executeTransactionJS(
     }
 
     if(rv.fail()){
-      return rv;
+      return std::make_tuple(rv, txnString);;
     }
   }
 
@@ -141,7 +175,7 @@ Result executeTransactionJS(
     if (!object->Get(WaitForSyncKey)->IsBoolean() &&
         !object->Get(WaitForSyncKey)->IsBooleanObject()) {
       rv.reset(TRI_ERROR_BAD_PARAMETER, "<waitForSync> must be a boolean value");
-      return rv;
+      return std::make_tuple(rv, txnString);;
     }
 
     trxOptions.waitForSync = TRI_ObjectToBoolean(WaitForSyncKey);
@@ -154,7 +188,7 @@ Result executeTransactionJS(
       !object->Get(TRI_V8_ASCII_STRING("collections"))->IsObject()) {
     collectionError = "missing/invalid collections definition for transaction";
     rv.reset(TRI_ERROR_BAD_PARAMETER, collectionError);
-    return rv;
+    return std::make_tuple(rv, txnString);;
   }
 
   // extract collections
@@ -165,7 +199,7 @@ Result executeTransactionJS(
     collectionError =
       "empty collections definition for transaction";
     rv.reset(TRI_ERROR_BAD_PARAMETER, collectionError);
-    return rv;
+    return std::make_tuple(rv, txnString);;
   }
 
   std::vector<std::string> readCollections;
@@ -190,165 +224,195 @@ Result executeTransactionJS(
         object->Get(TRI_V8_ASCII_STRING("intermediateCommitCount")), true);
   }
 
-  auto getCollections = [&isolate](v8::Handle<v8::Object> obj,
-                                   std::vector<std::string>& collections,
-                                   char const* attributeName,
-                                   std::string &collectionError) -> bool {
-    if (obj->Has(TRI_V8_ASCII_STRING(attributeName))) {
-      if (obj->Get(TRI_V8_ASCII_STRING(attributeName))->IsArray()) {
-        v8::Handle<v8::Array> names = v8::Handle<v8::Array>::Cast(
-            obj->Get(TRI_V8_ASCII_STRING(attributeName)));
-
-        for (uint32_t i = 0; i < names->Length(); ++i) {
-          v8::Handle<v8::Value> collection = names->Get(i);
-          if (!collection->IsString()) {
-            collectionError += std::string(" Collection name #") +
-              std::to_string(i) + " in array '"+ attributeName +
-              std::string("' is not a string");
-            return false;
-          }
-
-          collections.emplace_back(TRI_ObjectToString(collection));
-        }
-      } else if (obj->Get(TRI_V8_ASCII_STRING(attributeName))->IsString()) {
-        collections.emplace_back(
-          TRI_ObjectToString(obj->Get(TRI_V8_ASCII_STRING(attributeName))));
-      } else {
-        collectionError += std::string(" There is no array in '") + attributeName + "'";
-        return false;
-      }
-      // fallthrough intentional
-    }
-    return true;
-  };
 
   collectionError = "invalid collection definition for transaction: ";
   // collections.read
   bool isValid =
-    (getCollections(collections, readCollections, "read", collectionError) &&
-     getCollections(collections, writeCollections, "write", collectionError) &&
-     getCollections(collections, exclusiveCollections, "exclusive", collectionError));
+    (getCollections(isolate, collections, readCollections, "read", collectionError) &&
+     getCollections(isolate, collections, writeCollections, "write", collectionError) &&
+     getCollections(isolate, collections, exclusiveCollections, "exclusive", collectionError));
 
   if (!isValid) {
     rv.reset(TRI_ERROR_BAD_PARAMETER, collectionError);
-    return rv;
+    return std::make_tuple(rv, txnString);;
   }
 
-  // extract the "action" property
-  static std::string const actionErrorPrototype =
-      "missing/invalid action definition for transaction";
-  std::string actionError = actionErrorPrototype;
-
-  if (!object->Has(TRI_V8_ASCII_STRING("action"))) {
-    rv.reset(TRI_ERROR_BAD_PARAMETER, actionError);
-    return rv;
-  }
-
-  // function parameters
+  // extract the "action" property, if appropriate according to expectAction
+  v8::Handle<v8::Function> action;
+  v8::Handle<v8::Object> current;
+  bool embed = false;
   v8::Handle<v8::Value> params;
 
-  if (object->Has(TRI_V8_ASCII_STRING("params"))) {
-    params =
-        v8::Handle<v8::Array>::Cast(object->Get(TRI_V8_ASCII_STRING("params")));
-  } else {
-    params = v8::Undefined(isolate);
-  }
+  bool actionExists(object->Has(TRI_V8_ASCII_STRING("action")));
 
-  if (params.IsEmpty()) {
-    rv.reset(TRI_ERROR_BAD_PARAMETER, "unable to decode function parameters");
-    return rv;
-  }
+  if (expectAction) {
+    static std::string const actionErrorPrototype =
+      "missing/invalid action definition for transaction";
+    std::string actionError = actionErrorPrototype;
 
-  bool embed = false;
-  if (object->Has(TRI_V8_ASCII_STRING("embed"))) {
-    v8::Handle<v8::Value> v =
-        v8::Handle<v8::Object>::Cast(object->Get(TRI_V8_ASCII_STRING("embed")));
-    embed = TRI_ObjectToBoolean(v);
-  }
-
-  v8::Handle<v8::Object> current = isolate->GetCurrentContext()->Global();
-
-  // callback function
-  v8::Handle<v8::Function> action;
-  if (object->Get(TRI_V8_ASCII_STRING("action"))->IsFunction()) {
-    action = v8::Handle<v8::Function>::Cast(
-        object->Get(TRI_V8_ASCII_STRING("action")));
-    v8::Local<v8::Value> v8_fnname = action->GetName();
-    std::string fnname = TRI_ObjectToString(v8_fnname);
-    if (fnname.length() == 0) {
-      action->SetName(TRI_V8_ASCII_STRING("userTransactionFunction"));
+    if (!actionExists) {
+      rv.reset(TRI_ERROR_BAD_PARAMETER, actionError);
+      return std::make_tuple(rv, txnString);;
     }
-  } else if (object->Get(TRI_V8_ASCII_STRING("action"))->IsString()) {
-    // get built-in Function constructor (see ECMA-262 5th edition 15.3.2)
-    v8::Local<v8::Function> ctor = v8::Local<v8::Function>::Cast(
+
+    // function parameters
+    if (object->Has(TRI_V8_ASCII_STRING("params"))) {
+      params =
+        v8::Handle<v8::Array>::Cast(object->Get(TRI_V8_ASCII_STRING("params")));
+    } else {
+      params = v8::Undefined(isolate);
+    }
+
+    if (params.IsEmpty()) {
+      rv.reset(TRI_ERROR_BAD_PARAMETER, "unable to decode function parameters");
+      return std::make_tuple(rv, txnString);;
+    }
+
+    if (object->Has(TRI_V8_ASCII_STRING("embed"))) {
+      v8::Handle<v8::Value> v =
+        v8::Handle<v8::Object>::Cast(object->Get(TRI_V8_ASCII_STRING("embed")));
+      embed = TRI_ObjectToBoolean(v);
+    }
+
+    current = isolate->GetCurrentContext()->Global();
+
+    // callback function
+    if (object->Get(TRI_V8_ASCII_STRING("action"))->IsFunction()) {
+      action = v8::Handle<v8::Function>::Cast(
+        object->Get(TRI_V8_ASCII_STRING("action")));
+      v8::Local<v8::Value> v8_fnname = action->GetName();
+      std::string fnname = TRI_ObjectToString(v8_fnname);
+      if (fnname.length() == 0) {
+        action->SetName(TRI_V8_ASCII_STRING("userTransactionFunction"));
+      }
+    } else if (object->Get(TRI_V8_ASCII_STRING("action"))->IsString()) {
+      // get built-in Function constructor (see ECMA-262 5th edition 15.3.2)
+      v8::Local<v8::Function> ctor = v8::Local<v8::Function>::Cast(
         current->Get(TRI_V8_ASCII_STRING("Function")));
 
-    // Invoke Function constructor to create function with the given body and no
-    // arguments
-    std::string body = TRI_ObjectToString( object->Get(TRI_V8_ASCII_STRING("action"))->ToString());
-    body = "return (" + body + ")(params);";
-    v8::Handle<v8::Value> args[2] = {TRI_V8_ASCII_STRING("params"), TRI_V8_STD_STRING(body)};
-    v8::Local<v8::Object> function = ctor->NewInstance(2, args);
+      // Invoke Function constructor to create function with the given body and no
+      // arguments
+      std::string body = TRI_ObjectToString( object->Get(TRI_V8_ASCII_STRING("action"))->ToString());
+      body = "return (" + body + ")(params);";
+      v8::Handle<v8::Value> args[2] = {TRI_V8_ASCII_STRING("params"), TRI_V8_STD_STRING(body)};
+      v8::Local<v8::Object> function = ctor->NewInstance(2, args);
 
-    action = v8::Local<v8::Function>::Cast(function);
-    if (tryCatch.HasCaught()) {
-      actionError += " - ";
-      actionError += *v8::String::Utf8Value(tryCatch.Message()->Get());
-      actionError += " - ";
-      actionError += *v8::String::Utf8Value(tryCatch.StackTrace());
+      action = v8::Local<v8::Function>::Cast(function);
+      if (tryCatch.HasCaught()) {
+        actionError += " - ";
+        actionError += *v8::String::Utf8Value(tryCatch.Message()->Get());
+        actionError += " - ";
+        actionError += *v8::String::Utf8Value(tryCatch.StackTrace());
+        rv.reset(TRI_ERROR_BAD_PARAMETER, actionError);
+        tryCatch.Reset(); //reset as we have transferd the error message into the Result
+        return std::make_tuple(rv, txnString);;
+      }
+      action->SetName(TRI_V8_ASCII_STRING("userTransactionSource"));
+    } else {
       rv.reset(TRI_ERROR_BAD_PARAMETER, actionError);
-      tryCatch.Reset(); //reset as we have transferd the error message into the Result
-      return rv;
+      return std::make_tuple(rv, txnString);;
     }
-    action->SetName(TRI_V8_ASCII_STRING("userTransactionSource"));
-  } else {
-    rv.reset(TRI_ERROR_BAD_PARAMETER, actionError);
-    return rv;
-  }
 
-  if (action.IsEmpty()) {
-    rv.reset(TRI_ERROR_BAD_PARAMETER, actionError);
-    return rv;
-  }
+    if (action.IsEmpty()) {
+      rv.reset(TRI_ERROR_BAD_PARAMETER, actionError);
+      return std::make_tuple(rv, txnString);;
+    }
+  } // if
+
+  // !expectAction
+  else {
+    static std::string const actionErrorPrototype =
+      "unexpected action definition included with transaction start";
+    std::string actionError = actionErrorPrototype;
+
+    if (actionExists) {
+      rv.reset(TRI_ERROR_BAD_PARAMETER, actionError);
+      return std::make_tuple(rv, txnString);;
+    }
+  } //else
 
   auto transactionContext =
       std::make_shared<transaction::V8Context>(vocbase, embed);
 
   // start actual transaction
-  transaction::UserTransaction trx(transactionContext, readCollections, writeCollections, exclusiveCollections,
-                          trxOptions);
+  transaction::UserTransaction trx(transactionContext, readCollections, writeCollections,
+                                   exclusiveCollections, trxOptions);
 
   rv = trx.begin();
   if (rv.fail()) {
-    return rv;
+    return std::make_tuple(rv, txnString);;
   }
 
-  try {
-    v8::Handle<v8::Value> arguments = params;
-    result = action->Call(current, 1, &arguments);
-    if (tryCatch.HasCaught()) {
-      trx.abort();
-      std::tuple<bool,bool,Result> rvTuple = extractArangoError(isolate, tryCatch);
-      if (std::get<1>(rvTuple)){
-        rv = std::get<2>(rvTuple);
+  // execute single operation transactions now
+  if (expectAction) {
+    try {
+      v8::Handle<v8::Value> arguments = params;
+      result = action->Call(current, 1, &arguments);
+      if (tryCatch.HasCaught()) {
+        trx.abort();
+        std::tuple<bool,bool,Result> rvTuple = extractArangoError(isolate, tryCatch);
+        if (std::get<1>(rvTuple)){
+          rv = std::get<2>(rvTuple);
+        }
       }
+    } catch (arangodb::basics::Exception const& ex) {
+      rv.reset(ex.code(), ex.what());
+    } catch (std::bad_alloc const&) {
+      rv.reset(TRI_ERROR_OUT_OF_MEMORY);
+    } catch (std::exception const& ex) {
+      rv.reset(TRI_ERROR_INTERNAL, ex.what());
+    } catch (...) {
+      rv.reset(TRI_ERROR_INTERNAL, "caught unknown exception during transaction");
     }
-  } catch (arangodb::basics::Exception const& ex) {
-    rv.reset(ex.code(), ex.what());
-  } catch (std::bad_alloc const&) {
-    rv.reset(TRI_ERROR_OUT_OF_MEMORY);
-  } catch (std::exception const& ex) {
-    rv.reset(TRI_ERROR_INTERNAL, ex.what());
-  } catch (...) {
-    rv.reset(TRI_ERROR_INTERNAL, "caught unknown exception during transaction");
+
+    if (rv.fail()) {
+      return std::make_tuple(rv, txnString);;
+    }
+
+    rv = trx.commit();
+  } else {
+    // transaction start of multi-operation
+    txnString=trx.id().toString();
   }
 
-  if (rv.fail()) {
-    return rv;
-  }
-
-  rv = trx.commit();
-  return rv;
+  return std::make_tuple(rv, txnString);;
 }
+
+/// @brief Extract collection names from Json string or array
+///  (public for unit test purposes)
+bool getCollections(
+  v8::Isolate* isolate,
+  v8::Handle<v8::Object> obj,
+  std::vector<std::string>& collections,
+  char const* attributeName,
+  std::string &collectionError) {
+
+  if (obj->Has(TRI_V8_ASCII_STRING(attributeName))) {
+    if (obj->Get(TRI_V8_ASCII_STRING(attributeName))->IsArray()) {
+      v8::Handle<v8::Array> names = v8::Handle<v8::Array>::Cast(
+        obj->Get(TRI_V8_ASCII_STRING(attributeName)));
+
+      for (uint32_t i = 0; i < names->Length(); ++i) {
+        v8::Handle<v8::Value> collection = names->Get(i);
+        if (!collection->IsString()) {
+          collectionError += std::string(" Collection name #") +
+            std::to_string(i) + " in array '"+ attributeName +
+            std::string("' is not a string");
+          return false;
+        }
+
+        collections.emplace_back(TRI_ObjectToString(collection));
+      }
+    } else if (obj->Get(TRI_V8_ASCII_STRING(attributeName))->IsString()) {
+      collections.emplace_back(
+        TRI_ObjectToString(obj->Get(TRI_V8_ASCII_STRING(attributeName))));
+    } else {
+      collectionError += std::string(" There is no array in '") + attributeName + "'";
+      return false;
+    }
+      // fallthrough intentional
+  }
+  return true;
+};
 
 } // arangodb

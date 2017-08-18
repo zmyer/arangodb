@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// DISCLAIMER
 ///
-/// Copyright 2014-2016 ArangoDB GmbH, Cologne, Germany
+/// Copyright 2014-2017 ArangoDB GmbH, Cologne, Germany
 /// Copyright 2004-2014 triAGENS GmbH, Cologne, Germany
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,20 +25,13 @@
 #define ARANGOD_REST_HANDLER_REST_TRANSACTION_HANDLER_H 1
 
 #include "Basics/ReadWriteLock.h"
+#include "Transaction/types.h"
 #include "RestHandler/RestVocbaseBaseHandler.h"
 #include "VocBase/Methods/Transactions.h"
 
 namespace arangodb {
 
 class V8Context;
-
-typedef Result (*executeTransaction_t)(
-    v8::Isolate* isolate,
-    basics::ReadWriteLock& lock,
-    std::atomic<bool>& canceled,
-    VPackSlice slice,
-    std::string portType,
-    VPackBuilder& builder);
 
 class RestTransactionHandler : public arangodb::RestVocbaseBaseHandler {
   V8Context* _v8Context;
@@ -47,10 +40,14 @@ class RestTransactionHandler : public arangodb::RestVocbaseBaseHandler {
  public:
   // this allows swapping out the executeTransaction function
   //  during unit tests
-  static executeTransaction_t _executeTransactionPtr;
+  static executeTransaction_t* _executeTransactionPtr;
 
  public:
   RestTransactionHandler(GeneralRequest*, GeneralResponse*);
+
+  /// @brief static tool to find and verify transaction from header and/or URL
+  static Result ExtractTransactionId(GeneralRequest*, GeneralResponse*,
+                                     transaction::TransactionId&);
 
  public:
   char const* name() const override final { return "RestTransactionHandler"; }
@@ -58,7 +55,20 @@ class RestTransactionHandler : public arangodb::RestVocbaseBaseHandler {
   RestStatus execute() override;
   bool cancel() override final;
 
-private:
+  static char const * kTransactionHeader;
+  static char const * kTransactionHeaderLowerCase;
+
+ protected:
+  /// @brief handle POST methods sent to execute()
+  void executePost();
+
+  /// @brief handle PUT methods sent to execute()
+  void executePut();
+
+  /// @brief handle Delete methods sent to execute()
+  void executeDelete();
+
+ private:
   void returnContext();
 };
 }
