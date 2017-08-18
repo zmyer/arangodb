@@ -446,7 +446,9 @@ TransactionRegistry::TransactionInfo* TransactionRegistry::getInfo(
     auto m = _transactions.find(vocbase->name());
     if (m == _transactions.end()) {
       THROW_ARANGO_EXCEPTION_MESSAGE(
-        TRI_ERROR_INTERNAL, "no transactions found for vocbase");
+        TRI_ERROR_INTERNAL,
+        std::string("no transactions ") + id.toString() +
+        std::string(" found for vocbase") + vocbase->name());
     }
     e = m->second.find(id);
     if (e == m->second.end()) {
@@ -475,4 +477,13 @@ void TransactionRegistry::toVelocyPack(VPackBuilder& builder) {
 
 uint64_t TransactionRegistry::id() const {
   return _generator.registryId();
+}
+
+
+void TransactionRegistry::decomission(TRI_vocbase_t* vocbase, TransactionId const& id) {
+  try {
+    TransactionInfo* ti = getInfo(id, vocbase);
+    ti->_transaction = nullptr;
+  } catch (...) {
+  }
 }

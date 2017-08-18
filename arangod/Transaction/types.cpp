@@ -73,3 +73,11 @@ TRI_voc_tid_t TransactionId::id() const {
   return (TRI_voc_tid_t) coordinator << 32 | identifier;
 }
 
+namespace std {
+//Cantor pairing function
+#warning guard overflow
+size_t hash<arangodb::transaction::TransactionId>::operator()
+  (arangodb::transaction::TransactionId const& t) const {
+  return 0.5*( t.coordinator+t.identifier)*(t.coordinator+t.identifier+1)+t.identifier;
+}}
+

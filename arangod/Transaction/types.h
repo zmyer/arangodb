@@ -62,10 +62,7 @@ inline std::ostream& operator<<(std::ostream& o, TransactionId const& t) {
 
 namespace std {
 template<> struct hash<arangodb::transaction::TransactionId> {
-  //Cantor pairing function
-  inline size_t operator()(arangodb::transaction::TransactionId const& t) const {
-    return 0.5*( t.coordinator+t.identifier)*(t.coordinator+t.identifier+1)+t.identifier;
-  }
+  size_t operator()(arangodb::transaction::TransactionId const& t) const;
 };
 }
 

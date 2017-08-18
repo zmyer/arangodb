@@ -163,6 +163,9 @@ public:
   /// @brief dump to velocypack
   void toVelocyPack(VPackBuilder&);
 
+  /// @brief dump to velocypack
+  void decomission(TRI_vocbase_t* vocbase, TransactionId const& id);
+
   /// @brief get information on specific transaction
   ///        throws std::out_of_range exception
   virtual TransactionInfo* getInfo (

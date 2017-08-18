@@ -105,13 +105,6 @@ Result MMFilesTransactionState::beginTransaction(transaction::Hints hints) {
     // set hints
     _hints = hints;
 
-    auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
-    
-    // get a new id
-    if (_id == transaction::TransactionId::ZERO) {
-      _id = transactionRegistry->generateId();
-    }
-
     // register a protector
     int res = logfileManager->registerTransaction(
       _id.identifier, isReadOnlyTransaction());

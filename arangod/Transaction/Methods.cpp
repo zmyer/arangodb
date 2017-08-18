@@ -566,8 +566,6 @@ transaction::Methods::Methods(
       _transactionContextPtr(transactionContext.get()) {
   TRI_ASSERT(_transactionContextPtr != nullptr);
 
-  
-
   TRI_vocbase_t* vocbase = _transactionContextPtr->vocbase();
 
   // brief initialize the transaction
@@ -592,10 +590,15 @@ transaction::Methods::Methods(
   }
 
   TRI_ASSERT(_state != nullptr);
+
+  // open transaction immediately
+  TransactionRegistryFeature::TRANSACTION_REGISTRY->open(id(), vocbase); 
+  
 }
 
 /// @brief destroy the transaction
 transaction::Methods::~Methods() {
+  
   if (_state->isEmbeddedTransaction()) {
     _state->decreaseNesting();
   } else {
@@ -614,8 +617,17 @@ transaction::Methods::~Methods() {
     // store result
     _transactionContextPtr->storeTransactionResult(
       _state->id().identifier, _state->hasFailedOperations());
-    _transactionContextPtr->unregisterTransaction();
 
+    try { // Transaction counld not be found
+      TransactionRegistryFeature::TRANSACTION_REGISTRY->decomission(
+        _transactionContextPtr->vocbase(), _state->id()); 
+    } catch (...) {
+      LOG_TOPIC(ERR, Logger::TRANSACTIONS)
+        << "Failed to locate transaction " << _state->id() << "for decomissioning";
+    }
+
+    _transactionContextPtr->unregisterTransaction();
+    
     delete _state;
     _state = nullptr;
   }

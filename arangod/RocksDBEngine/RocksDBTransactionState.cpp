@@ -117,13 +117,6 @@ Result RocksDBTransactionState::beginTransaction(transaction::Hints hints) {
 
   if (_nestingLevel == 0) {
 
-    auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
-    
-    // get a new id
-    if (_id == transaction::TransactionId::ZERO) {
-      _id = transactionRegistry->generateId();
-    }
-
     // register a protector
     auto data =
         std::make_unique<RocksDBTransactionData>();  // intentionally empty

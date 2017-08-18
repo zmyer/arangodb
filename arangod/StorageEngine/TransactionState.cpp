@@ -27,11 +27,13 @@
 #include "GeneralServer/AuthenticationFeature.h"
 #include "Logger/Logger.h"
 #include "RestServer/FeatureCacheFeature.h"
+#include "RestServer/TransactionRegistryFeature.h"
 #include "StorageEngine/EngineSelectorFeature.h"
 #include "StorageEngine/StorageEngine.h"
 #include "StorageEngine/TransactionCollection.h"
 #include "Transaction/Methods.h"
 #include "Transaction/Options.h"
+#include "Transaction/TransactionRegistry.h"
 #include "Utils/ExecContext.h"
 #include "VocBase/ticks.h"
 
@@ -41,7 +43,6 @@ using namespace arangodb;
 TransactionState::TransactionState(TRI_vocbase_t* vocbase,
                                    transaction::Options const& options)
     : _vocbase(vocbase),
-      _id(0,0),
       _type(AccessMode::Type::READ),
       _status(transaction::Status::CREATED),
       _arena(),
@@ -50,20 +51,24 @@ TransactionState::TransactionState(TRI_vocbase_t* vocbase,
       _resolver(new CollectionNameResolver(vocbase)),
       _hints(),
       _nestingLevel(0),
-      _options(options) {}
+      _options(options) {
+        // get a new id
+        _id = TransactionRegistryFeature::TRANSACTION_REGISTRY->generateId();
+      }
 
 /// @brief free a transaction container
 TransactionState::~TransactionState() {
   TRI_ASSERT(_status != transaction::Status::RUNNING);
-
+  
   releaseCollections();
-
+  
   // free all collections
   for (auto it = _collections.rbegin(); it != _collections.rend(); ++it) {
     delete (*it);
   }
-
+  
   delete _resolver;
+  
 }
 
 std::vector<std::string> TransactionState::collectionNames() const {

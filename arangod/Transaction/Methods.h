@@ -126,7 +126,8 @@ class Methods {
  protected:
 
   /// @brief create the transaction
-  Methods(std::shared_ptr<transaction::Context> const& transactionContext, transaction::Options const& options = transaction::Options());
+  Methods(std::shared_ptr<transaction::Context> const& transactionContext,
+          transaction::Options const& options = transaction::Options());
 
  public:
 
