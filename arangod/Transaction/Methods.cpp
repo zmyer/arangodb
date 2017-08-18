@@ -616,7 +616,8 @@ transaction::Methods::~Methods() {
     TRI_ASSERT(_state->status() != transaction::Status::RUNNING);
     // store result
     _transactionContextPtr->storeTransactionResult(
-      _state->id().identifier, _state->hasFailedOperations());
+      _state->id().id(), _state->hasFailedOperations());
+    _transactionContextPtr->unregisterTransaction();
 
     try { // Transaction counld not be found
       TransactionRegistryFeature::TRANSACTION_REGISTRY->decomission(

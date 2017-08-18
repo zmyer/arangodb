@@ -79,7 +79,7 @@ class MMFilesTransactionState final : public TransactionState {
     if (isSingleOperation()) {
       return 0;
     }
-    return _id.identifier;
+    return _id.id();
   }
   
   /// @brief get (or create) a rocksdb WriteTransaction

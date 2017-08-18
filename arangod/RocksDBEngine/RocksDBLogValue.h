@@ -69,9 +69,11 @@ class RocksDBLogValue {
   static RocksDBLogValue DocumentOpsPrologue(TRI_voc_cid_t cid);
   static RocksDBLogValue DocumentRemove(arangodb::StringRef const&);
 
-  static RocksDBLogValue SinglePut(TRI_voc_tick_t vocbaseId, TRI_voc_cid_t cid);
+  static RocksDBLogValue SinglePut(TRI_voc_tick_t vocbaseId, TRI_voc_cid_t cid,
+                                   TRI_voc_tid_t tid);
   static RocksDBLogValue SingleRemove(TRI_voc_tick_t vocbaseId,
                                       TRI_voc_cid_t cid,
+                                      TRI_voc_tid_t tid,
                                       arangodb::StringRef const&);
 
  public:
@@ -111,6 +113,8 @@ class RocksDBLogValue {
   RocksDBLogValue(RocksDBLogType type, uint64_t, uint64_t, uint64_t);
   RocksDBLogValue(RocksDBLogType type, uint64_t, uint64_t, VPackSlice const&);
   RocksDBLogValue(RocksDBLogType type, uint64_t, uint64_t,
+                  StringRef const& data);
+  RocksDBLogValue(RocksDBLogType type, uint64_t, uint64_t, uint64_t,
                   StringRef const& data);
   RocksDBLogValue(RocksDBLogType type, StringRef const& data);
 
