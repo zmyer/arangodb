@@ -48,7 +48,6 @@ struct TransactionId {
 
   uint32_t coordinator;
   uint32_t identifier;
-
   static const TransactionId ZERO; 
 };
 
