@@ -32,6 +32,7 @@
 #include "Agency/AgencyComm.h"
 #include "Cluster/TraverserEngineRegistry.h"
 #include "Rest/HttpResponse.h"
+#include "Transaction/types.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/voc-types.h"
 
@@ -91,6 +92,21 @@ int countOnCoordinator(std::string const& dbname, std::string const& collname,
 
 int selectivityEstimatesOnCoordinator(std::string const& dbname, std::string const& collname,
                                       std::unordered_map<std::string, double>& result);
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief abort transaction on coordinator
+////////////////////////////////////////////////////////////////////////////////
+
+Result abortTransactionOnCoordinator(
+  std::string const& dbname, transaction::TransactionId const& tid,
+  std::unordered_set<std::string> const& shards, OperationOptions const& options);
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief commit transaction on coordinator
+////////////////////////////////////////////////////////////////////////////////
+
+Result commitTransactionOnCoordinator(
+  std::string const& dbname, transaction::TransactionId const& tid, OperationOptions const& options);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief creates a document in a coordinator

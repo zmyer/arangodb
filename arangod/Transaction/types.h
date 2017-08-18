@@ -25,16 +25,19 @@
 #define ARANGOD_TRANSACTION_TYPES_H 1
 
 #include "Basics/Common.h"
+#include "VocBase/voc-types.h"
 
 namespace arangodb {
 namespace transaction {
 
 /// @brief type of a transaction id
+
 struct TransactionId {
-  TransactionId(uint64_t c = 0, uint64_t i = 0) : coordinator(c), identifier(i) {}
-  uint64_t coordinator;
-  uint64_t identifier;
+  TransactionId(uint32_t c = 0, uint32_t i = 0) : coordinator(c), identifier(i) {}
+  uint32_t coordinator;
+  uint32_t identifier;
   std::string toString() const;
+  TRI_voc_tid_t id() const;
   static const TransactionId ZERO; 
 };
 
@@ -52,13 +55,17 @@ inline std::ostream& operator<<(std::ostream& o, TransactionId const& t) {
   return o;
 }
 
+inline TRI_voc_tid_t TransactionId::id() const {
+  return (TRI_voc_tid_t) coordinator << 32 | identifier;
+}
+
 }}
 
 namespace std {
 template<> struct hash<arangodb::transaction::TransactionId> {
   //Cantor pairing function
   inline size_t operator()(arangodb::transaction::TransactionId const& t) const {
-    return 0.5*(t.coordinator+t.identifier)*(t.coordinator+t.identifier+1)+t.identifier;
+    return 0.5*( t.coordinator+t.identifier)*(t.coordinator+t.identifier+1)+t.identifier;
   }
 };
 }

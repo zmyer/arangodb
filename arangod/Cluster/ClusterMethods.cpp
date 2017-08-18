@@ -27,6 +27,7 @@
 #include "Basics/StringRef.h"
 #include "Basics/StringUtils.h"
 #include "Basics/tri-strings.h"
+#include "Basics/Result.h"
 #include "Basics/VelocyPackHelper.h"
 #include "Cluster/ClusterComm.h"
 #include "Cluster/ClusterInfo.h"
@@ -1086,6 +1087,73 @@ int createDocumentOnCoordinator(
   // the cluster operation was OK, however,
   // the DBserver could have reported an error.
   return TRI_ERROR_NO_ERROR;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief abort cluster-wide transaction
+////////////////////////////////////////////////////////////////////////////////
+Result abortTransactionOnCoordinator(
+  std::string const& dbname, transaction::TransactionId const& tid,
+  std::unordered_set<std::string> const& shards, OperationOptions const& options) {
+  
+  std::string const baseUrl =
+    "/_db/" + StringUtils::urlEncode(dbname) + "/_api/transaction/" + tid.toString();
+
+  auto cc = ClusterComm::instance();
+  if (cc == nullptr) {
+    // nullptr happens only during controlled shutdown
+    return TRI_ERROR_SHUTTING_DOWN;
+  }
+  
+  auto body = std::make_shared<std::string>();
+  auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+  
+  std::vector<ClusterCommRequest> requests;
+  for (auto const& shard : shards) {
+    requests.emplace_back(
+      "shard:" + shard, arangodb::rest::RequestType::DELETE_REQ,
+      baseUrl , body, headers);
+  }
+  
+  size_t nrDone = 0;
+  cc->performRequests(
+    requests, CL_DEFAULT_TIMEOUT, nrDone, Logger::COMMUNICATION, true);
+  
+  // Now listen to the results:
+  /*if (!useMultiple) {
+    TRI_ASSERT(requests.size() == 1);
+    auto const& req = requests[0];
+    auto& res = req.result;
+    
+    int commError = handleGeneralCommErrors(&res);
+    if (commError != TRI_ERROR_NO_ERROR) {
+      return Result(commError);
+    }
+
+    responseCode = res.answer_code;
+    TRI_ASSERT(res.answer != nullptr);
+    auto parsedResult = res.answer->toVelocyPackBuilderPtr();
+    resultBody.swap(parsedResult);
+    return Result(TRI_ERROR_NO_ERROR);
+
+    }*/
+
+  /*
+  std::unordered_map<ShardID, std::shared_ptr<VPackBuilder>> resultMap;
+  collectResultsFromAllShards<VPackValueLength>(
+    shardMap, requests, errorCounter, resultMap, responseCode);
+    mergeResults(reverseMapping, resultMap, resultBody);*/
+  return Result(TRI_ERROR_NO_ERROR);  // the cluster operation was OK, however,
+  // the DBserver could have reported an error.
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief commit cluster-wide transaction
+////////////////////////////////////////////////////////////////////////////////
+Result commitTransactionOnCoordinator(
+  std::string const& dbname, transaction::TransactionId const& tid, OperationOptions const& options) {
+  
+  return Result(TRI_ERROR_NO_ERROR);  
 }
 
 ////////////////////////////////////////////////////////////////////////////////
