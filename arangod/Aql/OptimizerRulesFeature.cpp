@@ -236,6 +236,9 @@ void OptimizerRulesFeature::addRules() {
                                       OptimizerRule::applyGeoIndexRule, false, true);
 
   if (arangodb::ServerState::instance()->isCoordinator()) {
+    registerRule("optimize-cluster-joins", optimizeClusterJoinsRule,
+                 OptimizerRule::optimizeClusterJoinsRule_pass10, DoesNotCreateAdditionalPlans, CanBeDisabled);
+
     // distribute operations in cluster
     registerRule("scatter-in-cluster", scatterInClusterRule,
                  OptimizerRule::scatterInClusterRule_pass10, DoesNotCreateAdditionalPlans, CanNotBeDisabled);
