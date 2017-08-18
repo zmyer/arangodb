@@ -207,7 +207,7 @@ class WALParser : public rocksdb::WriteBatch::Handler {
         _singleOp = true;
         _currentDbId = RocksDBLogValue::databaseId(blob);
         _currentCollectionId = RocksDBLogValue::collectionId(blob);
-        _currentTrxId = 0;
+        _currentTrxId = RocksDBLogValue::transactionId(blob);
         break;
       }
 
@@ -272,7 +272,7 @@ class WALParser : public rocksdb::WriteBatch::Handler {
       TRI_ASSERT((_seenBeginTransaction && !_singleOp) ||
                  (!_seenBeginTransaction && _singleOp));
       // if real transaction, we need the trx id
-      TRI_ASSERT(!_seenBeginTransaction || _currentTrxId != 0);
+      TRI_ASSERT(_currentTrxId != 0);
       TRI_ASSERT(_currentDbId != 0 && _currentCollectionId != 0);
       _builder.openObject();
       _builder.add("tick", VPackValue(std::to_string(_currentSequence)));
@@ -287,6 +287,7 @@ class WALParser : public rocksdb::WriteBatch::Handler {
       }
       if (_singleOp) {  // single op is defined to have a transaction id of 0
         _builder.add("tid", VPackValue("0"));
+        _builder.add("sTid", VPackValue(std::to_string(_currentTrxId)));
         _singleOp = false;
       } else {
         _builder.add("tid", VPackValue(std::to_string(_currentTrxId)));
@@ -350,7 +351,7 @@ class WALParser : public rocksdb::WriteBatch::Handler {
       }
       // TRI_ASSERT(_lastLogType == RocksDBLogType::DocumentRemove ||
       //           _lastLogType == RocksDBLogType::SingleRemove);
-      TRI_ASSERT(!_seenBeginTransaction || _currentTrxId != 0);
+      TRI_ASSERT(_currentTrxId != 0);
       TRI_ASSERT(_currentDbId != 0 && _currentCollectionId != 0);
       TRI_ASSERT(!_removeDocumentKey.empty());
 
@@ -367,6 +368,7 @@ class WALParser : public rocksdb::WriteBatch::Handler {
       }
       if (_singleOp) {  // single op is defined to 0
         _builder.add("tid", VPackValue("0"));
+        _builder.add("sTid", VPackValue(std::to_string(_currentTrxId)));
         _singleOp = false;
       } else {
         _builder.add("tid", VPackValue(std::to_string(_currentTrxId)));

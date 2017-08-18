@@ -356,7 +356,7 @@ void RocksDBTransactionState::prepareOperation(
         case TRI_VOC_DOCUMENT_OPERATION_UPDATE:
         case TRI_VOC_DOCUMENT_OPERATION_REPLACE: {
           RocksDBLogValue logValue =
-              RocksDBLogValue::SinglePut(_vocbase->id(), collectionId);
+              RocksDBLogValue::SinglePut(_vocbase->id(), collectionId, id().id());
           _rocksTransaction->PutLogData(logValue.slice());
 #ifdef ARANGODB_ENABLE_MAINTAINER_MODE
           ++_numLogdata;
@@ -366,7 +366,7 @@ void RocksDBTransactionState::prepareOperation(
         case TRI_VOC_DOCUMENT_OPERATION_REMOVE: {
           TRI_ASSERT(!key.empty());
           RocksDBLogValue logValue =
-              RocksDBLogValue::SingleRemove(_vocbase->id(), collectionId, key);
+              RocksDBLogValue::SingleRemove(_vocbase->id(), collectionId, id().id(), key);
           _rocksTransaction->PutLogData(logValue.slice());
 #ifdef ARANGODB_ENABLE_MAINTAINER_MODE
           ++_numLogdata;

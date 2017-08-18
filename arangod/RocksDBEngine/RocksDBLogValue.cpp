@@ -96,13 +96,15 @@ RocksDBLogValue RocksDBLogValue::DocumentRemove(
 }
 
 RocksDBLogValue RocksDBLogValue::SinglePut(TRI_voc_tick_t vocbaseId,
-                                           TRI_voc_cid_t cid) {
-  return RocksDBLogValue(RocksDBLogType::SinglePut, vocbaseId, cid);
+                                           TRI_voc_cid_t cid,
+                                           TRI_voc_tid_t tid) {
+  return RocksDBLogValue(RocksDBLogType::SinglePut, vocbaseId, cid, tid);
 }
 RocksDBLogValue RocksDBLogValue::SingleRemove(TRI_voc_tick_t vocbaseId,
                                               TRI_voc_cid_t cid,
+                                              TRI_voc_tid_t tid,
                                               arangodb::StringRef const& key) {
-  return RocksDBLogValue(RocksDBLogType::SingleRemove, vocbaseId, cid, key);
+  return RocksDBLogValue(RocksDBLogType::SingleRemove, vocbaseId, cid, tid, key);
 }
 
 RocksDBLogValue::RocksDBLogValue(RocksDBLogType type) : _buffer() {
@@ -141,8 +143,7 @@ RocksDBLogValue::RocksDBLogValue(RocksDBLogType type, uint64_t dbId,
     case RocksDBLogType::CollectionCreate:
     case RocksDBLogType::CollectionChange:
     case RocksDBLogType::CollectionDrop:
-    case RocksDBLogType::BeginTransaction:
-    case RocksDBLogType::SinglePut: {
+    case RocksDBLogType::BeginTransaction: {
       _buffer.reserve(sizeof(RocksDBLogType) + sizeof(uint64_t) * 2);
       _buffer.push_back(static_cast<char>(type));
       uint64ToPersistent(_buffer, dbId);
@@ -160,7 +161,8 @@ RocksDBLogValue::RocksDBLogValue(RocksDBLogType type, uint64_t dbId,
                                  uint64_t cid, uint64_t iid)
     : _buffer() {
   switch (type) {
-    case RocksDBLogType::IndexDrop: {
+    case RocksDBLogType::IndexDrop:
+    case RocksDBLogType::SinglePut: {
       _buffer.reserve(sizeof(RocksDBLogType) + sizeof(uint64_t) * 3);
       _buffer.push_back(static_cast<char>(type));
       uint64ToPersistent(_buffer, dbId);
@@ -198,13 +200,33 @@ RocksDBLogValue::RocksDBLogValue(RocksDBLogType type, uint64_t dbId,
                                  uint64_t cid, StringRef const& data)
     : _buffer() {
   switch (type) {
-    case RocksDBLogType::SingleRemove:
     case RocksDBLogType::CollectionRename: {
       _buffer.reserve(sizeof(RocksDBLogType) + sizeof(uint64_t) * 2 +
                       data.length());
       _buffer.push_back(static_cast<char>(type));
       uint64ToPersistent(_buffer, dbId);
       uint64ToPersistent(_buffer, cid);
+      _buffer.append(data.data(), data.length());  // primary key
+      break;
+    }
+    default:
+      THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_BAD_PARAMETER,
+                                     "invalid type for log value");
+  }
+}
+
+RocksDBLogValue::RocksDBLogValue(RocksDBLogType type, uint64_t dbId,
+                                 uint64_t cid, uint64_t tid,
+                                 StringRef const& data)
+    : _buffer() {
+  switch (type) {
+    case RocksDBLogType::SingleRemove: {
+      _buffer.reserve(sizeof(RocksDBLogType) + sizeof(uint64_t) * 3 +
+                      data.length());
+      _buffer.push_back(static_cast<char>(type));
+      uint64ToPersistent(_buffer, dbId);
+      uint64ToPersistent(_buffer, cid);
+      uint64ToPersistent(_buffer, tid);
       _buffer.append(data.data(), data.length());  // primary key
       break;
     }
@@ -278,9 +300,16 @@ TRI_voc_cid_t RocksDBLogValue::collectionId(rocksdb::Slice const& slice) {
 TRI_voc_tid_t RocksDBLogValue::transactionId(rocksdb::Slice const& slice) {
   TRI_ASSERT(slice.size() >= sizeof(RocksDBLogType) + sizeof(uint64_t));
   RocksDBLogType type = static_cast<RocksDBLogType>(slice.data()[0]);
-  TRI_ASSERT(type == RocksDBLogType::BeginTransaction);
-  return uint64FromPersistent(slice.data() + sizeof(RocksDBLogType) +
-                              sizeof(TRI_voc_tick_t));
+  TRI_ASSERT(type == RocksDBLogType::BeginTransaction ||
+             type == RocksDBLogType::SinglePut ||
+             type == RocksDBLogType::SingleRemove);
+  if (type == RocksDBLogType::BeginTransaction) {
+    return uint64FromPersistent(slice.data() + sizeof(RocksDBLogType) +
+                                sizeof(TRI_voc_tick_t));
+  } else {
+    return uint64FromPersistent(slice.data() + sizeof(RocksDBLogType) +
+                                2 * sizeof(TRI_voc_tick_t));
+  }
 }
 
 TRI_idx_iid_t RocksDBLogValue::indexId(rocksdb::Slice const& slice) {
