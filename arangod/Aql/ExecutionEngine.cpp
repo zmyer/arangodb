@@ -386,7 +386,11 @@ struct CoordinatorInstanciator : public WalkerWorker<ExecutionNode> {
         if (col->isSatellite()) {
           auxiliaryCollections.emplace(col);
         } else {
-          collection = col;
+          if (collection != nullptr) {
+            auxiliaryCollections.emplace(col);
+          } else {
+            collection = col;
+          }
         }
       };
       Collection* localCollection = nullptr;
@@ -418,6 +422,7 @@ struct CoordinatorInstanciator : public WalkerWorker<ExecutionNode> {
       // mop: ok we are actually only working with a satellite...
       // so remove its shardId from the auxiliaryShards again
       if (collection != nullptr && collection->isSatellite()) {
+        // TODO: is this removal still correct?
         auxiliaryCollections.erase(collection);
       }
       populated = true;
@@ -431,7 +436,7 @@ struct CoordinatorInstanciator : public WalkerWorker<ExecutionNode> {
       return collection;
     }
 
-    std::unordered_set<Collection*> getAuxiliaryCollections() {
+    std::unordered_set<Collection*>& getAuxiliaryCollections() {
       if (!populated) {
         populate();
       }
@@ -574,13 +579,10 @@ struct CoordinatorInstanciator : public WalkerWorker<ExecutionNode> {
     result.close();
 
     // mop: this is currently only working for satellites and hardcoded to their structure
-    for (auto auxiliaryCollection: info->getAuxiliaryCollections()) {
-      TRI_ASSERT(auxiliaryCollection->isSatellite());
-      
+    for (auto const& auxiliaryCollection : info->getAuxiliaryCollections()) {
       // add the collection
       result.openObject();
-      auto auxiliaryShards = auxiliaryCollection->shardIds();
-      result.add("name", VPackValue((*auxiliaryShards)[0]));
+      result.add("name", VPackValue(auxiliaryCollection->getName())); // returns the *current* shard 
       result.add("type", VPackValue(AccessMode::typeString(collection->accessType)));
       result.close();
     }
@@ -692,24 +694,28 @@ struct CoordinatorInstanciator : public WalkerWorker<ExecutionNode> {
     //LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "distributePlansToShards: " << info.id;
     Collection* collection = info->getCollection();
 
-    auto auxiliaryCollections = info->getAuxiliaryCollections();
-    for (auto const& auxiliaryCollection: auxiliaryCollections) {
-      TRI_ASSERT(auxiliaryCollection->shardIds()->size() == 1);
-      auxiliaryCollection->setCurrentShard((*auxiliaryCollection->shardIds())[0]);
-    }
-
     // now send the plan to the remote servers
     arangodb::CoordTransactionID coordTransactionID = TRI_NewTickServer();
     auto cc = arangodb::ClusterComm::instance();
     if (cc != nullptr) {
       // nullptr only happens on controlled shutdown
+      
+      auto auxiliaryCollections = info->getAuxiliaryCollections();
       // iterate over all shards of the collection
       size_t nr = 0;
       auto shardIds = collection->shardIds(_includedShards);
       for (auto const& shardId : *shardIds) {
         // inject the current shard id into the collection
-        VPackBuilder b;
         collection->setCurrentShard(shardId);
+      
+        // inject the current shard id for auxiliary collections
+        for (auto const& auxiliaryCollection : auxiliaryCollections) {
+          auto auxShardIds = auxiliaryCollection->shardIds();
+          TRI_ASSERT(auxShardIds->size() == shardIds->size());
+          auxiliaryCollection->setCurrentShard((*auxShardIds)[nr]);
+        }
+
+        VPackBuilder b;
         generatePlanForOneShard(b, nr++, info, connectedId, shardId, true);
 
         distributePlanToShard(coordTransactionID, info,
@@ -717,8 +723,9 @@ struct CoordinatorInstanciator : public WalkerWorker<ExecutionNode> {
                               b.slice());
       }
       collection->resetCurrentShard();
+      
+      // reset shard for auxiliary collections too
       for (auto const& auxiliaryCollection: auxiliaryCollections) {
-        TRI_ASSERT(auxiliaryCollection->shardIds()->size() == 1);
         auxiliaryCollection->resetCurrentShard();
       }
 

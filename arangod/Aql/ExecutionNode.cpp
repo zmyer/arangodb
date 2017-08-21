@@ -1141,6 +1141,13 @@ EnumerateCollectionNode::EnumerateCollectionNode(
       _random(base.get("random").getBoolean()) {
   TRI_ASSERT(_vocbase != nullptr);
   TRI_ASSERT(_collection != nullptr);
+  
+  if (_collection == nullptr) {
+    std::string msg("collection '");
+    msg.append(base.get("collection").copyString());
+    msg.append("' not found");
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, msg);
+  }
 }
 
 /// @brief toVelocyPack, for EnumerateCollectionNode
