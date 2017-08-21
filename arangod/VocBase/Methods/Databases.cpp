@@ -25,6 +25,7 @@
 
 #include "Agency/AgencyComm.h"
 #include "Basics/StringUtils.h"
+#include "Basics/VelocyPackHelper.h"
 #include "Cluster/ClusterComm.h"
 #include "Cluster/ClusterInfo.h"
 #include "Cluster/ServerState.h"
@@ -124,6 +125,9 @@ arangodb::Result Databases::info(TRI_vocbase_t* vocbase, VPackBuilder& result) {
       }
       result.add("path", value.get("none"));
       result.add("isSystem", VPackValue(name[0] == '_'));
+      result.add("isSingleShard", VPackValue(
+        basics::VelocyPackHelper::getBooleanValue(value, "isSingleShard", false))
+      );
     }
   } else {
     VPackObjectBuilder b(&result);
@@ -131,6 +135,7 @@ arangodb::Result Databases::info(TRI_vocbase_t* vocbase, VPackBuilder& result) {
     result.add("id", VPackValue(std::to_string(vocbase->id())));
     result.add("path", VPackValue(vocbase->path()));
     result.add("isSystem", VPackValue(vocbase->isSystem()));
+    result.add("isSingleShard", VPackValue(vocbase->isSingleShard()));
   }
   return Result();
 }

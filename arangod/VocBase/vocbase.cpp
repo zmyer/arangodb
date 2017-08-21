@@ -139,6 +139,13 @@ void TRI_vocbase_t::signalCleanup() {
   engine->signalCleanup(this);
 }
 
+/// @brief returns whether the database is restricted to Single Shard (EE Only)
+#ifndef USE_ENTERPRISE
+bool TRI_vocbase_t::isSingleShard() const {
+  return false;
+}
+#endif
+
 /// @brief adds a new collection
 /// caller must hold _collectionsLock in write mode or set doLock
 void TRI_vocbase_t::registerCollection(

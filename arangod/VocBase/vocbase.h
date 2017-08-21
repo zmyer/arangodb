@@ -254,6 +254,9 @@ struct TRI_vocbase_t {
   /// @brief returns whether the database is the system database
   bool isSystem() const { return name() == TRI_VOC_SYSTEM_DATABASE; }
 
+  /// @brief returns whether the database is restricted to Single Shard (EE Only)
+  bool isSingleShard() const;
+
   /// @brief closes a database and all collections
   void shutdown();
 

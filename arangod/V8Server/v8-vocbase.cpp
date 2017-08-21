@@ -1621,6 +1621,25 @@ static void JS_IsSystemDatabase(
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// @brief was docuBlock databaseIsSystem
+////////////////////////////////////////////////////////////////////////////////
+
+static void JS_IsSingleShardDatabase(
+    v8::FunctionCallbackInfo<v8::Value> const& args) {
+  TRI_V8_TRY_CATCH_BEGIN(isolate);
+  v8::HandleScope scope(isolate);
+
+  TRI_vocbase_t* vocbase = GetContextVocBase(isolate);
+
+  if (vocbase == nullptr) {
+    TRI_V8_THROW_EXCEPTION(TRI_ERROR_ARANGO_DATABASE_NOT_FOUND);
+  }
+
+  TRI_V8_RETURN(v8::Boolean::New(isolate, vocbase->isSingleShard()));
+  TRI_V8_TRY_CATCH_END
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// @brief fake this method so the interface is similar to the client.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -2090,6 +2109,8 @@ void TRI_InitV8VocBridge(v8::Isolate* isolate, v8::Handle<v8::Context> context,
                        JS_IdDatabase);
   TRI_AddMethodVocbase(isolate, ArangoNS, TRI_V8_ASCII_STRING("_isSystem"),
                        JS_IsSystemDatabase);
+  TRI_AddMethodVocbase(isolate, ArangoNS, TRI_V8_ASCII_STRING("_isSingleShard"),
+                       JS_IsSingleShardDatabase);
   TRI_AddMethodVocbase(isolate, ArangoNS, TRI_V8_ASCII_STRING("_name"),
                        JS_NameDatabase);
   TRI_AddMethodVocbase(isolate, ArangoNS, TRI_V8_ASCII_STRING("_path"),
