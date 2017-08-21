@@ -41,6 +41,8 @@ struct TransactionId {
 
   bool operator== (TransactionId const&) const;
   bool operator!= (TransactionId const&) const;
+
+  TransactionId operator+(uint32_t) const;
   
   std::string toString() const;
   TRI_voc_tid_t id() const;

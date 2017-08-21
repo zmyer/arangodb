@@ -161,7 +161,7 @@ public:
   TransactionId generateId();
 
   /// @brief dump to velocypack
-  void toVelocyPack(VPackBuilder&);
+  void toVelocyPack(VPackBuilder&) const;
 
   /// @brief dump to velocypack
   void decomission(TRI_vocbase_t* vocbase, TransactionId const& id);
@@ -190,6 +190,16 @@ public:
   UniqueGenerator _generator;
 
 };
+
+inline std::ostream& operator<< (std::ostream& o, TransactionRegistry const& t) {
+  VPackBuilder builder;
+  {
+    VPackObjectBuilder b(&builder);
+    t.toVelocyPack(builder);
+  }
+  o << builder.toJson();
+  return o;
+}
 
 }  // namespace arangodb::transaction
 }  // namespace arangodb

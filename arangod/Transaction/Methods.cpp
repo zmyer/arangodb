@@ -577,9 +577,10 @@ transaction::Methods::Methods(
   // no support for subtransactions in the cluster yet.
   // so we will just not perform the check. effectively raising every
   // operation to the top level.
+  #warning subtransaction
   //if (!_state->isRunningInCluster()) {
-    parent = _transactionContextPtr->getParentTransaction();
-    //}
+  parent = _transactionContextPtr->getParentTransaction();
+  //}
 
   if (parent != nullptr) {
     // yes, we are embedded
@@ -592,7 +593,8 @@ transaction::Methods::Methods(
   TRI_ASSERT(_state != nullptr);
 
   // open transaction immediately
-  TransactionRegistryFeature::TRANSACTION_REGISTRY->open(id(), vocbase); 
+  auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
+  transactionRegistry->insert(id(), this);
   
 }
 
@@ -619,7 +621,11 @@ transaction::Methods::~Methods() {
       _state->id().id(), _state->hasFailedOperations());
     _transactionContextPtr->unregisterTransaction();
 
-    try { // Transaction counld not be found
+    try { // Transaction could not be found
+
+      LOG_TOPIC(ERR, Logger::TRANSACTIONS)
+        << *TransactionRegistryFeature::TRANSACTION_REGISTRY;
+
       TransactionRegistryFeature::TRANSACTION_REGISTRY->decomission(
         _transactionContextPtr->vocbase(), _state->id()); 
     } catch (...) {
@@ -758,10 +764,6 @@ Result transaction::Methods::begin() {
 
   auto ret = _state->beginTransaction(_localHints);
 
-  auto transactionRegistry =
-    TransactionRegistryFeature::TRANSACTION_REGISTRY;
-  transactionRegistry->insert(_state->id(), this);
-  
   return ret;
 
 }
@@ -769,6 +771,9 @@ Result transaction::Methods::begin() {
 /// @brief commit / finish the transaction
 Result transaction::Methods::commit() {
 
+  auto transactionRegistry =
+    TransactionRegistryFeature::TRANSACTION_REGISTRY;   // report registry
+  
   MUTEX_LOCKER(al, _abortLock);
   if (_aborted) {
     return TRI_ERROR_TRANSACTION_ABORTED;
@@ -778,25 +783,33 @@ Result transaction::Methods::commit() {
     // transaction not created or not running
     return TRI_ERROR_TRANSACTION_INTERNAL;
   }
-
+  
   CallbackInvoker invoker(this);
-
+  
   if (_state->isCoordinator()) {
     if (_state->isTopLevelTransaction()) {
+      OperationOptions options;
+      Result res =arangodb::commitTransactionOnCoordinator( // commit subordinate
+        vocbase()->name(), id(), _subActors, options);
       _state->updateStatus(transaction::Status::COMMITTED);
       auto transactionRegistry =
-        TransactionRegistryFeature::TRANSACTION_REGISTRY;
+        TransactionRegistryFeature::TRANSACTION_REGISTRY;   // report registry
       transactionRegistry->reportCommit(this);
     }
+    
     return TRI_ERROR_NO_ERROR;
   }
-
+  
+  transactionRegistry->reportCommit(this);  
   return _state->commitTransaction(this);
 }
 
 /// @brief abort the transaction
 Result transaction::Methods::abort() {
 
+  auto transactionRegistry =
+    TransactionRegistryFeature::TRANSACTION_REGISTRY;   // report registry
+  
   MUTEX_LOCKER(al, _abortLock);
   if (_aborted) {
     return TRI_ERROR_NO_ERROR;
@@ -811,14 +824,16 @@ Result transaction::Methods::abort() {
 
   if (_state->isCoordinator()) {
     if (_state->isTopLevelTransaction()) {
-      _state->updateStatus(transaction::Status::ABORTED);
-      auto transactionRegistry =
-        TransactionRegistryFeature::TRANSACTION_REGISTRY;
+      OperationOptions options;
+      Result res = arangodb::abortTransactionOnCoordinator( // abort subordinate
+        vocbase()->name(), id(), _subActors, options);
+      _state->updateStatus(transaction::Status::ABORTED); 
       transactionRegistry->reportAbort(this);
     }
     return TRI_ERROR_NO_ERROR;
   }
-
+  
+  transactionRegistry->reportAbort(this);  
   return _state->abortTransaction(this);
 }
 

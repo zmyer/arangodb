@@ -73,6 +73,10 @@ TRI_voc_tid_t TransactionId::id() const {
   return (TRI_voc_tid_t) coordinator << 32 | identifier;
 }
 
+TransactionId TransactionId::operator+(uint32_t i) const {
+  return TransactionId(coordinator, identifier+i);
+}
+
 namespace std {
 //Cantor pairing function
 #warning guard overflow

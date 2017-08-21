@@ -170,7 +170,7 @@ void TransactionRegistry::insert(
     p->_vocbase = vocbase;
     p->_id = id;
     p->_transaction = transaction;
-    p->_isOpen = false;
+    p->_isOpen = true;
     p->_timeToLive = ttl;
     p->_expires = TRI_microtime() + ttl;
     m->second.emplace(id, p.get());
@@ -301,13 +301,6 @@ void TransactionRegistry::report(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been committed already");
   }
   
-  if (lc == COMMITTED) {
-    ti->_transaction->commit();
-  } else if (lc == ABORTED) {
-    ti->_transaction->abortExternal();
-  }
-
-  ti->_isOpen = false;
   ti->_expires = TRI_microtime() + ti->_timeToLive;
 
 }
@@ -340,12 +333,13 @@ void TransactionRegistry::destroy(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id not found");
   }
   TransactionInfo* ti = t->second;
+
   
   if (ti->_isOpen) {
     ti->_transaction->abortExternal(); // Thread safe abort
     return;
   }
-
+  
   // Now we can delete it:
   //delete ti->_transaction;
   delete ti;
@@ -445,6 +439,11 @@ TransactionRegistry::TransactionInfo* TransactionRegistry::getInfo(
   } else {
     auto m = _transactions.find(vocbase->name());
     if (m == _transactions.end()) {
+      VPackBuilder builder;
+      { VPackObjectBuilder b(&builder);
+        toVelocyPack(builder);
+      }
+      LOG_TOPIC(ERR, Logger::TRANSACTIONS) << builder.toJson();
       THROW_ARANGO_EXCEPTION_MESSAGE(
         TRI_ERROR_INTERNAL,
         std::string("no transactions ") + id.toString() +
@@ -462,7 +461,7 @@ TransactionRegistry::TransactionInfo* TransactionRegistry::getInfo(
 }
 
 
-void TransactionRegistry::toVelocyPack(VPackBuilder& builder) {
+void TransactionRegistry::toVelocyPack(VPackBuilder& builder) const {
   TRI_ASSERT(builder.isOpenObject());
   // Iterate over vocbases
   for (auto const& vocbase : _transactions) { 
@@ -483,7 +482,9 @@ uint64_t TransactionRegistry::id() const {
 void TransactionRegistry::decomission(TRI_vocbase_t* vocbase, TransactionId const& id) {
   try {
     TransactionInfo* ti = getInfo(id, vocbase);
+    TRI_ASSERT(ti->_isOpen == true);
     ti->_transaction = nullptr;
   } catch (...) {
   }
 }
+
