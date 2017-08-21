@@ -99,7 +99,7 @@ int selectivityEstimatesOnCoordinator(std::string const& dbname, std::string con
 
 Result abortTransactionOnCoordinator(
   std::string const& dbname, transaction::TransactionId const& tid,
-  std::unordered_set<std::string> const& shards,OperationOptions const& opts);
+  std::unordered_set<std::string> const& servers,OperationOptions const& opts);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief commit transaction on coordinator
@@ -107,7 +107,7 @@ Result abortTransactionOnCoordinator(
 
 Result commitTransactionOnCoordinator(
   std::string const& dbname, transaction::TransactionId const& tid,
-  std::unordered_set<std::string> const& shards, OperationOptions const& opts);
+  std::unordered_set<std::string> const& servers, OperationOptions const& opts);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief creates a document in a coordinator

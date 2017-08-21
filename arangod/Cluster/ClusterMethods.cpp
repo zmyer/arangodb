@@ -950,7 +950,7 @@ int createDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
     std::shared_ptr<VPackBuilder>& resultBody,
-    std::unordered_set<std::string>& tshards) {
+    std::unordered_set<std::string>& servers) {
   
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
@@ -1048,7 +1048,7 @@ int createDocumentOnCoordinator(
       baseUrl + StringUtils::urlEncode(it.first) + optsUrlPart, body,
       headers);
 
-    tshards.emplace(it.first);
+    servers.emplace(ClusterInfo::instance()->getResponsibleServer(it.first)->front());
     
   }
   
@@ -1171,7 +1171,7 @@ int deleteDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
     std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
-    std::unordered_set<std::string>& tshards) {
+    std::unordered_set<std::string>& servers) {
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
   auto cc = ClusterComm::instance();
@@ -1216,7 +1216,7 @@ int deleteDocumentOnCoordinator(
 
     std::unordered_map<ShardID, std::vector<VPackValueLength>> shardMap;
     std::vector<std::pair<ShardID, VPackValueLength>> reverseMapping;
-    auto workOnOneNode = [&shardMap, &ci, &collid, &collinfo, &reverseMapping, &tshards](
+    auto workOnOneNode = [&shardMap, &ci, &collid, &collinfo, &reverseMapping, &servers](
         VPackSlice const node, VPackValueLength const index) -> int {
       // Sort out the _key attribute and identify the shard responsible for it.
 
@@ -1244,7 +1244,7 @@ int deleteDocumentOnCoordinator(
 
       // We found the responsible shard. Add it to the list.
       auto it = shardMap.find(shardID);
-      tshards.emplace(shardID);
+      servers.emplace(ClusterInfo::instance()->getResponsibleServer(shardID)->front());
       if (it == shardMap.end()) {
         std::vector<VPackValueLength> counter({index});
         shardMap.emplace(shardID, counter);
@@ -1413,7 +1413,7 @@ int deleteDocumentOnCoordinator(
 int truncateCollectionOnCoordinator(std::string const& dbname,
                                     std::string const& collname,
                                     OperationOptions const& options,
-                                    std::unordered_set<std::string>& tshards) {
+                                    std::unordered_set<std::string>& servers) {
 
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
@@ -1448,7 +1448,7 @@ int truncateCollectionOnCoordinator(std::string const& dbname,
                      "/_api/collection/" + p.first + "/truncate",
                      std::shared_ptr<std::string>(), headers, nullptr, 60.0);
 
-    tshards.emplace(p.first);
+    servers.emplace(ClusterInfo::instance()->getResponsibleServer(p.first)->front());
     
   }
   // Now listen to the results:
@@ -2158,7 +2158,7 @@ int modifyDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
     std::shared_ptr<VPackBuilder>& resultBody,
-    std::unordered_set<std::string>& tshards) {
+    std::unordered_set<std::string>& servers) {
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
   auto cc = ClusterComm::instance();
@@ -2272,11 +2272,11 @@ int modifyDocumentOnCoordinator(
 
         // We send to single endpoint
         requests.emplace_back(
-            "shard:" + it.first, reqType,
-            baseUrl + StringUtils::urlEncode(it.first) + "/" +
-                StringUtils::urlEncode(slice.get(StaticStrings::KeyString).copyString()) + optsUrlPart,
-            body);
-        tshards.emplace(it.first);
+          "shard:" + it.first, reqType,
+          baseUrl + StringUtils::urlEncode(it.first) + "/" +
+          StringUtils::urlEncode(
+            slice.get(StaticStrings::KeyString).copyString()) + optsUrlPart, body);
+        servers.emplace(ClusterInfo::instance()->getResponsibleServer(it.first)->front());
       } else {
         reqBuilder.clear();
         reqBuilder.openArray();
@@ -2289,7 +2289,7 @@ int modifyDocumentOnCoordinator(
         requests.emplace_back(
             "shard:" + it.first, reqType,
             baseUrl + StringUtils::urlEncode(it.first) + optsUrlPart, body);
-        tshards.emplace(it.first);
+        servers.emplace(ClusterInfo::instance()->getResponsibleServer(it.first)->front());
       }
     }
 
