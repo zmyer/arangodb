@@ -157,6 +157,9 @@ struct TRI_vocbase_t {
   std::atomic<uint64_t> _refCount;
   State _state;
   bool _isOwnAppsDirectory;
+#ifdef USE_ENTERPRISE
+  bool _isSingleShard;
+#endif
 
   arangodb::basics::ReadWriteLock _collectionsLock;  // collection iterator lock
   std::vector<arangodb::LogicalCollection*>
