@@ -29,6 +29,7 @@
 #include "Rest/HttpRequest.h"
 #include "Transaction/Hints.h"
 #include "Transaction/StandaloneContext.h"
+#include "Transaction/TransactionProxy.h"
 #include "Utils/OperationOptions.h"
 #include "Utils/SingleCollectionTransaction.h"
 #include "VocBase/vocbase.h"
@@ -47,10 +48,10 @@ RestStatus RestDocumentHandler::execute() {
   // extract the sub-request type
   auto const type = _request->requestType();
 
-  _transProps = TransactionProperties(_request.get());
-  LOG_TOPIC(TRACE, Logger::TRANSACTIONS) << _transProps;
+  _trxProps = TransactionProperties(_request.get());
+  LOG_TOPIC(TRACE, Logger::TRANSACTIONS) << _trxProps;
 
-  if (!_transProps.empty()) {
+  if (!_trxProps.empty()) {
     LOG_TOPIC(INFO, Logger::TRANSACTIONS) << "None empty transaction properties";
   }
   
@@ -135,29 +136,29 @@ bool RestDocumentHandler::createDocument() {
                          opOptions.isSynchronousReplicationFrom);
 
   // find and load collection given by name or identifier
-  auto transactionContext(
-    transaction::StandaloneContext::Create(_vocbase/*, _transactionProps(transactionId)*/));
-  SingleCollectionTransaction trx(
+  auto transactionContext = 
+    transaction::StandaloneContext::Create(_vocbase, _trxProps.transactionId);
+  transaction::SingleCollectionTransactionProxy trx(
     transactionContext, collectionName, AccessMode::Type::WRITE);
   
   bool const isMultiple = body.isArray();
   if (!isMultiple) {
-    trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
   }
 
-  Result res = trx.begin();
+  Result res = trx->begin();
 
   if (!res.ok()) {
     generateTransactionError(collectionName, res, "");
     return false;
   }
 
-  arangodb::OperationResult result = trx.insert(collectionName, body, opOptions);
+  arangodb::OperationResult result = trx->insert(collectionName, body, opOptions);
 
   // Will commit if no error occured.
   // or abort if an error occured.
   // result stays valid!
-  res = trx.finish(result.code);
+  res = trx->finish(result.code);
 
   if (result.failed()) {
     generateTransactionError(result);
@@ -170,7 +171,7 @@ bool RestDocumentHandler::createDocument() {
   }
 
   generateSaved(result, collectionName,
-                TRI_col_type_e(trx.getCollectionType(collectionName)),
+                TRI_col_type_e(trx->getCollectionType(collectionName)),
                 transactionContext->getVPackOptionsForDump(), isMultiple);
 
   return true;
@@ -244,25 +245,25 @@ bool RestDocumentHandler::readSingleDocument(bool generateBody) {
 
   // find and load collection given by name or identifier
   auto transactionContext(
-    transaction::StandaloneContext::Create(_vocbase/*, _transProps.transactionId*/));
-  SingleCollectionTransaction trx(
+    transaction::StandaloneContext::Create(_vocbase, _trxProps.transactionId));
+  transaction::SingleCollectionTransactionProxy trx(
     transactionContext, collection, AccessMode::Type::READ);
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
 
   // ...........................................................................
   // inside read transaction
   // ...........................................................................
 
-  Result res = trx.begin();
+  Result res = trx->begin();
 
   if (!res.ok()) {
     generateTransactionError(collection, res, "");
     return false;
   }
 
-  OperationResult result = trx.document(collection, search, options);
+  OperationResult result = trx->document(collection, search, options);
 
-  res = trx.finish(result.code);
+  res = trx->finish(result.code);
 
   if (!result.successful()) {
     if (result.code == TRI_ERROR_ARANGO_DOCUMENT_NOT_FOUND) {
@@ -437,18 +438,18 @@ bool RestDocumentHandler::modifyDocument(bool isPatch) {
 
   // find and load collection given by name or identifier
   auto transactionContext(
-    transaction::StandaloneContext::Create(_vocbase/*, _transProps.transactionId*/));
-  SingleCollectionTransaction trx(
+    transaction::StandaloneContext::Create(_vocbase, _trxProps.transactionId));
+  transaction::SingleCollectionTransactionProxy trx(
     transactionContext, collectionName, AccessMode::Type::WRITE);
   if (!isArrayCase) {
-    trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
   }
 
   // ...........................................................................
   // inside write transaction
   // ...........................................................................
 
-  Result res = trx.begin();
+  Result res = trx->begin();
 
   if (!res.ok()) {
     generateTransactionError(collectionName, res, "");
@@ -462,12 +463,12 @@ bool RestDocumentHandler::modifyDocument(bool isPatch) {
         extractBooleanParameter(StaticStrings::KeepNullString, true);
     opOptions.mergeObjects =
         extractBooleanParameter(StaticStrings::MergeObjectsString, true);
-    result = trx.update(collectionName, body, opOptions);
+    result = trx->update(collectionName, body, opOptions);
   } else {
-    result = trx.replace(collectionName, body, opOptions);
+    result = trx->replace(collectionName, body, opOptions);
   }
 
-  res = trx.finish(result.code);
+  res = trx->finish(result.code);
 
   // ...........................................................................
   // outside write transaction
@@ -484,7 +485,7 @@ bool RestDocumentHandler::modifyDocument(bool isPatch) {
   }
 
   generateSaved(result, collectionName,
-                TRI_col_type_e(trx.getCollectionType(collectionName)),
+                TRI_col_type_e(trx->getCollectionType(collectionName)),
                 transactionContext->getVPackOptionsForDump(), isArrayCase);
 
   return true;
@@ -534,7 +535,7 @@ bool RestDocumentHandler::deleteDocument() {
                          opOptions.isSynchronousReplicationFrom);
 
   auto transactionContext(
-    transaction::StandaloneContext::Create(_vocbase/*, _transProps.transactionId*/));
+    transaction::StandaloneContext::Create(_vocbase, _trxProps.transactionId));
 
   VPackBuilder builder;
   VPackSlice search;
@@ -571,22 +572,22 @@ bool RestDocumentHandler::deleteDocument() {
     return false;
   }
 
-  SingleCollectionTransaction trx(transactionContext, collectionName,
-                                  AccessMode::Type::WRITE);
+  transaction::SingleCollectionTransactionProxy trx(
+    transactionContext, collectionName, AccessMode::Type::WRITE);
   if (suffixes.size() == 2 || !search.isArray()) {
-    trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
   }
 
-  Result res = trx.begin();
+  Result res = trx->begin();
 
   if (!res.ok()) {
     generateTransactionError(collectionName, res, "");
     return false;
   }
 
-  OperationResult result = trx.remove(collectionName, search, opOptions);
+  OperationResult result = trx->remove(collectionName, search, opOptions);
 
-  res = trx.finish(result.code);
+  res = trx->finish(result.code);
 
   if (!result.successful()) {
     generateTransactionError(result);
@@ -599,7 +600,7 @@ bool RestDocumentHandler::deleteDocument() {
   }
 
   generateDeleted(result, collectionName,
-                  TRI_col_type_e(trx.getCollectionType(collectionName)),
+                  TRI_col_type_e(trx->getCollectionType(collectionName)),
                   transactionContext->getVPackOptionsForDump());
   return true;
 }
@@ -625,15 +626,15 @@ bool RestDocumentHandler::readManyDocuments() {
       extractBooleanParameter(StaticStrings::IgnoreRevsString, true);
 
   auto transactionContext(
-    transaction::StandaloneContext::Create(_vocbase/*, _transProps.transactionId*/));
-  SingleCollectionTransaction trx(
+    transaction::StandaloneContext::Create(_vocbase, _trxProps.transactionId));
+  transaction::SingleCollectionTransactionProxy trx(
     transactionContext, collectionName, AccessMode::Type::READ);
 
   // ...........................................................................
   // inside read transaction
   // ...........................................................................
 
-  Result res = trx.begin();
+  Result res = trx->begin();
 
   if (!res.ok()) {
     generateTransactionError(collectionName, res, "");
@@ -643,9 +644,9 @@ bool RestDocumentHandler::readManyDocuments() {
   TRI_ASSERT(_request != nullptr);
   VPackSlice search = _request->payload(transactionContext->getVPackOptions());
 
-  OperationResult result = trx.document(collectionName, search, opOptions);
+  OperationResult result = trx->document(collectionName, search, opOptions);
 
-  res = trx.finish(result.code);
+  res = trx->finish(result.code);
 
   if (!result.successful()) {
     generateTransactionError(result);

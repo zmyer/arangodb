@@ -360,7 +360,7 @@ class RestVocbaseBaseHandler : public RestBaseHandler {
   std::unordered_set<std::string>* _nolockHeaderSet;
 
   /// @brief transaction stuff
-  TransactionProperties _transProps;
+  TransactionProperties _trxProps;
   
 };
 }

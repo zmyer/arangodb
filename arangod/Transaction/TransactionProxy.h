@@ -30,6 +30,7 @@
 #include "Transaction/Context.h"
 #include "Transaction/Methods.h"
 #include "Transaction/TransactionRegistry.h"
+#include "Utils/SingleCollectionTransaction.h"
 
 namespace arangodb {
 namespace transaction {
