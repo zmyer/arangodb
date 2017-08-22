@@ -1942,7 +1942,7 @@ function rebalanceShards () {
       continue;
     }
     var collInfo = global.ArangoClusterInfo.getCollectionInfo(
-      databases[i], collName);
+      db._name(), collName);
     if (collInfo.distributeShardsLike === undefined) {
       // Only consider those collections that do not follow another one
       // w.r.t. their shard distribution.
@@ -1950,7 +1950,7 @@ function rebalanceShards () {
       for (k = 0; k < shardNames.length; k++) {
         var shardName = shardNames[k];
         shardMap[shardName] = {
-          database: databases[i], collection: collName,
+          database: db._name(), collection: collName,
           servers: collInfo.shards[shardName], weight: 1 };
         dbTab[collInfo.shards[shardName][0]].push(
           { shard: shardName, leader: true,

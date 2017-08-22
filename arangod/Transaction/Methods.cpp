@@ -603,9 +603,6 @@ transaction::Methods::~Methods() {
 
     try { // Transaction could not be found
 
-      LOG_TOPIC(ERR, Logger::TRANSACTIONS)
-        << *TransactionRegistryFeature::TRANSACTION_REGISTRY;
-
       TransactionRegistryFeature::TRANSACTION_REGISTRY->decomission(
         _transactionContextPtr->vocbase(), _state->id()); 
     } catch (...) {

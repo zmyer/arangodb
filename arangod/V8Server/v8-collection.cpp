@@ -549,7 +549,6 @@ static void DocumentVocbase(
 ////////////////////////////////////////////////////////////////////////////////
 
 static void RemoveVocbaseCol(v8::FunctionCallbackInfo<v8::Value> const& args) {
-
   v8::Isolate* isolate = args.GetIsolate();
   v8::HandleScope scope(isolate);
   OperationOptions options;
@@ -1595,8 +1594,7 @@ static void JS_PropertiesVocbaseCol(
 static void JS_RemoveVocbaseCol(
     v8::FunctionCallbackInfo<v8::Value> const& args) {
   TRI_V8_TRY_CATCH_BEGIN(isolate);
-  return RemoveVocbaseCol(args);
-
+  RemoveVocbaseCol(args);
   // cppcheck-suppress style
   TRI_V8_TRY_CATCH_END
 }
@@ -3063,6 +3061,8 @@ static void JS_CollectionsVocbase(
     };
     colls = GetCollectionsCluster(vocbase);
   } else {
+    // no cleanup needed
+    cleanup = []() {};
     colls = vocbase->collections(false);
   }
 
@@ -3152,6 +3152,7 @@ static void JS_CompletionsVocbase(
   result->Set(j++, TRI_V8_ASCII_STRING("_createEdgeCollection()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_createView()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_createStatement()"));
+  result->Set(j++, TRI_V8_ASCII_STRING("_currentWalFiles()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_document()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_drop()"));
   result->Set(j++, TRI_V8_ASCII_STRING("_dropDatabase()"));
@@ -3188,8 +3189,7 @@ static void JS_CompletionsVocbase(
 
 static void JS_RemoveVocbase(v8::FunctionCallbackInfo<v8::Value> const& args) {
   TRI_V8_TRY_CATCH_BEGIN(isolate);
-  return RemoveVocbase(args);
-
+  RemoveVocbase(args);
   // cppcheck-suppress style
   TRI_V8_TRY_CATCH_END
 }
