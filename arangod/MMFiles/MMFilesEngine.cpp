@@ -708,13 +708,12 @@ TRI_vocbase_t* MMFilesEngine::openDatabase(
   VPackSlice idSlice = args.get("id");
   TRI_voc_tick_t id = static_cast<TRI_voc_tick_t>(
       basics::StringUtils::uint64(idSlice.copyString()));
-  std::string const name = args.get("name").copyString();
 
   bool const wasCleanShutdown =
       MMFilesLogfileManager::hasFoundLastTick();
   status = TRI_ERROR_NO_ERROR;
       
-  return openExistingDatabase(id, name, wasCleanShutdown, isUpgrade);
+  return openExistingDatabase(id, args, wasCleanShutdown, isUpgrade);
 }
 
 TRI_vocbase_t* MMFilesEngine::createDatabaseMMFiles(
@@ -730,7 +729,7 @@ TRI_vocbase_t* MMFilesEngine::createDatabaseMMFiles(
     THROW_ARANGO_EXCEPTION(res);
   }
 
-  return openExistingDatabase(id, name, true, false);
+  return openExistingDatabase(id, data, true, false);
 }
 
 void MMFilesEngine::prepareDropDatabase(TRI_vocbase_t* vocbase,
@@ -1995,11 +1994,11 @@ std::string MMFilesEngine::indexFilename(TRI_idx_iid_t id) const {
 
 /// @brief open an existing database. internal function
 TRI_vocbase_t* MMFilesEngine::openExistingDatabase(TRI_voc_tick_t id,
-                                                   std::string const& name,
+                                                   velocypack::Slice const& opts,
                                                    bool wasCleanShutdown,
                                                    bool isUpgrade) {
   auto vocbase =
-      std::make_unique<TRI_vocbase_t>(TRI_VOCBASE_TYPE_NORMAL, id, name);
+      std::make_unique<TRI_vocbase_t>(TRI_VOCBASE_TYPE_NORMAL, id, opts);
 
   // scan the database path for views
   try {

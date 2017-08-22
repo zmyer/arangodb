@@ -140,8 +140,7 @@ arangodb::Result Databases::info(TRI_vocbase_t* vocbase, VPackBuilder& result) {
   return Result();
 }
 
-arangodb::Result Databases::create(std::string const& dbName,
-                                   VPackSlice const& inUsers,
+arangodb::Result Databases::create(VPackSlice const& inUsers,
                                    VPackSlice const& inOptions) {
   if (TRI_GetOperationModeServer() == TRI_VOCBASE_MODE_NO_CREATE) {
     return Result(TRI_ERROR_ARANGO_READ_ONLY);
@@ -218,6 +217,8 @@ arangodb::Result Databases::create(std::string const& dbName,
   if (databaseFeature == nullptr) {
     return Result(TRI_ERROR_INTERNAL);
   }
+
+  std::string const dbName = options.get("name").copyString();
 
   if (ServerState::instance()->isCoordinator()) {
     if (!TRI_vocbase_t::IsAllowedName(false, dbName)) {
@@ -311,7 +312,7 @@ arangodb::Result Databases::create(std::string const& dbName,
     }
 
     TRI_vocbase_t* vocbase = nullptr;
-    int res = databaseFeature->createDatabase(id, dbName, vocbase);
+    int res = databaseFeature->createDatabase(id, options, vocbase);
     if (res != TRI_ERROR_NO_ERROR) {
       return Result(res);
     }

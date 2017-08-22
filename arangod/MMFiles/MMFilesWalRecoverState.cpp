@@ -1195,7 +1195,7 @@ bool MMFilesWalRecoverState::ReplayMarker(MMFilesMarker const* marker,
         WaitForDeletion(state->server, databaseId,
                         TRI_ERROR_ARANGO_DATABASE_NOT_FOUND);
         */
-        int res = state->databaseFeature->createDatabase(databaseId, nameString,
+        int res = state->databaseFeature->createDatabase(databaseId, payloadSlice,
                                                          vocbase);
 
         if (res != TRI_ERROR_NO_ERROR) {

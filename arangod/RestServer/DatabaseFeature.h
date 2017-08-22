@@ -90,8 +90,8 @@ class DatabaseFeature final : public application_features::ApplicationFeature {
   std::vector<std::string> getDatabaseNames();
   std::vector<std::string> getDatabaseNamesForUser(std::string const& user);
 
-  int createDatabaseCoordinator(TRI_voc_tick_t id, std::string const& name, TRI_vocbase_t*& result);
-  int createDatabase(TRI_voc_tick_t id, std::string const& name, TRI_vocbase_t*& result);
+  int createDatabaseCoordinator(TRI_voc_tick_t id, velocypack::Slice const& options, TRI_vocbase_t*& result);
+  int createDatabase(TRI_voc_tick_t id, velocypack::Slice const& options, TRI_vocbase_t*& result);
   int dropDatabaseCoordinator(TRI_voc_tick_t id, bool force);
   int dropDatabase(std::string const& name, bool waitForDeletion, bool removeAppsDirectory);
   int dropDatabase(TRI_voc_tick_t id, bool waitForDeletion, bool removeAppsDirectory);

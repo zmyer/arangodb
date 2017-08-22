@@ -741,7 +741,7 @@ bool HeartbeatThread::handlePlanChangeCoordinator(uint64_t currentPlanVersion) {
         }
 
         // create a local database object...
-        int res = databaseFeature->createDatabaseCoordinator(id, name, vocbase);
+        int res = databaseFeature->createDatabaseCoordinator(id, options.value, vocbase);
 
         if (res != TRI_ERROR_NO_ERROR) {
           LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "creating local database '" << name

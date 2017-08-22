@@ -22,6 +22,7 @@
 
 #include "RestDatabaseHandler.h"
 
+#include "Basics/StringRef.h"
 #include "ApplicationFeatures/ApplicationServer.h"
 #include "Rest/HttpRequest.h"
 #include "VocBase/Methods/Databases.h"
@@ -121,8 +122,18 @@ RestStatus RestDatabaseHandler::createDatabase() {
 
   VPackSlice options = parsedBody->slice().get("options");
   VPackSlice users = parsedBody->slice().get("users");
+  VPackBuilder optBuilder;
+  optBuilder.openObject();
+  optBuilder.add("name", nameVal);
+  for (auto const& it : VPackObjectIterator(options)) {
+    if (StringRef(it.key) == "name") {
+      optBuilder.add(it.key);
+      optBuilder.add(it.value);
+    }
+  }
+  optBuilder.close();
 
-  Result res = methods::Databases::create(dbName, users, options);
+  Result res = methods::Databases::create(users, optBuilder.slice());
   if (res.ok()) {
     generateSuccess(rest::ResponseCode::CREATED, VPackSlice::trueSlice());
   } else {

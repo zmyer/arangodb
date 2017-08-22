@@ -833,18 +833,14 @@ TRI_vocbase_t* RocksDBEngine::openDatabase(
   VPackSlice idSlice = args.get("id");
   TRI_voc_tick_t id = static_cast<TRI_voc_tick_t>(
       basics::StringUtils::uint64(idSlice.copyString()));
-  std::string const name = args.get("name").copyString();
-
   status = TRI_ERROR_NO_ERROR;
-
-  return openExistingDatabase(id, name, true, isUpgrade);
+  return openExistingDatabase(id, args, true, isUpgrade);
 }
 
 TRI_vocbase_t* RocksDBEngine::createDatabase(
     TRI_voc_tick_t id, arangodb::velocypack::Slice const& args, int& status) {
   status = TRI_ERROR_NO_ERROR;
-  auto vocbase = std::make_unique<TRI_vocbase_t>(TRI_VOCBASE_TYPE_NORMAL, id,
-                                                 args.get("name").copyString());
+  auto vocbase = std::make_unique<TRI_vocbase_t>(TRI_VOCBASE_TYPE_NORMAL, id, args);
   return vocbase.release();
 }
 
@@ -1436,11 +1432,11 @@ void RocksDBEngine::addSystemDatabase() {
 
 /// @brief open an existing database. internal function
 TRI_vocbase_t* RocksDBEngine::openExistingDatabase(TRI_voc_tick_t id,
-                                                   std::string const& name,
+                                                   velocypack::Slice const& opts,
                                                    bool wasCleanShutdown,
                                                    bool isUpgrade) {
   auto vocbase =
-      std::make_unique<TRI_vocbase_t>(TRI_VOCBASE_TYPE_NORMAL, id, name);
+      std::make_unique<TRI_vocbase_t>(TRI_VOCBASE_TYPE_NORMAL, id, opts);
 
   // scan the database path for views
   try {

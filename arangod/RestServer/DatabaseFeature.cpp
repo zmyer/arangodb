@@ -460,9 +460,11 @@ void DatabaseFeature::recoveryDone() {
 
 /// @brief create a new database
 int DatabaseFeature::createDatabaseCoordinator(TRI_voc_tick_t id,
-                                               std::string const& name,
+                                               VPackSlice const& options,
                                                TRI_vocbase_t*& result) {
   result = nullptr;
+
+  std::string const& name = options.get("name").copyString();
 
   if (!TRI_vocbase_t::IsAllowedName(true, name)) {
     events::CreateDatabase(name, TRI_ERROR_ARANGO_DATABASE_NAME_INVALID);
@@ -485,7 +487,7 @@ int DatabaseFeature::createDatabaseCoordinator(TRI_voc_tick_t id,
 
   // name not yet in use, release the read lock
   auto vocbase =
-      std::make_unique<TRI_vocbase_t>(TRI_VOCBASE_TYPE_COORDINATOR, id, name);
+      std::make_unique<TRI_vocbase_t>(TRI_VOCBASE_TYPE_COORDINATOR, id, options);
 
   try {
     vocbase->addReplicationApplier(TRI_CreateReplicationApplier(vocbase.get()));
@@ -518,9 +520,11 @@ int DatabaseFeature::createDatabaseCoordinator(TRI_voc_tick_t id,
 }
 
 /// @brief create a new database
-int DatabaseFeature::createDatabase(TRI_voc_tick_t id, std::string const& name,
+int DatabaseFeature::createDatabase(TRI_voc_tick_t id,
+                                    velocypack::Slice const& options,
                                     TRI_vocbase_t*& result) {
   result = nullptr;
+  std::string const& name = options.get("name").copyString();
 
   if (!TRI_vocbase_t::IsAllowedName(false, name)) {
     events::CreateDatabase(name, TRI_ERROR_ARANGO_DATABASE_NAME_INVALID);

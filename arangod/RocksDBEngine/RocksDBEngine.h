@@ -235,7 +235,7 @@ class RocksDBEngine final : public StorageEngine {
   void addSystemDatabase();
   /// @brief open an existing database. internal function
   TRI_vocbase_t* openExistingDatabase(TRI_voc_tick_t id,
-                                      std::string const& name,
+                                      velocypack::Slice const& opts,
                                       bool wasCleanShutdown, bool isUpgrade);
 
   std::string getCompressionSupport() const;

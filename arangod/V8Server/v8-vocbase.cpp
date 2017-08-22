@@ -27,6 +27,7 @@
 #include <unicode/smpdtfmt.h>
 #include <unicode/timezone.h>
 
+#include <velocypack/Collection.h>
 #include <velocypack/Iterator.h>
 #include <velocypack/Slice.h>
 #include <velocypack/velocypack-aliases.h>
@@ -1775,11 +1776,6 @@ static void JS_CreateDatabase(v8::FunctionCallbackInfo<v8::Value> const& args) {
     TRI_V8_THROW_EXCEPTION(TRI_ERROR_ARANGO_USE_SYSTEM_DATABASE);
   }
   
-  VPackBuilder options;
-  if (args.Length() >= 2 && args[1]->IsObject()) {
-    TRI_V8ToVPack(isolate, options, args[1], false);
-  }
-
   VPackBuilder users;
   if (args.Length() >= 3 && args[2]->IsArray()) {
     VPackArrayBuilder a(&users);
@@ -1793,8 +1789,23 @@ static void JS_CreateDatabase(v8::FunctionCallbackInfo<v8::Value> const& args) {
     }
   }
   
-  std::string const dbName = TRI_ObjectToString(args[0]);
-  Result res = methods::Databases::create(dbName, users.slice(), options.slice());
+  VPackBuilder nameBuilder;
+  nameBuilder.openObject();
+  nameBuilder.add("name", VPackValue(TRI_ObjectToString(args[0])));
+  nameBuilder.close();
+
+  VPackBuilder options;
+  if (args.Length() >= 2 && args[1]->IsObject()) {
+    TRI_V8ToVPack(isolate, options, args[1], false);
+  } else {
+    options.openObject();
+    options.close();
+  }
+  TRI_ASSERT(options.slice().isObject());
+  options = VPackCollection::merge(options.slice(), nameBuilder.slice(), true, false);
+
+
+  Result res = methods::Databases::create(users.slice(), options.slice());
   if (!res.ok()) {
     TRI_V8_THROW_EXCEPTION_MESSAGE(res.errorNumber(), res.errorMessage());
   }
