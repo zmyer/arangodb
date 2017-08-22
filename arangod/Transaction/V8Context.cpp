@@ -84,6 +84,9 @@ CollectionNameResolver const* transaction::V8Context::getResolver() {
 /// @brief get parent transaction (if any)
 transaction::TransactionId transaction::V8Context::getParentTransaction() const {
   TRI_ASSERT(_sharedTransactionContext != nullptr);
+  if (_sharedTransactionContext->_currentTransaction == nullptr) {
+    return transaction::TransactionId::ZERO;
+  }
   return _sharedTransactionContext->_currentTransaction->id();
 }
 
