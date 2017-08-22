@@ -235,10 +235,12 @@ void SslClientConnection::init(uint64_t sslProtocol) {
       meth = SSLv23_method();
       break;
 
+#ifdef USE_DEPRECATED
     case TLS_V1:
       meth = TLSv1_method();
       break;
-    
+#endif
+      
     case TLS_V12:
       meth = TLSv1_2_method();
       break;

@@ -88,6 +88,8 @@ RestStatus RestDocumentHandler::execute() {
 bool RestDocumentHandler::createDocument() {
   std::vector<std::string> const& suffixes = _request->decodedSuffixes();
 
+  
+
   if (suffixes.size() > 1) {
     generateError(rest::ResponseCode::BAD, TRI_ERROR_HTTP_SUPERFLUOUS_SUFFICES,
                   "superfluous suffix, expecting " + DOCUMENT_PATH +
@@ -133,9 +135,11 @@ bool RestDocumentHandler::createDocument() {
                          opOptions.isSynchronousReplicationFrom);
 
   // find and load collection given by name or identifier
-  auto transactionContext(transaction::StandaloneContext::Create(_vocbase));
-  SingleCollectionTransaction trx(transactionContext, collectionName,
-                                  AccessMode::Type::WRITE);
+  auto transactionContext(
+    transaction::StandaloneContext::Create(_vocbase/*, _transactionProps(transactionId)*/));
+  SingleCollectionTransaction trx(
+    transactionContext, collectionName, AccessMode::Type::WRITE);
+  
   bool const isMultiple = body.isArray();
   if (!isMultiple) {
     trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
@@ -148,8 +152,7 @@ bool RestDocumentHandler::createDocument() {
     return false;
   }
 
-  arangodb::OperationResult result =
-      trx.insert(collectionName, body, opOptions);
+  arangodb::OperationResult result = trx.insert(collectionName, body, opOptions);
 
   // Will commit if no error occured.
   // or abort if an error occured.
@@ -185,17 +188,17 @@ bool RestDocumentHandler::readDocument() {
   switch (len) {
     case 0:
     case 1:
-      generateError(rest::ResponseCode::NOT_FOUND,
-                    TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND,
-                    "expecting GET /_api/document/<document-handle>");
+      generateError(
+        rest::ResponseCode::NOT_FOUND, TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND,
+        "expecting GET /_api/document/<document-handle>");
       return false;
     case 2:
       return readSingleDocument(true);
 
     default:
-      generateError(rest::ResponseCode::BAD,
-                    TRI_ERROR_HTTP_SUPERFLUOUS_SUFFICES,
-                    "expecting GET /_api/document/<document-handle>");
+      generateError(
+        rest::ResponseCode::BAD, TRI_ERROR_HTTP_SUPERFLUOUS_SUFFICES,
+        "expecting GET /_api/document/<document-handle>");
       return false;
   }
 }
@@ -240,9 +243,10 @@ bool RestDocumentHandler::readSingleDocument(bool generateBody) {
   VPackSlice search = builder.slice();
 
   // find and load collection given by name or identifier
-  auto transactionContext(transaction::StandaloneContext::Create(_vocbase));
-  SingleCollectionTransaction trx(transactionContext, collection,
-                                  AccessMode::Type::READ);
+  auto transactionContext(
+    transaction::StandaloneContext::Create(_vocbase/*, _transProps.transactionId*/));
+  SingleCollectionTransaction trx(
+    transactionContext, collection, AccessMode::Type::READ);
   trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
 
   // ...........................................................................
@@ -432,9 +436,10 @@ bool RestDocumentHandler::modifyDocument(bool isPatch) {
   }
 
   // find and load collection given by name or identifier
-  auto transactionContext(transaction::StandaloneContext::Create(_vocbase));
-  SingleCollectionTransaction trx(transactionContext, collectionName,
-                                  AccessMode::Type::WRITE);
+  auto transactionContext(
+    transaction::StandaloneContext::Create(_vocbase/*, _transProps.transactionId*/));
+  SingleCollectionTransaction trx(
+    transactionContext, collectionName, AccessMode::Type::WRITE);
   if (!isArrayCase) {
     trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
   }
@@ -528,7 +533,8 @@ bool RestDocumentHandler::deleteDocument() {
   extractStringParameter(StaticStrings::IsSynchronousReplicationString,
                          opOptions.isSynchronousReplicationFrom);
 
-  auto transactionContext(transaction::StandaloneContext::Create(_vocbase));
+  auto transactionContext(
+    transaction::StandaloneContext::Create(_vocbase/*, _transProps.transactionId*/));
 
   VPackBuilder builder;
   VPackSlice search;
@@ -618,9 +624,10 @@ bool RestDocumentHandler::readManyDocuments() {
   opOptions.ignoreRevs =
       extractBooleanParameter(StaticStrings::IgnoreRevsString, true);
 
-  auto transactionContext(transaction::StandaloneContext::Create(_vocbase));
-  SingleCollectionTransaction trx(transactionContext, collectionName,
-                                  AccessMode::Type::READ);
+  auto transactionContext(
+    transaction::StandaloneContext::Create(_vocbase/*, _transProps.transactionId*/));
+  SingleCollectionTransaction trx(
+    transactionContext, collectionName, AccessMode::Type::READ);
 
   // ...........................................................................
   // inside read transaction

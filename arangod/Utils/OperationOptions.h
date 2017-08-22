@@ -32,8 +32,7 @@ struct OperationOptions {
   OperationOptions() 
       : recoveryData(nullptr), waitForSync(false), keepNull(true),
         mergeObjects(true), silent(false), ignoreRevs(true),
-        returnOld(false), returnNew(false), isRestore(false), trxCoordinator(0),
-        trxIdentifier(0) {}
+        returnOld(false), returnNew(false), isRestore(false) {}
 
   // original marker, set by an engine's recovery procedure only!
   void* recoveryData;
@@ -63,12 +62,6 @@ struct OperationOptions {
   // this option is there to ensure _key values once set can be restored by replicated and arangorestore
   bool isRestore;
 
-  /// @brief Transaction header single is specified
-  bool isTrxSingle;
-
-  /// @brief Transaction header start is specified
-  bool isTrxStart;
-  
   // for synchronous replication operations, we have to mark them such that
   // we can deny them if we are a (new) leader, and that we can deny other
   // operation if we are merely a follower. Finally, we must deny replications
@@ -76,9 +69,7 @@ struct OperationOptions {
   std::string isSynchronousReplicationFrom;
 
   // transaction id for this operation
-  uint64_t trxCoordinator;
-  uint64_t trxIdentifier;
-  
+  std::string xArangoDBTrx;
   
 };
 

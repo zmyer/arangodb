@@ -25,72 +25,9 @@
 #define ARANGOD_REST_HANDLER_REST_DOCUMENT_HANDLER_H 1
 
 #include "Basics/Common.h"
-#include "Transaction/TransactionRegistry.h"
 #include "RestHandler/RestVocbaseBaseHandler.h"
 
 namespace arangodb {
-
-struct TransactionProperties {
-
-  transaction::TransactionId transactionId;
-  bool isSingle;
-  bool isStart;
-
-  /// @brief default ctor 
-  TransactionProperties(
-    transaction::TransactionId const& id = transaction::TransactionId::ZERO,
-    bool single = false, bool start = false)
-    : transactionId(id), isSingle(single), isStart(start) {}
-
-  /// @brief construct with http headers
-  TransactionProperties(GeneralRequest const* request)
-    : isSingle(false), isStart(false){
-    
-    auto const headers = request->headers();
-    auto const coordinator = headers.find("trxcoordinator");
-    if (coordinator!=headers.end()) { // We have a transaction header
-      auto const identifier = headers.find("trxidentifier");
-      auto const issingle = headers.find("issingle");
-      auto const isstart = headers.find("issstart");
-      if (identifier!=headers.end()) {
-        try {
-          transactionId = transaction::TransactionId(
-            std::stoull(coordinator->second),std::stoull(identifier->second));
-        } catch (std::exception const& e) {
-          LOG_TOPIC(ERR, arangodb::Logger::TRANSACTIONS) <<
-            "Failed to extract transaction headers ";
-        }
-        if (issingle!=headers.end()) {
-          try {
-            isSingle = (std::stoi(issingle->second) == 1);
-          } catch (...) {}
-        }
-        if (isstart!=headers.end()) {
-          try {
-            isStart = (std::stoi(isstart->second) == 1);
-          } catch (...) {}
-        }
-      } else {
-        LOG_TOPIC(ERR, Logger::TRANSACTIONS) <<
-          "Incomplete transaction headers: " << *this;
-      }
-    }
-  }
-
-  bool empty() {
-    return transactionId == transaction::TransactionId::ZERO;
-  }
-  
-};
-
-inline std::ostream& operator<<(
-  std::ostream& o, TransactionProperties const& p) {
-  o << "[" << p.transactionId;
-  if (p.isStart)  { o << ", start";  }
-  if (p.isSingle) { o << ", single"; }
-  o << "]";
-  return o;
-}
 
 class RestDocumentHandler : public RestVocbaseBaseHandler {
  public:
@@ -136,9 +73,6 @@ class RestDocumentHandler : public RestVocbaseBaseHandler {
   // deletes a document
   bool deleteDocument();
 
-  // transaction stuff
-  TransactionProperties _transProps;
-  
 };
 }
 

@@ -1394,8 +1394,7 @@ OperationResult transaction::Methods::insertCoordinator(
     std::string const& collectionName, VPackSlice const value,
     OperationOptions& options) {
 
-  options.trxCoordinator = id().coordinator;
-  options.trxIdentifier = id().identifier+1;
+  options.xArangoDBTrx = (id()+1).toString();
   
   rest::ResponseCode responseCode;
   std::unordered_map<int, size_t> errorCounter;
@@ -1708,8 +1707,7 @@ OperationResult transaction::Methods::updateCoordinator(
     std::string const& collectionName, VPackSlice const newValue,
     OperationOptions& options) {
 
-  options.trxCoordinator = id().coordinator;
-  options.trxIdentifier = id().identifier+1;
+  options.xArangoDBTrx = (id()+1).toString();
   
   auto headers =
       std::make_unique<std::unordered_map<std::string, std::string>>();
@@ -1770,8 +1768,7 @@ OperationResult transaction::Methods::replaceCoordinator(
     std::string const& collectionName, VPackSlice const newValue,
     OperationOptions& options) {
 
-  options.trxCoordinator = id().coordinator;
-  options.trxIdentifier = id().identifier+1;
+  options.xArangoDBTrx = (id()+1).toString();
 
   auto headers =
       std::make_unique<std::unordered_map<std::string, std::string>>();
@@ -2090,8 +2087,7 @@ OperationResult transaction::Methods::removeCoordinator(
     std::string const& collectionName, VPackSlice const value,
     OperationOptions& options) {
 
-  options.trxCoordinator = id().coordinator;
-  options.trxIdentifier = id().identifier+1;
+  options.xArangoDBTrx = (id()+1).toString();
 
   rest::ResponseCode responseCode;
   std::unordered_map<int, size_t> errorCounter;
@@ -2459,9 +2455,8 @@ OperationResult transaction::Methods::truncate(
 #ifndef USE_ENTERPRISE
 OperationResult transaction::Methods::truncateCoordinator(
     std::string const& collectionName, OperationOptions& options) {
-
-  options.trxCoordinator = id().coordinator;
-  options.trxIdentifier = id().identifier+1;
+  
+  options.xArangoDBTrx = (id()+1).toString();
 
   // TODO: Truncate needs transactional awareness
   return OperationResult(arangodb::truncateCollectionOnCoordinator(

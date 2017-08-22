@@ -47,6 +47,49 @@ using namespace arangodb;
 using namespace arangodb::basics;
 using namespace arangodb::rest;
 
+
+/// @brief default ctor
+TransactionProperties::TransactionProperties(
+  transaction::TransactionId const& id, bool si, bool st)
+  : transactionId(id), single(si), start(st) {}
+  
+/// @brief construct with http headers
+TransactionProperties::TransactionProperties(GeneralRequest const* request)
+  : single(false), start(false) {
+    
+  auto headers = request->headers();
+  auto const xArangoDBTrxIt = headers.find("X-ArangoDB-Trx");
+    
+  if (xArangoDBTrxIt!=headers.end()) { // We have a transaction header
+    auto const& xArangoDBTrx = xArangoDBTrxIt->second;
+    auto blank = xArangoDBTrx.find(' ');
+    bool haveMod = (blank!=std::string::npos);
+    transactionId = transaction::TransactionId(
+      std::string(blank ? xArangoDBTrx.substr(0,blank) : xArangoDBTrx));
+      
+    if (haveMod) {
+      single = xArangoDBTrx.find("single", blank);
+      if (!start) {
+        start = xArangoDBTrx.find("start", blank);
+      }
+      LOG_TOPIC(ERR, Logger::TRANSACTIONS) <<
+        "Incomplete transaction headers: " << *this;
+    }
+  }
+}
+  
+bool TransactionProperties::empty() const {
+  return transactionId == transaction::TransactionId::ZERO;
+}
+
+std::ostream& arangodb::operator<<(std::ostream& o, TransactionProperties const& p) {
+  o << "[" << p.transactionId;
+  if (p.start)  { o << ", start";  }
+  if (p.single) { o << ", single"; }
+  o << "]";
+  return o;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief agency public path
 ////////////////////////////////////////////////////////////////////////////////

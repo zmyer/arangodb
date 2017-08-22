@@ -54,8 +54,7 @@ using namespace arangodb::rest;
 
 static double const CL_DEFAULT_TIMEOUT = 120.0;
 
-static std::string const TRX_COORDINATOR = "X-ArangoDB-Trx-Coordinator";
-static std::string const TRX_IDENTIFIER = "X-ArangoDB-Trx-Identifier";
+static std::string const TRX_HEADER = "X-ArangoDB-Trx";
 
 namespace {
 template<typename T>
@@ -1009,8 +1008,7 @@ int createDocumentOnCoordinator(
   std::vector<ClusterCommRequest> requests;
   auto body = std::make_shared<std::string>();
   auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
-  *headers = {{TRX_COORDINATOR,std::to_string(options.trxCoordinator)},
-              {TRX_IDENTIFIER, std::to_string(options.trxIdentifier)}};
+  *headers = {{TRX_HEADER,options.xArangoDBTrx}};
 
   for (auto const& it : shardMap) {
     if (!useMultiple) {
@@ -1182,8 +1180,7 @@ int deleteDocumentOnCoordinator(
 
   // Transaction ID 
   auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
-  *headers = {{TRX_COORDINATOR,std::to_string(options.trxCoordinator)},
-              {TRX_IDENTIFIER, std::to_string(options.trxIdentifier)}};
+  *headers = {{TRX_HEADER,options.xArangoDBTrx}};
   
   // First determine the collection ID from the name:
   std::shared_ptr<LogicalCollection> collinfo;
@@ -1439,8 +1436,7 @@ int truncateCollectionOnCoordinator(std::string const& dbname,
   for (auto const& p : *shards) {
     auto headers =
       std::make_unique<std::unordered_map<std::string, std::string>>();
-    *headers = {{TRX_COORDINATOR,std::to_string(options.trxCoordinator)},
-                {TRX_IDENTIFIER, std::to_string(options.trxIdentifier)}};
+    *headers = {{TRX_HEADER, options.xArangoDBTrx}};
 
     cc->asyncRequest("", coordTransactionID, "shard:" + p.first,
                      arangodb::rest::RequestType::PUT,

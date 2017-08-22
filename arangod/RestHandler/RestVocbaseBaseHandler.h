@@ -28,6 +28,7 @@
 
 #include "Rest/HttpResponse.h"
 #include "RestServer/VocbaseContext.h"
+#include "Transaction/TransactionRegistry.h"
 #include "Utils/OperationResult.h"
 #include "VocBase/vocbase.h"
 
@@ -36,6 +37,26 @@ struct TRI_vocbase_t;
 namespace arangodb {
 
 class VocbaseContext;
+
+struct TransactionProperties {
+
+  transaction::TransactionId transactionId;
+  bool single;
+  bool start;
+
+  /// @brief default ctor 
+  TransactionProperties(
+    transaction::TransactionId const& id = transaction::TransactionId::ZERO,
+    bool si = false, bool st = false);
+  
+  /// @brief construct with http headers
+  TransactionProperties(GeneralRequest const* request);
+  
+  bool empty() const;
+  
+};
+
+std::ostream& operator<<(std::ostream& o, TransactionProperties const& p);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief abstract base request handler
@@ -337,6 +358,10 @@ class RestVocbaseBaseHandler : public RestBaseHandler {
   //////////////////////////////////////////////////////////////////////////////
 
   std::unordered_set<std::string>* _nolockHeaderSet;
+
+  /// @brief transaction stuff
+  TransactionProperties _transProps;
+  
 };
 }
 
