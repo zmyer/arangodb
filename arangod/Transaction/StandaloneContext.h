@@ -36,10 +36,13 @@ namespace transaction {
 
 class StandaloneContext final : public Context {
 
+  TransactionId _tid;
+
  public:
 
   /// @brief create the context
-  explicit StandaloneContext(TRI_vocbase_t*);
+  explicit StandaloneContext(TRI_vocbase_t*,
+                             TransactionId const& tid = TransactionId::ZERO);
 
   /// @brief destroy the context
   ~StandaloneContext() = default;
@@ -54,7 +57,9 @@ class StandaloneContext final : public Context {
   CollectionNameResolver const* getResolver() override final;
   
   /// @brief return the parent transaction (none in our case)
-  TransactionState* getParentTransaction() const override { return nullptr; }
+  TransactionId getParentTransaction() const override {
+    return _tid;
+  }
 
   /// @brief register the transaction, does nothing
   void registerTransaction(TransactionState*) override {}

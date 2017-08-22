@@ -26,6 +26,7 @@
 
 #include "Basics/Common.h"
 #include "Basics/SmallVector.h"
+#include "Transaction/types.h"
 #include "VocBase/voc-types.h"
 
 #include <velocypack/Options.h>
@@ -109,7 +110,7 @@ class Context {
   virtual CollectionNameResolver const* getResolver() = 0;
 
   /// @brief get parent transaction (if any)
-  virtual TransactionState* getParentTransaction() const = 0;
+  virtual TransactionId getParentTransaction() const = 0;
 
   /// @brief whether or not the transaction is embeddable
   virtual bool isEmbeddable() const = 0;

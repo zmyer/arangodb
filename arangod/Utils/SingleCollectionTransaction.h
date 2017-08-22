@@ -36,6 +36,8 @@ class Context;
 
 class SingleCollectionTransaction final : public transaction::Methods {
 
+  friend class SingleCollectionTransactionProxy;
+
  public:
   //////////////////////////////////////////////////////////////////////////////
   /// @brief create the transaction, using a collection id

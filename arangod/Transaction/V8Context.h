@@ -52,7 +52,7 @@ class V8Context final : public Context {
   CollectionNameResolver const* getResolver() override final;
   
   /// @brief get parent transaction (if any)
-  TransactionState* getParentTransaction() const override;
+  TransactionId getParentTransaction() const override;
 
   /// @brief register the transaction in the context
   void registerTransaction(TransactionState* trx) override;

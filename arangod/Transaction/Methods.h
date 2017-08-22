@@ -89,6 +89,7 @@ struct Options;
 class Methods {
   friend class traverser::BaseEngine;
   friend class CallbackInvoker;
+  friend class SingleCollectionTransactionProxy;
 
  public:
   class IndexHandle {
@@ -197,6 +198,12 @@ class Methods {
   /// @brief finish a transaction (commit or abort), based on the previous state
   Result finish(int errorNum);
   Result finish(Result const& res);
+
+  /// @brief get an ongoing transaction from the registry:
+  static Methods* open(TransactionId const& tid, TRI_vocbase_t* vocbase);
+
+  /// @brief return transaction to the registry
+  void close(double ttl = 600.0);
 
   /// @brief return a collection name
   std::string name(TRI_voc_cid_t cid) const;
@@ -552,9 +559,6 @@ class Methods {
 
   /// @brief add a collection to a top-level transaction
   Result addCollectionToplevel(TRI_voc_cid_t, char const* name, AccessMode::Type);
-
-  /// @brief set up an embedded transaction
-  void setupEmbedded(TRI_vocbase_t*);
 
   /// @brief set up a top-level transaction
   void setupToplevel(TRI_vocbase_t*, transaction::Options const&);
