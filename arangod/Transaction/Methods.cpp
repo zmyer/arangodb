@@ -568,27 +568,7 @@ transaction::Methods::Methods(
 
   TRI_vocbase_t* vocbase = _transactionContextPtr->vocbase();
 
-  // brief initialize the transaction
-  // this will first check if the transaction is embedded in a parent
-  // transaction. if not, it will create a transaction of its own
-  // check in the context if we are running embedded
-  TransactionState* parent = nullptr;
-
-  // no support for subtransactions in the cluster yet.
-  // so we will just not perform the check. effectively raising every
-  // operation to the top level.
-  #warning subtransaction
-  //if (!_state->isRunningInCluster()) {
-  parent = _transactionContextPtr->getParentTransaction();
-  //}
-
-  if (parent != nullptr) {
-    // yes, we are embedded
-    setupEmbedded(vocbase);
-  } else {
-    // non-embedded
-    setupToplevel(vocbase, options);
-  }
+  setupToplevel(vocbase, options);
 
   TRI_ASSERT(_state != nullptr);
 
@@ -3202,19 +3182,6 @@ Result transaction::Methods::addCollectionToplevel(TRI_voc_cid_t cid,
   return res;
 }
 
-/// @brief set up an embedded transaction
-void transaction::Methods::setupEmbedded(TRI_vocbase_t*) {
-  if (!_transactionContextPtr->isEmbeddable()) {
-    // we are embedded but this is disallowed...
-    THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_NESTED);
-  }
-
-  _state = _transactionContextPtr->getParentTransaction();
-
-  TRI_ASSERT(_state != nullptr);
-  _state->increaseNesting();
-}
-
 /// @brief set up a top-level transaction
 void transaction::Methods::setupToplevel(TRI_vocbase_t* vocbase, transaction::Options const& options) {
   // we are not embedded. now start our own transaction
@@ -3273,5 +3240,16 @@ void transaction::CallbackInvoker::invoke() noexcept {
   }
 }
 
+/// @brief get an ongoing transaction from the registry:
+void transaction::Methods::open(transaction::TransactionId const& tid,
+                                TRI_vocbase_t* vocbase) {
+  auto trxReg = TransactionRegistryFeature::TRANSACTION_REGISTRY;
+  return trx->open(tid, vocbase());
+}
 
+/// @brief return transaction to the registry
+void transaction::Methods::close(double ttl) {
+  auto trxReg = TransactionRegistryFeature::TRANSACTION_REGISTRY;
+  trx->close(vocbase(), id(), ttl);
+}
 

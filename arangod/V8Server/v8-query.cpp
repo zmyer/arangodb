@@ -32,6 +32,7 @@
 #include "Transaction/Helpers.h"
 #include "Utils/OperationCursor.h"
 #include "Utils/SingleCollectionTransaction.h"
+#include "Transaction/TransactionProxy.h"
 #include "Transaction/V8Context.h"
 #include "V8/v8-conv.h"
 #include "V8/v8-utils.h"
@@ -219,10 +220,10 @@ static void JS_AllQuery(v8::FunctionCallbackInfo<v8::Value> const& args) {
 
   std::shared_ptr<transaction::V8Context> transactionContext =
       transaction::V8Context::Create(collection->vocbase(), true);
-  SingleCollectionTransaction trx(transactionContext, collection->cid(),
-                                  AccessMode::Type::READ);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collection->cid(), AccessMode::Type::READ);
 
-  Result res = trx.begin();
+  Result res = trx->begin();
 
   if (!res.ok()) {
     TRI_V8_THROW_EXCEPTION(res);
@@ -230,14 +231,14 @@ static void JS_AllQuery(v8::FunctionCallbackInfo<v8::Value> const& args) {
 
   // We directly read the entire cursor. so batchsize == limit
   std::unique_ptr<OperationCursor> opCursor =
-      trx.indexScan(collectionName, transaction::Methods::CursorType::ALL, nullptr, skip,
+      trx->indexScan(collectionName, transaction::Methods::CursorType::ALL, nullptr, skip,
                     limit, limit, false);
 
   if (opCursor->failed()) {
     TRI_V8_THROW_EXCEPTION(opCursor->code);
   }
 
-  OperationResult countResult = trx.count(collectionName, true);
+  OperationResult countResult = trx->count(collectionName, true);
 
   if (countResult.failed()) {
     TRI_V8_THROW_EXCEPTION(countResult.code);
@@ -265,7 +266,7 @@ static void JS_AllQuery(v8::FunctionCallbackInfo<v8::Value> const& args) {
 
   resultBuilder.close();
   
-  res = trx.finish(countResult.code);
+  res = trx->finish(countResult.code);
   if (res.fail()) {
     TRI_V8_THROW_EXCEPTION(res);
   }

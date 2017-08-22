@@ -28,8 +28,9 @@
 using namespace arangodb;
 
 /// @brief create the context
-transaction::StandaloneContext::StandaloneContext(TRI_vocbase_t* vocbase)
-    : Context(vocbase) {}
+transaction::StandaloneContext::StandaloneContext(
+    TRI_vocbase_t* vocbase, transaction::TransactionId const& tid)
+    : Context(vocbase), _tid(tid) {}
 
 /// @brief order a custom type handler for the collection
 std::shared_ptr<arangodb::velocypack::CustomTypeHandler> transaction::StandaloneContext::orderCustomTypeHandler() {
