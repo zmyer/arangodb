@@ -3241,15 +3241,15 @@ void transaction::CallbackInvoker::invoke() noexcept {
 }
 
 /// @brief get an ongoing transaction from the registry:
-void transaction::Methods::open(transaction::TransactionId const& tid,
+transaction::Methods* transaction::Methods::open(transaction::TransactionId const& tid,
                                 TRI_vocbase_t* vocbase) {
   auto trxReg = TransactionRegistryFeature::TRANSACTION_REGISTRY;
-  return trx->open(tid, vocbase());
+  return trxReg->open(tid, vocbase);
 }
 
 /// @brief return transaction to the registry
 void transaction::Methods::close(double ttl) {
   auto trxReg = TransactionRegistryFeature::TRANSACTION_REGISTRY;
-  trx->close(vocbase(), id(), ttl);
+  trxReg->close(vocbase(), id(), ttl);
 }
 
