@@ -200,7 +200,7 @@ class Methods {
   Result finish(Result const& res);
 
   /// @brief get an ongoing transaction from the registry:
-  Methods* open(TransactionId const& tid, TRI_vocbase_t* vocbase);
+  static Methods* open(TransactionId const& tid, TRI_vocbase_t* vocbase);
 
   /// @brief return transaction to the registry
   void close(double ttl = 600.0);
