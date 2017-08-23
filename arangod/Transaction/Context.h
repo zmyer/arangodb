@@ -68,8 +68,7 @@ class Context {
 
   /// @brief factory to create a custom type handler, not managed
   static arangodb::velocypack::CustomTypeHandler* createCustomTypeHandler(
-           TRI_vocbase_t*,
-           arangodb::CollectionNameResolver const*);
+    TRI_vocbase_t*, arangodb::CollectionNameResolver const*);
 
   /// @brief return the vocbase
   TRI_vocbase_t* vocbase() const { return _vocbase; }
@@ -121,6 +120,12 @@ class Context {
   /// @brief unregister the transaction
   virtual void unregisterTransaction() noexcept = 0;
 
+  /// @brief set prescribed transaction id
+  void prescribedTransactionId(TransactionId const& tid);
+
+  /// @brief set prescribed transaction id
+  TransactionId const& prescribedTransactionId() const;
+
  protected:
   
   /// @brief create a resolver
@@ -145,6 +150,8 @@ class Context {
   arangodb::velocypack::Options _dumpOptions;
   
   std::unique_ptr<transaction::ContextData> _contextData;
+
+  transaction::TransactionId _prescribedTrxId;
 
   struct {
     TRI_voc_tid_t id; 

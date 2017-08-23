@@ -33,15 +33,18 @@ uint64_t Options::defaultMaxTransactionSize = UINT64_MAX;
 uint64_t Options::defaultIntermediateCommitSize = 512 * 1024 * 1024;
 uint64_t Options::defaultIntermediateCommitCount = 1 * 1000 * 1000;
 
-Options::Options()
-    : lockTimeout(defaultLockTimeout),
-      maxTransactionSize(defaultMaxTransactionSize),
-      intermediateCommitSize(defaultIntermediateCommitSize),
-      intermediateCommitCount(defaultIntermediateCommitCount),
-      allowImplicitCollections(true),
-      waitForSync(false) {}
-  
-void Options::setLimits(uint64_t maxTransactionSize, uint64_t intermediateCommitSize, uint64_t intermediateCommitCount) {
+Options::Options(TransactionId const& id)
+  : lockTimeout(defaultLockTimeout),
+    maxTransactionSize(defaultMaxTransactionSize),
+    intermediateCommitSize(defaultIntermediateCommitSize),
+    intermediateCommitCount(defaultIntermediateCommitCount),
+    allowImplicitCollections(true),
+    waitForSync(false),
+    transactionId(id) {}
+
+void Options::setLimits(
+  uint64_t maxTransactionSize, uint64_t intermediateCommitSize,
+  uint64_t intermediateCommitCount) {
   defaultMaxTransactionSize = maxTransactionSize;
   defaultIntermediateCommitSize = intermediateCommitSize;
   defaultIntermediateCommitCount = intermediateCommitCount;

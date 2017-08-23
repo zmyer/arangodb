@@ -54,8 +54,6 @@ using namespace arangodb::rest;
 
 static double const CL_DEFAULT_TIMEOUT = 120.0;
 
-static std::string const TRX_HEADER = "X-ArangoDB-Trx";
-
 namespace {
 template<typename T>
 T addFigures(VPackSlice const& v1, VPackSlice const& v2, std::vector<std::string> const& attr) {

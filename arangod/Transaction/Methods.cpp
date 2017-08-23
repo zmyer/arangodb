@@ -568,7 +568,12 @@ transaction::Methods::Methods(
 
   TRI_vocbase_t* vocbase = _transactionContextPtr->vocbase();
 
-  setupToplevel(vocbase, options);
+  transaction::Options copy = options;
+  auto preTrxId = transactionContext->prescribedTransactionId();
+  if (preTrxId != transaction::TransactionId::ZERO) {
+    copy.transactionId = preTrxId;
+  }
+  setupToplevel(vocbase, copy);
 
   TRI_ASSERT(_state != nullptr);
 
@@ -1525,6 +1530,11 @@ OperationResult transaction::Methods::insertLocal(
   if (res.ok() && _state->isDBServer()) {
     // Now replicate the same operation on all followers:
     auto const& followerInfo = collection->followers();
+
+    // Transaction headers
+    auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+    *headers = {{TRX_HEADER,(id()+1).toString()}};
+
     std::shared_ptr<std::vector<ServerID> const> followers = followerInfo->get();
     // Now see whether or not we have to do synchronous replication:
     bool doingSynchronousReplication = !isFollower && followers->size() > 0;
@@ -1580,7 +1590,7 @@ OperationResult transaction::Methods::insertLocal(
         std::vector<ClusterCommRequest> requests;
         for (auto const& f : *followers) {
           requests.emplace_back("server:" + f, arangodb::rest::RequestType::POST,
-              path, body);
+                                path, body, headers);
         }
         auto cc = arangodb::ClusterComm::instance();
         if (cc != nullptr) {
@@ -1904,6 +1914,10 @@ OperationResult transaction::Methods::modifyLocal(
     std::shared_ptr<std::vector<ServerID> const> followers = followerInfo->get();
     bool doingSynchronousReplication = !isFollower && followers->size() > 0;
 
+    // Transaction headers
+    auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+    *headers = {{TRX_HEADER,(id()+1).toString()}};
+
     if (doingSynchronousReplication) {
       // In the multi babies case res is always TRI_ERROR_NO_ERROR if we
       // get here, in the single document case, we do not try to replicate
@@ -1962,7 +1976,7 @@ OperationResult transaction::Methods::modifyLocal(
                 operation == TRI_VOC_DOCUMENT_OPERATION_REPLACE
                 ? arangodb::rest::RequestType::PUT
                 : arangodb::rest::RequestType::PATCH,
-                path, body);
+                                  path, body, headers);
           }
           size_t nrDone = 0;
           size_t nrGood = cc->performRequests(requests, chooseTimeout(count),
@@ -2204,6 +2218,10 @@ OperationResult transaction::Methods::removeLocal(
     std::shared_ptr<std::vector<ServerID> const> followers = followerInfo->get();
     bool doingSynchronousReplication = !isFollower && followers->size() > 0;
 
+    // Transaction headers
+    auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+    *headers = {{TRX_HEADER,(id()+1).toString()}};
+
     if (doingSynchronousReplication) {
       // In the multi babies case res is always TRI_ERROR_NO_ERROR if we
       // get here, in the single document case, we do not try to replicate
@@ -2261,7 +2279,7 @@ OperationResult transaction::Methods::removeLocal(
           for (auto const& f : *followers) {
             requests.emplace_back("server:" + f,
                 arangodb::rest::RequestType::DELETE_REQ, path,
-                body);
+                                  body, headers);
           }
           size_t nrDone = 0;
           size_t nrGood = cc->performRequests(requests, chooseTimeout(count),
@@ -2496,6 +2514,11 @@ OperationResult transaction::Methods::truncateLocal(
     // Now replicate the same operation on all followers:
     auto const& followerInfo = collection->followers();
     std::shared_ptr<std::vector<ServerID> const> followers = followerInfo->get();
+
+    // Transaction headers
+    auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+    *headers = {{TRX_HEADER,(id()+1).toString()}};
+
     if (!isFollower && followers->size() > 0) {
       // Now replicate the good operations on all followers:
       auto cc = arangodb::ClusterComm::instance();
@@ -2514,7 +2537,7 @@ OperationResult transaction::Methods::truncateLocal(
         std::vector<ClusterCommRequest> requests;
         for (auto const& f : *followers) {
           requests.emplace_back("server:" + f, arangodb::rest::RequestType::PUT,
-                                path, body);
+                                path, body, headers);
         }
         size_t nrDone = 0;
         size_t nrGood = cc->performRequests(requests, TRX_FOLLOWER_TIMEOUT,
@@ -3175,9 +3198,12 @@ Result transaction::Methods::addCollectionToplevel(TRI_voc_cid_t cid,
 }
 
 /// @brief set up a top-level transaction
-void transaction::Methods::setupToplevel(TRI_vocbase_t* vocbase, transaction::Options const& options) {
+void transaction::Methods::setupToplevel(
+  TRI_vocbase_t* vocbase, transaction::Options const& options) {
+  
   // we are not embedded. now start our own transaction
   StorageEngine* engine = EngineSelectorFeature::ENGINE;
+  
   _state = engine->createTransactionState(vocbase, options);
 
   TRI_ASSERT(_state != nullptr);

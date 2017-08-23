@@ -72,6 +72,7 @@ transaction::Context::Context(TRI_vocbase_t* vocbase)
       _stringBuffer(),
       _options(arangodb::velocypack::Options::Defaults),
       _dumpOptions(arangodb::velocypack::Options::Defaults),
+      _prescribedTrxId(transaction::TransactionId::ZERO),
       _transaction{ 0, false }, 
       _ownsResolver(false) {
   _dumpOptions.escapeUnicode = true;        
@@ -194,4 +195,12 @@ transaction::ContextData* transaction::Context::contextData() {
     _contextData.reset(engine->createTransactionContextData());
   }
   return _contextData.get();
+}
+
+void transaction::Context::prescribedTransactionId(transaction::TransactionId const& tid) {
+  _prescribedTrxId = tid;
+}
+
+transaction::TransactionId const& transaction::Context::prescribedTransactionId() const {
+  return _prescribedTrxId;
 }

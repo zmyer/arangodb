@@ -44,6 +44,8 @@ class Builder;
 class Slice;
 }
 
+static std::string const TRX_HEADER = "X-ArangoDB-Trx";
+
 struct OperationOptions;
 
 ////////////////////////////////////////////////////////////////////////////////
