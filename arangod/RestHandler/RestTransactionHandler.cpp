@@ -64,58 +64,41 @@ void RestTransactionHandler::returnContext(){
 RestStatus RestTransactionHandler::execute() {
 
   switch(_request->requestType()) {
-
+    
     // original single operation transaction and
     //  start for multi-operation transaction
-    case rest::RequestType::POST: {
-      executePost();
-      break;
-    }
-
+  case rest::RequestType::POST: {
+    executePost();
+    break;
+  }
+    
     // commit for multi-operation transaction
-    case rest::RequestType::PUT: {
-      executePut();
-      break;
-    }
-
+  case rest::RequestType::PUT: {
+    executePut();
+    break;
+  }
+    
     // status of given ID or list of all
-    case rest::RequestType::GET: {
-#if 0
-#include "transaction/TransactionRegistry.h"
-#include "transaction/TransactionRegistryFeature.h"
-auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
-
-VPackBuilder builder;
-{
-  VPackObjectBuilder b(&builder)
-  transactionRegistry->toVelocyPack(builder);
-}
-
-... or ...
-
-auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
-VPackBuilder builder;
-{
-  VPackObjectBuilder b(&builder)
-  transactionRegistry(transactionId[, vocbase])->toVelocyPack(builder);
-}
-#endif
-      break;
-    }
-
+  case rest::RequestType::GET: {
+    VPackBuilder builder;
+    { VPackObjectBuilder b(&builder);
+      TransactionRegistryFeature::TRANSACTION_REGISTRY->toVelocyPack(builder); }
+    break;
+  }
+    
     // abort given ID
-    case rest::RequestType::DELETE_REQ: {
-      executeDelete();
-      break;
-    }
-
+  case rest::RequestType::DELETE_REQ: {
+    executeDelete();
+    break;
+  }
+    
     // oops, not supported
-    default: {
-      generateError(rest::ResponseCode::METHOD_NOT_ALLOWED, 405);
-      break;
-    }
+  default: {
+    generateError(rest::ResponseCode::METHOD_NOT_ALLOWED, 405);
+    break;
+  }
   } //switch
-
+  
   return RestStatus::DONE;
 }
 

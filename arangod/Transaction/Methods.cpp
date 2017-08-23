@@ -781,6 +781,9 @@ Result transaction::Methods::commit() {
     
     return TRI_ERROR_NO_ERROR;
   }
+
+  // Commit on all before local commit.
+  OperationResult result = commitLocal();
   
   transactionRegistry->reportCommit(this);  
   return _state->commitTransaction(this);
@@ -2460,6 +2463,84 @@ OperationResult transaction::Methods::truncateCoordinator(
 }
 #endif
 
+OperationResult transaction::Methods::commitLocal() {
+
+  TRI_ASSERT(_state->status() == transaction::Status::RUNNING);
+/*  
+  // Now see whether or not we have to do synchronous replication:
+  if (_state->isDBServer()) {
+
+    // Transaction headers
+    auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+    *headers = {{TRX_HEADER,(id()+1).toString()}};
+
+    
+
+    if (!isFollower && followers->size() > 0) {
+      // Now replicate the good operations on all followers:
+      auto cc = arangodb::ClusterComm::instance();
+      if (cc != nullptr) {
+        // nullptr only happens on controlled shutdown
+        std::string path =
+            "/_db/" + arangodb::basics::StringUtils::urlEncode(databaseName()) +
+            "/_api/collection/" +
+            arangodb::basics::StringUtils::urlEncode(collectionName) +
+            "/truncate?isSynchronousReplication=" +
+            ServerState::instance()->getId();
+
+        auto body = std::make_shared<std::string>();
+
+        // Now prepare the requests:
+        std::vector<ClusterCommRequest> requests;
+        for (auto const& f : *followers) {
+          requests.emplace_back("server:" + f, arangodb::rest::RequestType::PUT,
+                                path, body, headers);
+        }
+        size_t nrDone = 0;
+        size_t nrGood = cc->performRequests(requests, TRX_FOLLOWER_TIMEOUT,
+                                            nrDone, Logger::REPLICATION, false);
+        if (nrGood < followers->size()) {
+          // If any would-be-follower refused to follow there must be a
+          // new leader in the meantime, in this case we must not allow
+          // this operation to succeed, we simply return with a refusal
+          // error (note that we use the follower version, since we have
+          // lost leadership):
+          if (findRefusal(requests)) {
+            return OperationResult(TRI_ERROR_CLUSTER_SHARD_LEADER_RESIGNED);
+          }
+          // we drop all followers that were not successful:
+          for (size_t i = 0; i < followers->size(); ++i) {
+            bool replicationWorked =
+                requests[i].done &&
+                requests[i].result.status == CL_COMM_RECEIVED &&
+                (requests[i].result.answer_code ==
+                     rest::ResponseCode::ACCEPTED ||
+                 requests[i].result.answer_code == rest::ResponseCode::OK);
+            if (!replicationWorked) {
+              auto const& followerInfo = collection->followers();
+              if (followerInfo->remove((*followers)[i])) {
+                LOG_TOPIC(WARN, Logger::REPLICATION)
+                    << "truncateLocal: dropping follower " << (*followers)[i]
+                    << " for shard " << collectionName;
+              } else {
+                LOG_TOPIC(ERR, Logger::REPLICATION)
+                    << "truncateLocal: could not drop follower "
+                    << (*followers)[i] << " for shard " << collectionName;
+                THROW_ARANGO_EXCEPTION(TRI_ERROR_CLUSTER_COULD_NOT_DROP_FOLLOWER);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  res = unlock(trxCollection(cid), AccessMode::Type::WRITE);
+*/
+  return OperationResult();
+}
+
+  
 /// @brief remove all documents in a collection, local
 OperationResult transaction::Methods::truncateLocal(
     std::string const& collectionName, OperationOptions& options) {
@@ -3093,6 +3174,7 @@ transaction::Methods::indexesForCollectionCoordinator(
 ///        return a valid index. nullptr is impossible.
 transaction::Methods::IndexHandle transaction::Methods::getIndexByIdentifier(
     std::string const& collectionName, std::string const& indexHandle) {
+  
   if (_state->isCoordinator()) {
     if (indexHandle.empty()) {
       THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_BAD_PARAMETER,
@@ -3143,9 +3225,9 @@ transaction::Methods::IndexHandle transaction::Methods::getIndexByIdentifier(
 }
 
 /// @brief add a collection to an embedded transaction
-Result transaction::Methods::addCollectionEmbedded(TRI_voc_cid_t cid,
-                                                   char const* name,
-                                                   AccessMode::Type type) {
+Result transaction::Methods::addCollectionEmbedded(
+  TRI_voc_cid_t cid, char const* name, AccessMode::Type type) {
+  
   TRI_ASSERT(_state != nullptr);
 
   int res = _state->addCollection(cid, type, _state->nestingLevel(), false);
@@ -3259,8 +3341,8 @@ void transaction::CallbackInvoker::invoke() noexcept {
 }
 
 /// @brief get an ongoing transaction from the registry:
-transaction::Methods* transaction::Methods::open(transaction::TransactionId const& tid,
-                                TRI_vocbase_t* vocbase) {
+transaction::Methods* transaction::Methods::open(
+  transaction::TransactionId const& tid, TRI_vocbase_t* vocbase) {
   auto trxReg = TransactionRegistryFeature::TRANSACTION_REGISTRY;
   return trxReg->open(tid, vocbase);
 }

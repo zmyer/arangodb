@@ -947,7 +947,7 @@ int createDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
     std::shared_ptr<VPackBuilder>& resultBody,
-    std::unordered_set<std::string>& servers) {
+    std::unordered_map<ServerID,std::unordered_set<ShardID>>& servers) {
   
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
@@ -1044,7 +1044,7 @@ int createDocumentOnCoordinator(
       baseUrl + StringUtils::urlEncode(it.first) + optsUrlPart, body,
       headers);
 
-    servers.emplace(ClusterInfo::instance()->getResponsibleServer(it.first)->front());
+    servers[ClusterInfo::instance()->getResponsibleServer(it.first)->front()].emplace(it.first);
     
   }
   
@@ -1090,7 +1090,8 @@ int createDocumentOnCoordinator(
 ////////////////////////////////////////////////////////////////////////////////
 Result abortTransactionOnCoordinator(
   std::string const& dbname, transaction::TransactionId const& tid,
-  std::unordered_set<std::string> const& servers, OperationOptions const& options) {
+  std::unordered_map<ServerID,std::unordered_set<ShardID>> const& servers,
+  OperationOptions const& options) {
 
   std::string leaderId = (tid+1).toString();
 
@@ -1109,7 +1110,7 @@ Result abortTransactionOnCoordinator(
   std::vector<ClusterCommRequest> requests;
   for (auto const& server : servers) {
     requests.emplace_back(
-      "server:" + server, arangodb::rest::RequestType::DELETE_REQ,
+      "server:" + server.first, arangodb::rest::RequestType::DELETE_REQ,
       baseUrl , body, headers);
   }
   
@@ -1126,35 +1127,42 @@ Result abortTransactionOnCoordinator(
 ////////////////////////////////////////////////////////////////////////////////
 Result commitTransactionOnCoordinator(
   std::string const& dbname, transaction::TransactionId const& tid,
-  std::unordered_set<std::string> const& servers, OperationOptions const& options) {
+  std::unordered_map<ServerID,std::unordered_set<ShardID>> const& servers,
+  OperationOptions const& options) {
 
-  std::string leaderId = (tid+1).toString();
-
+  /// _api/transaction/myid+1
   std::string const baseUrl =
-    "/_db/" + StringUtils::urlEncode(dbname) + "/_api/transaction/" + leaderId;
+    "/_db/" + StringUtils::urlEncode(dbname) + "/_api/transaction/" + (tid+1).toString();
 
   auto cc = ClusterComm::instance();
-  if (cc == nullptr) {
-    // nullptr happens only during controlled shutdown
+  if (cc == nullptr) {     // nullptr happens only during controlled shutdown
     return TRI_ERROR_SHUTTING_DOWN;
   }
   
   auto body = std::make_shared<std::string>();
   auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+  *headers = {{TRX_HEADER,options.xArangoDBTrx}};
   
   std::vector<ClusterCommRequest> requests;
   for (auto const& server : servers) {
     requests.emplace_back(
-      "server:" + server, arangodb::rest::RequestType::PUT,
-      baseUrl , body, headers);
+      "server:" + server.first, arangodb::rest::RequestType::PUT,
+      baseUrl, body, headers);
   }
   
   size_t nrDone = 0;
   cc->performRequests(
     requests, CL_DEFAULT_TIMEOUT, nrDone, Logger::COMMUNICATION, true);
 
-  return Result(TRI_ERROR_NO_ERROR);
+  
+  // 
 
+/*  std::unordered_map<ShardID, std::shared_ptr<VPackBuilder>> resultMap;
+  collectResultsFromAllShards<VPackValueLength>(
+    shardMap, requests, errorCounter, resultMap, responseCode);
+    mergeResults(reverseMapping, resultMap, resultBody);*/
+  return Result(TRI_ERROR_NO_ERROR);  
+  
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1167,7 +1175,7 @@ int deleteDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
     std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
-    std::unordered_set<std::string>& servers) {
+    std::unordered_map<ServerID,std::unordered_set<ShardID>>& servers) {
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
   auto cc = ClusterComm::instance();
@@ -1239,7 +1247,9 @@ int deleteDocumentOnCoordinator(
 
       // We found the responsible shard. Add it to the list.
       auto it = shardMap.find(shardID);
-      servers.emplace(ClusterInfo::instance()->getResponsibleServer(shardID)->front());
+      servers[ClusterInfo::instance()->
+              getResponsibleServer(shardID)->front()].emplace(shardID);
+
       if (it == shardMap.end()) {
         std::vector<VPackValueLength> counter({index});
         shardMap.emplace(shardID, counter);
@@ -1405,10 +1415,10 @@ int deleteDocumentOnCoordinator(
 /// @brief truncate a cluster collection on a coordinator
 ////////////////////////////////////////////////////////////////////////////////
 
-int truncateCollectionOnCoordinator(std::string const& dbname,
-                                    std::string const& collname,
-                                    OperationOptions const& options,
-                                    std::unordered_set<std::string>& servers) {
+int truncateCollectionOnCoordinator(
+  std::string const& dbname, std::string const& collname,
+  OperationOptions const& options,
+  std::unordered_map<ServerID,std::unordered_set<ShardID>>& servers) {
 
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
@@ -1442,7 +1452,8 @@ int truncateCollectionOnCoordinator(std::string const& dbname,
                      "/_api/collection/" + p.first + "/truncate",
                      std::shared_ptr<std::string>(), headers, nullptr, 60.0);
 
-    servers.emplace(ClusterInfo::instance()->getResponsibleServer(p.first)->front());
+    servers[ClusterInfo::instance()->
+            getResponsibleServer(p.first)->front()].emplace(p.first);
     
   }
   // Now listen to the results:
@@ -2152,7 +2163,7 @@ int modifyDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
     std::shared_ptr<VPackBuilder>& resultBody,
-    std::unordered_set<std::string>& servers) {
+    std::unordered_map<ServerID, std::unordered_set<ShardID>>& servers) {
   // Set a few variables needed for our work:
   ClusterInfo* ci = ClusterInfo::instance();
   auto cc = ClusterComm::instance();
@@ -2270,7 +2281,10 @@ int modifyDocumentOnCoordinator(
           baseUrl + StringUtils::urlEncode(it.first) + "/" +
           StringUtils::urlEncode(
             slice.get(StaticStrings::KeyString).copyString()) + optsUrlPart, body);
-        servers.emplace(ClusterInfo::instance()->getResponsibleServer(it.first)->front());
+
+        servers[ClusterInfo::instance()->
+                getResponsibleServer(it.first)->front()].emplace(it.first);
+
       } else {
         reqBuilder.clear();
         reqBuilder.openArray();
@@ -2283,7 +2297,8 @@ int modifyDocumentOnCoordinator(
         requests.emplace_back(
             "shard:" + it.first, reqType,
             baseUrl + StringUtils::urlEncode(it.first) + optsUrlPart, body);
-        servers.emplace(ClusterInfo::instance()->getResponsibleServer(it.first)->front());
+        servers[ClusterInfo::instance()->
+                getResponsibleServer(it.first)->front()].emplace(it.first);
       }
     }
 
