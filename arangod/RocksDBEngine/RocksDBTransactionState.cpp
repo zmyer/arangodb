@@ -169,7 +169,7 @@ void RocksDBTransactionState::createTransaction() {
   _rocksTransaction.reset(
       db->BeginTransaction(_rocksWriteOptions, rocksdb::TransactionOptions()));
   _rocksTransaction->SetSnapshot();
-  if (!hasHint(transaction::Hints::Hint::SINGLE_OPERATION)) {
+  if (!hasHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION)) {
     RocksDBLogValue header =
         RocksDBLogValue::BeginTransaction(_vocbase->id(), _id.id());
     _rocksTransaction->PutLogData(header.slice());
@@ -320,7 +320,7 @@ void RocksDBTransactionState::prepareOperation(
     TRI_voc_document_operation_e operationType) {
   TRI_ASSERT(!isReadOnlyTransaction());
 
-  bool singleOp = hasHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  bool singleOp = hasHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   if (collectionId != _lastUsedCollection) {
     // single operations should never call this method twice
     // singleOp => lastUsedColl == 0

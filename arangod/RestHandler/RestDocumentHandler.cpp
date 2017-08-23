@@ -143,7 +143,7 @@ bool RestDocumentHandler::createDocument() {
   
   bool const isMultiple = body.isArray();
   if (!isMultiple) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   Result res = trx->begin();
@@ -248,7 +248,7 @@ bool RestDocumentHandler::readSingleDocument(bool generateBody) {
     transaction::StandaloneContext::Create(_vocbase, _trxProps.transactionId));
   transaction::SingleCollectionTransactionProxy trx(
     transactionContext, collection, AccessMode::Type::READ);
-  trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
 
   // ...........................................................................
   // inside read transaction
@@ -442,7 +442,7 @@ bool RestDocumentHandler::modifyDocument(bool isPatch) {
   transaction::SingleCollectionTransactionProxy trx(
     transactionContext, collectionName, AccessMode::Type::WRITE);
   if (!isArrayCase) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   // ...........................................................................
@@ -575,7 +575,7 @@ bool RestDocumentHandler::deleteDocument() {
   transaction::SingleCollectionTransactionProxy trx(
     transactionContext, collectionName, AccessMode::Type::WRITE);
   if (suffixes.size() == 2 || !search.isArray()) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   Result res = trx->begin();

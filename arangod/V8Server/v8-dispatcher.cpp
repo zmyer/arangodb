@@ -744,7 +744,7 @@ static void JS_DeleteQueue(v8::FunctionCallbackInfo<v8::Value> const& args) {
   auto transactionContext = std::make_shared<transaction::V8Context>(v8g->_vocbase, true);
   SingleCollectionTransaction trx(transactionContext, "_queues",
                                   AccessMode::Type::WRITE);
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   Result res = trx.begin();
   if (!res.ok()) {
     TRI_V8_THROW_EXCEPTION(res);

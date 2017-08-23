@@ -114,7 +114,7 @@ void MMFilesTransactionCollection::freeOperations(transaction::Methods* activeTr
     return;
   }
   
-  bool const isSingleOperationTransaction = _transaction->hasHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  bool const isSingleOperationTransaction = _transaction->hasHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
 
   // revert all operations
   for (auto it = _operations.rbegin(); it != _operations.rend(); ++it) {
@@ -252,7 +252,7 @@ int MMFilesTransactionCollection::use(int nestingLevel) {
   bool shouldLock = _transaction->hasHint(transaction::Hints::Hint::LOCK_ENTIRELY);
 
   if (!shouldLock) {
-    shouldLock = (AccessMode::AccessMode::isWriteOrExclusive(_accessType) && !_transaction->hasHint(transaction::Hints::Hint::SINGLE_OPERATION));
+    shouldLock = (AccessMode::AccessMode::isWriteOrExclusive(_accessType) && !_transaction->hasHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION));
   }
 
   if (shouldLock && !isLocked()) {
@@ -333,7 +333,7 @@ int MMFilesTransactionCollection::doLock(AccessMode::Type type, int nestingLevel
     timeout = 0.00000001;
   }
   
-  bool const useDeadlockDetector = (!_transaction->hasHint(transaction::Hints::Hint::SINGLE_OPERATION) && 
+  bool const useDeadlockDetector = (!_transaction->hasHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION) && 
                                     !_transaction->hasHint(transaction::Hints::Hint::NO_DLD));
 
   int res;
@@ -395,7 +395,7 @@ int MMFilesTransactionCollection::doUnlock(AccessMode::Type type, int nestingLev
     return TRI_ERROR_INTERNAL;
   }
 
-  bool const useDeadlockDetector = (!_transaction->hasHint(transaction::Hints::Hint::SINGLE_OPERATION) &&
+  bool const useDeadlockDetector = (!_transaction->hasHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION) &&
                                     !_transaction->hasHint(transaction::Hints::Hint::NO_DLD));
 
   LogicalCollection* collection = _collection;

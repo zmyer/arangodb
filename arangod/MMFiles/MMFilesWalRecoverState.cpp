@@ -302,7 +302,7 @@ int MMFilesWalRecoverState::executeSingleOperation(
         arangodb::transaction::StandaloneContext::Create(vocbase), collectionId,
         AccessMode::Type::WRITE);
 
-    trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
     trx.addHint(transaction::Hints::Hint::NO_BEGIN_MARKER);
     trx.addHint(transaction::Hints::Hint::NO_ABORT_MARKER);
     trx.addHint(transaction::Hints::Hint::NO_THROTTLING);
