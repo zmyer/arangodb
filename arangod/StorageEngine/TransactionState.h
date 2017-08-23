@@ -134,7 +134,7 @@ class TransactionState {
 
   /// @brief whether or not a transaction consists of a single operation
   bool isSingleOperation() const {
-    return hasHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    return hasHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   /// @brief update the status of a transaction

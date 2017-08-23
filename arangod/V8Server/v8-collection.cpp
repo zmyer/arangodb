@@ -349,7 +349,7 @@ static void ExistsVocbaseVPack(
   transaction::SingleCollectionTransactionProxy trx(
       transactionContext, collectionName, AccessMode::Type::READ);
   if (trx.wasCreatedHere()) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   res = trx.begin();
@@ -446,7 +446,7 @@ static void DocumentVocbaseCol(
   transaction::SingleCollectionTransactionProxy trx(
       transactionContext, collectionName, AccessMode::Type::READ);
   if (trx.wasCreatedHere() && !args[0]->IsArray()) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   Result res = trx.begin();
@@ -523,7 +523,7 @@ static void DocumentVocbase(
   transaction::SingleCollectionTransactionProxy trx(
       transactionContext, collectionName, AccessMode::Type::READ);
   if (trx.wasCreatedHere()) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   Result res = trx.begin();
@@ -622,7 +622,7 @@ static void RemoveVocbaseCol(v8::FunctionCallbackInfo<v8::Value> const& args) {
   transaction::SingleCollectionTransactionProxy trx(
       transactionContext, collectionName, AccessMode::Type::WRITE);
   if (trx.wasCreatedHere() && !args[0]->IsArray()) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   Result res = trx.begin();
@@ -766,7 +766,7 @@ static void RemoveVocbase(v8::FunctionCallbackInfo<v8::Value> const& args) {
   transaction::SingleCollectionTransactionProxy trx(
       transactionContext, collectionName, AccessMode::Type::WRITE);
   if (trx.wasCreatedHere()) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   Result res = trx.begin();
@@ -864,7 +864,7 @@ static void JS_BinaryDocumentVocbaseCol(
       transactionContext, collectionName, AccessMode::Type::READ);
 
   if (trx.wasCreatedHere()) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   Result res = trx.begin();
@@ -1933,7 +1933,7 @@ static void ModifyVocbaseCol(TRI_voc_document_operation_e operation,
   transaction::SingleCollectionTransactionProxy trx(
       transactionContext, collectionName, AccessMode::Type::WRITE);
   if (trx.wasCreatedHere() && !args[0]->IsArray()) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   Result res = trx.begin();
@@ -2061,7 +2061,7 @@ static void ModifyVocbase(TRI_voc_document_operation_e operation,
   transaction::SingleCollectionTransactionProxy trx(
       transactionContext, collectionName, AccessMode::Type::WRITE);
   if (trx.wasCreatedHere()) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   Result res = trx.begin();
@@ -2494,7 +2494,7 @@ static void JS_SaveVocbase(v8::FunctionCallbackInfo<v8::Value> const& args) {
   transaction::SingleCollectionTransactionProxy trx(
       transactionContext, collectionName, AccessMode::Type::WRITE);
   if (trx.wasCreatedHere()) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   res = trx.begin();
@@ -2661,7 +2661,7 @@ static void InsertVocbaseCol(v8::Isolate* isolate,
   transaction::SingleCollectionTransactionProxy trx(
       transactionContext, collection->cid(), AccessMode::Type::WRITE);
   if (trx.wasCreatedHere() && !payloadIsArray) {
-    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+    trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   }
 
   Result res = trx.begin();
@@ -2804,6 +2804,9 @@ static void JS_TruncateVocbaseCol(
   transaction::SingleCollectionTransactionProxy trx(
       transaction::V8Context::Create(collection->vocbase(), true),
                                   collection->cid(), t);
+  if (trx.wasCreatedHere()) {
+    trx->addHint(transaction::Hints::Hint::ONLY_ONE_OPERATION);
+  }
 
   Result res = trx.begin();
   if (!res.ok()) {

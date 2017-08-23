@@ -309,7 +309,7 @@ Result AuthInfo::storeUserInternal(AuthUserEntry const& entry, bool replace) {
       new transaction::StandaloneContext(vocbase));
   SingleCollectionTransaction trx(ctx, TRI_COL_NAME_USERS,
                                   AccessMode::Type::WRITE);
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
 
   Result res = trx.begin();
   if (res.ok()) {
@@ -452,7 +452,7 @@ static Result UpdateUser(VPackSlice const& user) {
       new transaction::StandaloneContext(vocbase));
   SingleCollectionTransaction trx(ctx, TRI_COL_NAME_USERS,
                                   AccessMode::Type::WRITE);
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
 
   Result res = trx.begin();
   if (res.ok()) {
@@ -555,7 +555,7 @@ static Result RemoveUserInternal(AuthUserEntry const& entry) {
   SingleCollectionTransaction trx(ctx, TRI_COL_NAME_USERS,
                                   AccessMode::Type::WRITE);
 
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
 
   Result res = trx.begin();
   if (res.ok()) {

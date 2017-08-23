@@ -583,7 +583,7 @@ int ContinuousSyncer::processDocument(TRI_replication_operation_e type,
                                             cid, AccessMode::Type::EXCLUSIVE);
   
     if (_supportsSingleOperations) {
-      trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+      trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
     }
 
     Result res = trx.begin();

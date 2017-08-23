@@ -36,7 +36,7 @@ class Hints {
   /// @brief individual hint flags that can be used for transactions
   enum class Hint : ValueType {
     NONE = 0,
-    SINGLE_OPERATION = 1,
+    SINGLE_DOCUMENT_OPERATION = 1,
     LOCK_ENTIRELY = 2,
     LOCK_NEVER = 4,
     NO_BEGIN_MARKER = 8,
@@ -47,7 +47,8 @@ class Hints {
     NO_USAGE_LOCK = 256,
     RECOVERY = 512,
     NO_DLD = 1024, // disable deadlock detection
-    READ_WRITES = 2048 // do not use snapshot
+    READ_WRITES = 2048, // do not use snapshot
+    ONLY_ONE_OPERATION = 4096,
   };
 
   Hints() : _value(0) {}
