@@ -223,7 +223,7 @@ static void JS_AllQuery(v8::FunctionCallbackInfo<v8::Value> const& args) {
   transaction::SingleCollectionTransactionProxy trx(
       transactionContext, collection->cid(), AccessMode::Type::READ);
 
-  Result res = trx->begin();
+  Result res = trx.begin();
 
   if (!res.ok()) {
     TRI_V8_THROW_EXCEPTION(res);
@@ -266,7 +266,7 @@ static void JS_AllQuery(v8::FunctionCallbackInfo<v8::Value> const& args) {
 
   resultBuilder.close();
   
-  res = trx->finish(countResult.code);
+  res = trx.finish(countResult.code);
   if (res.fail()) {
     TRI_V8_THROW_EXCEPTION(res);
   }
@@ -311,8 +311,9 @@ static void JS_AnyQuery(v8::FunctionCallbackInfo<v8::Value> const& args) {
 
   std::shared_ptr<transaction::V8Context> transactionContext =
       transaction::V8Context::Create(col->vocbase(), true);
-  SingleCollectionTransaction trx(transactionContext, col->cid(),
-                                  AccessMode::Type::READ);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, col->cid(),
+      AccessMode::Type::READ);
 
   Result res = trx.begin();
 
@@ -320,7 +321,7 @@ static void JS_AnyQuery(v8::FunctionCallbackInfo<v8::Value> const& args) {
     TRI_V8_THROW_EXCEPTION(res);
   }
   
-  OperationResult cursor = trx.any(collectionName);
+  OperationResult cursor = trx->any(collectionName);
 
   res = trx.finish(cursor.code);
 

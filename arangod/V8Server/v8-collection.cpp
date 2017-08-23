@@ -52,6 +52,7 @@
 #include "StorageEngine/PhysicalCollection.h"
 #include "StorageEngine/StorageEngine.h"
 #include "Transaction/Hints.h"
+#include "Transaction/TransactionProxy.h"
 #include "Transaction/V8Context.h"
 #include "Utils/CollectionNameResolver.h"
 #include "Utils/OperationOptions.h"
@@ -345,8 +346,11 @@ static void ExistsVocbaseVPack(
   VPackSlice search = builder.slice();
   TRI_ASSERT(search.isObject());
 
-  SingleCollectionTransaction trx(transactionContext, collectionName, AccessMode::Type::READ);
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collectionName, AccessMode::Type::READ);
+  if (trx.wasCreatedHere()) {
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  }
 
   res = trx.begin();
 
@@ -357,7 +361,7 @@ static void ExistsVocbaseVPack(
   OperationOptions options;
   options.silent = false;
   options.ignoreRevs = false;
-  OperationResult opResult = trx.document(collectionName, search, options);
+  OperationResult opResult = trx->document(collectionName, search, options);
 
   res = trx.finish(opResult.code);
 
@@ -439,10 +443,10 @@ static void DocumentVocbaseCol(
 
   auto transactionContext = std::make_shared<transaction::V8Context>(vocbase, true);
 
-  SingleCollectionTransaction trx(transactionContext, collectionName,
-                                  AccessMode::Type::READ);
-  if (!args[0]->IsArray()) {
-    trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collectionName, AccessMode::Type::READ);
+  if (trx.wasCreatedHere() && !args[0]->IsArray()) {
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
   }
 
   Result res = trx.begin();
@@ -450,7 +454,7 @@ static void DocumentVocbaseCol(
     TRI_V8_THROW_EXCEPTION(res);
   }
 
-  OperationResult opResult = trx.document(collectionName, search, options);
+  OperationResult opResult = trx->document(collectionName, search, options);
 
   res = trx.finish(opResult.code);
 
@@ -516,9 +520,11 @@ static void DocumentVocbase(
   OperationOptions options;
   options.ignoreRevs = false;
 
-  SingleCollectionTransaction trx(transactionContext, collectionName,
-                                  AccessMode::Type::READ);
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collectionName, AccessMode::Type::READ);
+  if (trx.wasCreatedHere()) {
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  }
 
   Result res = trx.begin();
 
@@ -526,7 +532,7 @@ static void DocumentVocbase(
     TRI_V8_THROW_EXCEPTION(res);
   }
 
-  OperationResult opResult = trx.document(collectionName, search, options);
+  OperationResult opResult = trx->document(collectionName, search, options);
 
   res = trx.finish(opResult.code);
 
@@ -613,9 +619,10 @@ static void RemoveVocbaseCol(v8::FunctionCallbackInfo<v8::Value> const& args) {
 
   auto transactionContext = std::make_shared<transaction::V8Context>(vocbase, true);
 
-  SingleCollectionTransaction trx(transactionContext, collectionName, AccessMode::Type::WRITE);
-  if (!args[0]->IsArray()) {
-    trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collectionName, AccessMode::Type::WRITE);
+  if (trx.wasCreatedHere() && !args[0]->IsArray()) {
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
   }
 
   Result res = trx.begin();
@@ -653,7 +660,7 @@ static void RemoveVocbaseCol(v8::FunctionCallbackInfo<v8::Value> const& args) {
 
   VPackSlice toRemove = searchBuilder.slice();
 
-  OperationResult result = trx.remove(collectionName, toRemove, options);
+  OperationResult result = trx->remove(collectionName, toRemove, options);
 
   res = trx.finish(result.code);
 
@@ -756,9 +763,11 @@ static void RemoveVocbase(v8::FunctionCallbackInfo<v8::Value> const& args) {
   VPackSlice toRemove = builder.slice();
   TRI_ASSERT(toRemove.isObject());
 
-  SingleCollectionTransaction trx(transactionContext, collectionName,
-                                  AccessMode::Type::WRITE);
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collectionName, AccessMode::Type::WRITE);
+  if (trx.wasCreatedHere()) {
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  }
 
   Result res = trx.begin();
 
@@ -766,7 +775,7 @@ static void RemoveVocbase(v8::FunctionCallbackInfo<v8::Value> const& args) {
     TRI_V8_THROW_EXCEPTION(res);
   }
 
-  OperationResult result = trx.remove(collectionName, toRemove, options);
+  OperationResult result = trx->remove(collectionName, toRemove, options);
 
   res = trx.finish(result.code);
 
@@ -851,10 +860,12 @@ static void JS_BinaryDocumentVocbaseCol(
   auto transactionContext =
       std::make_shared<transaction::V8Context>(vocbase, true);
 
-  SingleCollectionTransaction trx(transactionContext, collectionName,
-                                  AccessMode::Type::READ);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collectionName, AccessMode::Type::READ);
 
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  if (trx.wasCreatedHere()) {
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  }
 
   Result res = trx.begin();
 
@@ -862,7 +873,7 @@ static void JS_BinaryDocumentVocbaseCol(
     TRI_V8_THROW_EXCEPTION(res);
   }
 
-  OperationResult opResult = trx.document(collectionName, search, options);
+  OperationResult opResult = trx->document(collectionName, search, options);
 
   res = trx.finish(opResult.code);
 
@@ -1070,8 +1081,9 @@ static void JS_FiguresVocbaseCol(
     TRI_V8_THROW_EXCEPTION_INTERNAL("cannot extract collection");
   }
 
-  SingleCollectionTransaction trx(transaction::V8Context::Create(collection->vocbase(), true), collection->cid(),
-                                  AccessMode::Type::READ);
+  transaction::SingleCollectionTransaction trx(
+      transaction::V8Context::Create(collection->vocbase(), true),
+      collection->cid(), AccessMode::Type::READ);
   Result res = trx.begin();
 
   if (!res.ok()) {
