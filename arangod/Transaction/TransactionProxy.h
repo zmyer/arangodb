@@ -61,6 +61,7 @@ class SingleCollectionTransactionProxy {
       _wasCreatedHere = false;
       // add the (sole) collection:
       _trx->addCollection(cid, accessType);
+#warning need more thought here, what if collection already there, and, if transaction has already begun, we need to lock the collection here!
     } else {
       _trx = new SingleCollectionTransaction(context, cid, accessType);
       _wasCreatedHere = true;

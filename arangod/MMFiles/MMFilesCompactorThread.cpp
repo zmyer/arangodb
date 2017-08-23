@@ -439,7 +439,8 @@ void MMFilesCompactorThread::compactDatafiles(LogicalCollection* collection,
     return true;
   };
 
-  arangodb::SingleCollectionTransaction trx(arangodb::transaction::StandaloneContext::Create(collection->vocbase()), 
+  arangodb::SingleCollectionTransaction trx(
+      arangodb::transaction::StandaloneContext::Create(collection->vocbase()), 
       collection->cid(), AccessMode::Type::WRITE);
   trx.addHint(transaction::Hints::Hint::NO_BEGIN_MARKER);
   trx.addHint(transaction::Hints::Hint::NO_ABORT_MARKER);

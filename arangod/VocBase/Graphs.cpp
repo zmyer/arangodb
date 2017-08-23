@@ -29,6 +29,7 @@
 #include "Utils/OperationOptions.h"
 #include "Utils/SingleCollectionTransaction.h"
 #include "Transaction/StandaloneContext.h"
+#include "Transaction/TransactionProxy.h"
 #include <sstream>
 using namespace arangodb;
 
@@ -41,7 +42,8 @@ std::string const GRAPHS = "_graphs";
 
 arangodb::aql::Graph* arangodb::lookupGraphByName(std::shared_ptr<transaction::Context> transactionContext,
                                                   std::string const& name) {
-  SingleCollectionTransaction trx(transactionContext, GRAPHS, AccessMode::Type::READ);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, GRAPHS, AccessMode::Type::READ);
 
   Result res = trx.begin();
 
@@ -60,7 +62,7 @@ arangodb::aql::Graph* arangodb::lookupGraphByName(std::shared_ptr<transaction::C
   // Default options are enough here
   OperationOptions options;
 
-  OperationResult result = trx.document(GRAPHS, b.slice(), options);
+  OperationResult result = trx->document(GRAPHS, b.slice(), options);
 
   // Commit or abort.
   res = trx.finish(result.code);

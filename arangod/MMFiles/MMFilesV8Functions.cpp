@@ -32,6 +32,7 @@
 #include "StorageEngine/EngineSelectorFeature.h"
 #include "StorageEngine/PhysicalCollection.h"
 #include "StorageEngine/StorageEngine.h"
+#include "Transaction/TransactionProxy.h"
 #include "Transaction/V8Context.h"
 #include "Utils/SingleCollectionTransaction.h"
 #include "V8/v8-conv.h"
@@ -67,7 +68,7 @@ static void JS_RotateVocbaseCol(
   
   TRI_THROW_SHARDING_COLLECTION_NOT_YET_IMPLEMENTED(collection);
 
-  SingleCollectionTransaction trx(
+  transaction::SingleCollectionTransactionProxy trx(
       transaction::V8Context::Create(collection->vocbase(), true),
       collection->cid(), AccessMode::Type::READ);
 

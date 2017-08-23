@@ -1081,7 +1081,7 @@ static void JS_FiguresVocbaseCol(
     TRI_V8_THROW_EXCEPTION_INTERNAL("cannot extract collection");
   }
 
-  transaction::SingleCollectionTransaction trx(
+  transaction::SingleCollectionTransactionProxy trx(
       transaction::V8Context::Create(collection->vocbase(), true),
       collection->cid(), AccessMode::Type::READ);
   Result res = trx.begin();
@@ -1371,7 +1371,7 @@ static void JS_LoadVocbaseCol(v8::FunctionCallbackInfo<v8::Value> const& args) {
     TRI_V8_RETURN_UNDEFINED();
   }
 
-  SingleCollectionTransaction trx(
+  transaction::SingleCollectionTransactionProxy trx(
     transaction::V8Context::Create(collection->vocbase(), true),
     collection->cid(), AccessMode::Type::READ);
 
@@ -1540,13 +1540,13 @@ static void JS_PropertiesVocbaseCol(
     TRI_V8_RETURN(result);
   }
 
-  SingleCollectionTransaction trx(
+  transaction::SingleCollectionTransactionProxy trx(
       transaction::V8Context::Create(collection->vocbase(), true),
       collection->cid(),
       isModification ? AccessMode::Type::EXCLUSIVE : AccessMode::Type::READ);
 
-  if (!isModification) {
-    trx.addHint(transaction::Hints::Hint::NO_USAGE_LOCK);
+  if (trx.wasCreatedHere() && !isModification) {
+    trx->addHint(transaction::Hints::Hint::NO_USAGE_LOCK);
   }
 
   Result res = trx.begin();
@@ -1930,10 +1930,10 @@ static void ModifyVocbaseCol(TRI_voc_document_operation_e operation,
   auto transactionContext = std::make_shared<transaction::V8Context>(vocbase, true);
 
   // Now start the transaction:
-  SingleCollectionTransaction trx(transactionContext, collectionName,
-                                  AccessMode::Type::WRITE);
-  if (!args[0]->IsArray()) {
-    trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collectionName, AccessMode::Type::WRITE);
+  if (trx.wasCreatedHere() && !args[0]->IsArray()) {
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
   }
 
   Result res = trx.begin();
@@ -1944,9 +1944,9 @@ static void ModifyVocbaseCol(TRI_voc_document_operation_e operation,
 
   OperationResult opResult;
   if (operation == TRI_VOC_DOCUMENT_OPERATION_REPLACE) {
-    opResult = trx.replace(collectionName, update, options);
+    opResult = trx->replace(collectionName, update, options);
   } else {
-    opResult = trx.update(collectionName, update, options);
+    opResult = trx->update(collectionName, update, options);
   }
   res = trx.finish(opResult.code);
 
@@ -2058,9 +2058,11 @@ static void ModifyVocbase(TRI_voc_document_operation_e operation,
   // We need to free the collection object in the end
   LocalCollectionGuard g(const_cast<LogicalCollection*>(col));
 
-  SingleCollectionTransaction trx(transactionContext, collectionName,
-                                  AccessMode::Type::WRITE);
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collectionName, AccessMode::Type::WRITE);
+  if (trx.wasCreatedHere()) {
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  }
 
   Result res = trx.begin();
   if (!res.ok()) {
@@ -2071,9 +2073,9 @@ static void ModifyVocbase(TRI_voc_document_operation_e operation,
 
   OperationResult opResult;
   if (operation == TRI_VOC_DOCUMENT_OPERATION_REPLACE) {
-    opResult = trx.replace(collectionName, update, options);
+    opResult = trx->replace(collectionName, update, options);
   } else {
-    opResult = trx.update(collectionName, update, options);
+    opResult = trx->update(collectionName, update, options);
   }
 
   res = trx.finish(opResult.code);
@@ -2359,7 +2361,7 @@ static void JS_PregelAQLResult(v8::FunctionCallbackInfo<v8::Value> const& args) 
 static int GetRevision(arangodb::LogicalCollection* collection, TRI_voc_rid_t& rid) {
   TRI_ASSERT(collection != nullptr);
 
-  SingleCollectionTransaction trx(
+  transaction::SingleCollectionTransactionProxy trx(
       transaction::V8Context::Create(collection->vocbase(), true),
       collection->cid(), AccessMode::Type::READ);
 
@@ -2369,11 +2371,8 @@ static int GetRevision(arangodb::LogicalCollection* collection, TRI_voc_rid_t& r
     return res.errorNumber();
   }
 
-  // READ-LOCK start
-  trx.lockRead();
-  rid = collection->revision(&trx);
+  rid = collection->revision(trx.get());
   trx.finish(res);
-  // READ-LOCK end
 
   return TRI_ERROR_NO_ERROR;
 }
@@ -2492,9 +2491,11 @@ static void JS_SaveVocbase(v8::FunctionCallbackInfo<v8::Value> const& args) {
 
   // load collection
   auto transactionContext(transaction::V8Context::Create(vocbase, true));
-  SingleCollectionTransaction trx(transactionContext,
-                                  collectionName, AccessMode::Type::WRITE);
-  trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collectionName, AccessMode::Type::WRITE);
+  if (trx.wasCreatedHere()) {
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  }
 
   res = trx.begin();
 
@@ -2502,7 +2503,7 @@ static void JS_SaveVocbase(v8::FunctionCallbackInfo<v8::Value> const& args) {
     TRI_V8_THROW_EXCEPTION(res);
   }
 
-  OperationResult result = trx.insert(collectionName, builder.slice(), options);
+  OperationResult result = trx->insert(collectionName, builder.slice(), options);
 
   res = trx.finish(result.code);
 
@@ -2657,10 +2658,10 @@ static void InsertVocbaseCol(v8::Isolate* isolate,
   auto transactionContext =
       std::make_shared<transaction::V8Context>(collection->vocbase(), true);
 
-  SingleCollectionTransaction trx(transactionContext, collection->cid(),
-                                  AccessMode::Type::WRITE);
-  if (!payloadIsArray) {
-    trx.addHint(transaction::Hints::Hint::SINGLE_OPERATION);
+  transaction::SingleCollectionTransactionProxy trx(
+      transactionContext, collection->cid(), AccessMode::Type::WRITE);
+  if (trx.wasCreatedHere() && !payloadIsArray) {
+    trx->addHint(transaction::Hints::Hint::SINGLE_OPERATION);
   }
 
   Result res = trx.begin();
@@ -2670,7 +2671,7 @@ static void InsertVocbaseCol(v8::Isolate* isolate,
   }
 
   OperationResult result =
-      trx.insert(collection->name(), builder.slice(), options);
+      trx->insert(collection->name(), builder.slice(), options);
 
   res = trx.finish(Result(result.code, result.errorMessage));
 
@@ -2800,7 +2801,7 @@ static void JS_TruncateVocbaseCol(
   }
 
   auto t = unsafeTruncate ? AccessMode::Type::EXCLUSIVE : AccessMode::Type::WRITE;
-  SingleCollectionTransaction trx(
+  transaction::SingleCollectionTransactionProxy trx(
       transaction::V8Context::Create(collection->vocbase(), true),
                                   collection->cid(), t);
 
@@ -2809,7 +2810,7 @@ static void JS_TruncateVocbaseCol(
     TRI_V8_THROW_EXCEPTION(res);
   }
 
-  OperationResult result = trx.truncate(collection->name(), opOptions);
+  OperationResult result = trx->truncate(collection->name(), opOptions);
 
   res = trx.finish(result.code);
 
@@ -3262,7 +3263,9 @@ static void JS_CountVocbaseCol(
 
   std::string collectionName(col->name());
 
-  SingleCollectionTransaction trx(transaction::V8Context::Create(vocbase, true), collectionName, AccessMode::Type::READ);
+  transaction::SingleCollectionTransactionProxy trx(
+      transaction::V8Context::Create(vocbase, true),
+      collectionName, AccessMode::Type::READ);
 
   Result res = trx.begin();
 
@@ -3270,7 +3273,7 @@ static void JS_CountVocbaseCol(
     TRI_V8_THROW_EXCEPTION(res);
   }
 
-  OperationResult opResult = trx.count(collectionName, !details);
+  OperationResult opResult = trx->count(collectionName, !details);
   res = trx.finish(opResult.code);
 
   if (!res.ok()) {
@@ -3317,7 +3320,7 @@ static void JS_WarmupVocbaseCol(
     TRI_V8_RETURN_UNDEFINED();
   }
 
-  SingleCollectionTransaction trx(
+  transaction::SingleCollectionTransactionProxy trx(
       transaction::V8Context::Create(collection->vocbase(), true),
       collection->cid(),
       AccessMode::Type::READ);
@@ -3335,7 +3338,7 @@ static void JS_WarmupVocbaseCol(
   for (auto& idx : idxs) {
     schdler->post([&] {
       TRI_DEFER(numTrx--);
-      idx->warmup(&trx);
+      idx->warmup(trx.get());
     });
   }
   while (numTrx > 0 && !schdler->isStopping()) {
