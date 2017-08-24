@@ -30,15 +30,15 @@
 #include "Transaction/Context.h"
 #include "Transaction/Methods.h"
 #include "Transaction/TransactionRegistry.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 
 namespace arangodb {
 namespace transaction {
 
-class SingleCollectionTransactionProxy {
+class TransactionProxy {
 
   // The purpose of this class is to be a wrapper around a pointer to a
-  // SingleCollectionTransaction. The constructors are exactly as for that
+  // Transaction. The constructors are exactly as for that
   // class. Our constructors here decide whether we use an already ongoing
   // transaction that has been created outside, or whether we open a new
   // transaction. The destructor behaves accordingly and either returns
@@ -49,7 +49,7 @@ class SingleCollectionTransactionProxy {
   /// @brief create the transaction, using a collection id
   //////////////////////////////////////////////////////////////////////////////
 
-  SingleCollectionTransactionProxy(
+  TransactionProxy(
       std::shared_ptr<transaction::Context> const& context,
       TRI_voc_cid_t cid, AccessMode::Type accessType) {
     TransactionId parent = context->getParentTransaction();
@@ -57,13 +57,17 @@ class SingleCollectionTransactionProxy {
       Methods* trx = Methods::open(parent, context->vocbase());
       // Note that the open call throws an exception if the registry does
       // not have the transaction or if it is already in use.
-      _trx = static_cast<SingleCollectionTransaction*>(trx);
+      _trx = static_cast<Transaction*>(trx);
       _wasCreatedHere = false;
-      // add the (sole) collection:
+      // make the (sole) collection the current one for quick access:
+      _trx->_cid = cid;
+      _trx->_trxCollection = nullptr;
+      _trx->_documentCollection = nullptr;
+      _trx->_accessType = AccessMode::Type::NONE;
       _trx->addCollection(cid, accessType);
 #warning need more thought here, what if collection already there, and, if transaction has already begun, we need to lock the collection here!
     } else {
-      _trx = new SingleCollectionTransaction(context, cid, accessType);
+      _trx = new Transaction(context, cid, accessType);
       _wasCreatedHere = true;
     }
   }
@@ -72,7 +76,7 @@ class SingleCollectionTransactionProxy {
   /// @brief create the transaction, using a collection name
   //////////////////////////////////////////////////////////////////////////////
 
-  SingleCollectionTransactionProxy(
+  TransactionProxy(
       std::shared_ptr<transaction::Context> const& context,
       std::string const& name, AccessMode::Type accessType) {
     TransactionId parent = context->getParentTransaction();
@@ -81,13 +85,17 @@ class SingleCollectionTransactionProxy {
       Methods* trx = trxReg->open(parent, context->vocbase());
       // Note that the open call throws an exception if the registry does
       // not have the transaction or if it is already in use.
-      _trx = static_cast<SingleCollectionTransaction*>(trx);
+      _trx = static_cast<Transaction*>(trx);
       _wasCreatedHere = false;
-      // add the (sole) collection
       TRI_voc_cid_t cid = _trx->resolver()->getCollectionId(name);
+      // make the (sole) collection the current one for quick access:
+      _trx->_cid = cid;
+      _trx->_trxCollection = nullptr;
+      _trx->_documentCollection = nullptr;
+      _trx->_accessType = AccessMode::Type::NONE;
       _trx->addCollection(cid, name.c_str(), accessType);
     } else {
-      _trx = new SingleCollectionTransaction(context, name, accessType);
+      _trx = new Transaction(context, name, accessType);
       _wasCreatedHere = true;
     }
   }
@@ -96,7 +104,7 @@ class SingleCollectionTransactionProxy {
   /// @brief end the transaction
   //////////////////////////////////////////////////////////////////////////////
 
-  ~SingleCollectionTransactionProxy() {
+  ~TransactionProxy() {
     if (_wasCreatedHere) {
       delete _trx;
     } else {
@@ -108,7 +116,7 @@ class SingleCollectionTransactionProxy {
   /// @brief forward the arrow
   //////////////////////////////////////////////////////////////////////////////
 
-  SingleCollectionTransaction* operator->() const {
+  Transaction* operator->() const {
     return _trx;
   }
 
@@ -116,7 +124,7 @@ class SingleCollectionTransactionProxy {
   /// @brief get actual transaction
   //////////////////////////////////////////////////////////////////////////////
 
-  SingleCollectionTransaction* get() const {
+  Transaction* get() const {
     return _trx;
   }
 
@@ -185,7 +193,7 @@ class SingleCollectionTransactionProxy {
 
  private:
 
-  SingleCollectionTransaction* _trx;
+  Transaction* _trx;
   bool _wasCreatedHere;
 
 };

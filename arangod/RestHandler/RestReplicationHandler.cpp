@@ -32,6 +32,7 @@
 #include "Replication/InitialSyncer.h"
 #include "RestServer/QueryRegistryFeature.h"
 #include "Utils/OperationOptions.h"
+#include "Transaction/StandaloneContext.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/replication-applier.h"
 
@@ -582,7 +583,7 @@ Result RestReplicationHandler::processRestoreData(
     // We need to handle the _users in a special way
     return processRestoreUsersBatch(colName, useRevision);
   }
-  SingleCollectionTransaction trx(
+  Transaction trx(
       transaction::StandaloneContext::Create(_vocbase), colName,
       AccessMode::Type::WRITE);
   trx.addHint(transaction::Hints::Hint::RECOVERY);  // to turn off waitForSync!

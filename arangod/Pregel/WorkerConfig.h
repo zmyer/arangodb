@@ -31,7 +31,7 @@
 
 struct TRI_vocbase_t;
 namespace arangodb {
-class SingleCollectionTransaction;
+class Transaction;
 namespace pregel {
 
 template <typename V, typename E, typename M>

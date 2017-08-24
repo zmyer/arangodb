@@ -30,7 +30,7 @@
 #include "Transaction/StandaloneContext.h"
 #include "Utils/CollectionNameResolver.h"
 #include "Utils/OperationCursor.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "VocBase/ManagedDocumentResult.h"
 
 #include <velocypack/Iterator.h>
@@ -66,7 +66,7 @@ RestStatus RestEdgesHandler::execute() {
 
 void RestEdgesHandler::readCursor(
     aql::AstNode* condition, aql::Variable const* var,
-    std::string const& collectionName, SingleCollectionTransaction& trx,
+    std::string const& collectionName, Transaction& trx,
     std::function<void(DocumentIdentifierToken const&)> cb) {
   transaction::Methods::IndexHandle indexId;
   bool foundIdx = trx.getBestIndexHandleForFilterCondition(
@@ -94,7 +94,7 @@ void RestEdgesHandler::readCursor(
 
 bool RestEdgesHandler::getEdgesForVertex(
     std::string const& id, std::string const& collectionName,
-    TRI_edge_direction_e direction, SingleCollectionTransaction& trx,
+    TRI_edge_direction_e direction, Transaction& trx,
     std::function<void(DocumentIdentifierToken const&)> cb) {
   trx.pinData(trx.cid());  // will throw when it fails
 
@@ -223,7 +223,7 @@ bool RestEdgesHandler::readEdges() {
   }
 
   // find and load collection given by name or identifier
-  SingleCollectionTransaction trx(
+  Transaction trx(
       transaction::StandaloneContext::Create(_vocbase), collectionName,
       AccessMode::Type::READ);
 
@@ -367,7 +367,7 @@ bool RestEdgesHandler::readEdgesForMultipleVertices() {
   }
 
   // find and load collection given by name or identifier
-  SingleCollectionTransaction trx(
+  Transaction trx(
       transaction::StandaloneContext::Create(_vocbase), collectionName,
       AccessMode::Type::READ);
 

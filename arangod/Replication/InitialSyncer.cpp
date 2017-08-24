@@ -40,6 +40,7 @@
 #include "StorageEngine/PhysicalCollection.h"
 #include "StorageEngine/StorageEngine.h"
 #include "Transaction/Helpers.h"
+#include "Transaction/StandaloneContext.h"
 #include "Utils/CollectionGuard.h"
 #include "Utils/OperationOptions.h"
 #include "VocBase/LogicalCollection.h"
@@ -735,7 +736,7 @@ int InitialSyncer::handleCollectionDump(arangodb::LogicalCollection* col,
     }
 
     if (res.ok()) {
-      SingleCollectionTransaction trx(
+      Transaction trx(
           transaction::StandaloneContext::Create(_vocbase), col->cid(),
           AccessMode::Type::EXCLUSIVE);
 
@@ -937,7 +938,7 @@ int InitialSyncer::handleCollectionSync(arangodb::LogicalCollection* col,
 
   if (count.getNumber<size_t>() <= 0) {
     // remote collection has no documents. now truncate our local collection
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(_vocbase), col->cid(),
         AccessMode::Type::EXCLUSIVE);
 
@@ -1008,7 +1009,7 @@ int InitialSyncer::changeCollection(arangodb::LogicalCollection* col,
 ////////////////////////////////////////////////////////////////////////////////
 
 int64_t InitialSyncer::getSize(arangodb::LogicalCollection* col) {
-  SingleCollectionTransaction trx(
+  Transaction trx(
       transaction::StandaloneContext::Create(_vocbase), col->cid(),
       AccessMode::Type::READ);
 
@@ -1098,7 +1099,7 @@ int InitialSyncer::handleCollection(VPackSlice const& parameters,
           // system collection
           setProgress("truncating " + collectionMsg);
 
-          SingleCollectionTransaction trx(
+          Transaction trx(
               transaction::StandaloneContext::Create(_vocbase), col->cid(),
               AccessMode::Type::EXCLUSIVE);
 
@@ -1228,7 +1229,7 @@ int InitialSyncer::handleCollection(VPackSlice const& parameters,
           setProgress(progress);
 
           try {
-            SingleCollectionTransaction trx(
+            Transaction trx(
                 transaction::StandaloneContext::Create(_vocbase), col->cid(),
                 AccessMode::Type::EXCLUSIVE);
 

@@ -53,7 +53,7 @@
 #include "Transaction/StandaloneContext.h"
 #include "Utils/CollectionNameResolver.h"
 #include "Utils/OperationOptions.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "VocBase/KeyGenerator.h"
 #include "VocBase/ManagedDocumentResult.h"
 #include "VocBase/ticks.h"
@@ -1253,7 +1253,7 @@ VPackSlice LogicalCollection::keyOptions() const {
 ChecksumResult LogicalCollection::checksum(bool withRevisions, bool withData) const {
   auto transactionContext =
     std::make_shared<transaction::StandaloneContext>(vocbase());
-  SingleCollectionTransaction trx(transactionContext, cid(), AccessMode::Type::READ);
+  Transaction trx(transactionContext, cid(), AccessMode::Type::READ);
 
   Result res = trx.begin();
 

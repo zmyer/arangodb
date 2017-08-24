@@ -41,7 +41,7 @@
 #include "Transaction/Hints.h"
 #include "Transaction/StandaloneContext.h"
 #include "Utils/OperationOptions.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/LogicalView.h"
 
@@ -263,7 +263,7 @@ LogicalCollection* MMFilesWalRecoverState::getCollection(
 int MMFilesWalRecoverState::executeSingleOperation(
     TRI_voc_tick_t databaseId, TRI_voc_cid_t collectionId,
     MMFilesMarker const* marker, TRI_voc_fid_t fid,
-    std::function<int(SingleCollectionTransaction*, MMFilesMarkerEnvelope*)>
+    std::function<int(Transaction*, MMFilesMarkerEnvelope*)>
         func) {
   // first find the correct database
   TRI_vocbase_t* vocbase = useDatabase(databaseId);
@@ -298,7 +298,7 @@ int MMFilesWalRecoverState::executeSingleOperation(
   res = TRI_ERROR_INTERNAL;
 
   try {
-    SingleCollectionTransaction trx(
+    Transaction trx(
         arangodb::transaction::StandaloneContext::Create(vocbase), collectionId,
         AccessMode::Type::WRITE);
 
@@ -501,7 +501,7 @@ bool MMFilesWalRecoverState::ReplayMarker(MMFilesMarker const* marker,
 
         int res = state->executeSingleOperation(
             databaseId, collectionId, marker, datafile->fid(),
-            [&](SingleCollectionTransaction* trx,
+            [&](Transaction* trx,
                 MMFilesMarkerEnvelope* envelope) -> int {
               if (arangodb::MMFilesCollection::toMMFilesCollection(
                       trx->documentCollection())
@@ -577,7 +577,7 @@ bool MMFilesWalRecoverState::ReplayMarker(MMFilesMarker const* marker,
 
         int res = state->executeSingleOperation(
             databaseId, collectionId, marker, datafile->fid(),
-            [&](SingleCollectionTransaction* trx,
+            [&](Transaction* trx,
                 MMFilesMarkerEnvelope* envelope) -> int {
 
               if (arangodb::MMFilesCollection::toMMFilesCollection(
@@ -907,7 +907,7 @@ bool MMFilesWalRecoverState::ReplayMarker(MMFilesMarker const* marker,
           ++state->errorCount;
           return state->canContinue();
         } else {
-          arangodb::SingleCollectionTransaction trx(
+          arangodb::Transaction trx(
               arangodb::transaction::StandaloneContext::Create(vocbase),
               collectionId, AccessMode::Type::WRITE);
           std::shared_ptr<arangodb::Index> unused;
@@ -1508,7 +1508,7 @@ int MMFilesWalRecoverState::fillIndexes() {
     // activate secondary indexes
     physical->useSecondaryIndexes(true);
 
-    arangodb::SingleCollectionTransaction trx(
+    arangodb::Transaction trx(
         arangodb::transaction::StandaloneContext::Create(collection->vocbase()),
         collection->cid(), AccessMode::Type::WRITE);
 

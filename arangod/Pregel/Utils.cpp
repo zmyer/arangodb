@@ -25,7 +25,7 @@
 
 #include "Cluster/ClusterInfo.h"
 #include "Cluster/ServerState.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/vocbase.h"

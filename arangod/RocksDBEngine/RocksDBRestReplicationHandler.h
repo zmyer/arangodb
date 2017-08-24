@@ -31,7 +31,7 @@
 
 namespace arangodb {
 
-class SingleCollectionTransaction;
+class Transaction;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief replication request handler
@@ -305,7 +305,7 @@ class RocksDBRestReplicationHandler : public RestReplicationHandler {
   /// is deleted.
   //////////////////////////////////////////////////////////////////////////////
 
-  static std::unordered_map<std::string, std::shared_ptr<SingleCollectionTransaction>> _holdReadLockJobs;
+  static std::unordered_map<std::string, std::shared_ptr<Transaction>> _holdReadLockJobs;
 
   RocksDBReplicationManager* _manager;
 };

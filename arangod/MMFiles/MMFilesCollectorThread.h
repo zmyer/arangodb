@@ -37,7 +37,7 @@ namespace arangodb {
 class LogicalCollection;
 class MMFilesLogfileManager;
 class MMFilesWalLogfile;
-class SingleCollectionTransaction;
+class Transaction;
 
 class MMFilesCollectorThread final : public Thread {
   MMFilesCollectorThread(MMFilesCollectorThread const&) = delete;
@@ -79,7 +79,7 @@ class MMFilesCollectorThread final : public Thread {
  private:
   /// @brief process a single marker in collector step 2
   void processCollectionMarker(
-      arangodb::SingleCollectionTransaction&,
+      arangodb::Transaction&,
       arangodb::LogicalCollection*, MMFilesCollectorCache*, MMFilesCollectorOperation const&);
 
   /// @brief return the number of queued operations

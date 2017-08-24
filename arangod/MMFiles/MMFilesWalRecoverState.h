@@ -34,7 +34,7 @@
 
 namespace arangodb {
 class DatabaseFeature;
-class SingleCollectionTransaction;
+class Transaction;
 
 /// @brief state that is built up when scanning a WAL logfile during recovery
 struct MMFilesWalRecoverState {
@@ -141,7 +141,7 @@ struct MMFilesWalRecoverState {
   /// @brief executes a single operation inside a transaction
   int executeSingleOperation(
       TRI_voc_tick_t, TRI_voc_cid_t, MMFilesMarker const*, TRI_voc_fid_t,
-      std::function<int(SingleCollectionTransaction*, MMFilesMarkerEnvelope*)>);
+      std::function<int(Transaction*, MMFilesMarkerEnvelope*)>);
 
   /// @brief callback to handle one marker during recovery
   /// this function modifies indexes etc.

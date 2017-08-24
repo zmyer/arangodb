@@ -46,7 +46,7 @@
 #include "Transaction/Helpers.h"
 #include "Utils/CollectionGuard.h"
 #include "Utils/DatabaseGuard.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "Transaction/StandaloneContext.h"
 #include "Transaction/Hints.h"
 #include "VocBase/LogicalCollection.h"
@@ -585,7 +585,7 @@ size_t MMFilesCollectorThread::numQueuedOperations() {
 
 /// @brief process a single marker in collector step 2
 void MMFilesCollectorThread::processCollectionMarker(
-    arangodb::SingleCollectionTransaction& trx,
+    arangodb::Transaction& trx,
     LogicalCollection* collection, MMFilesCollectorCache* cache,
     MMFilesCollectorOperation const& operation) {
   auto physical = static_cast<MMFilesCollection*>(collection->getPhysical());
@@ -675,7 +675,7 @@ int MMFilesCollectorThread::processCollectionOperations(MMFilesCollectorCache* c
     return TRI_ERROR_LOCK_TIMEOUT;
   }
 
-  arangodb::SingleCollectionTransaction trx(
+  arangodb::Transaction trx(
       arangodb::transaction::StandaloneContext::Create(collection->vocbase()),
       collection->cid(), AccessMode::Type::WRITE);
   trx.addHint(transaction::Hints::Hint::NO_USAGE_LOCK);  // already locked by guard above

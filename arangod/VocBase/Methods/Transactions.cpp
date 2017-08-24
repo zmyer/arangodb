@@ -24,9 +24,9 @@
 #include <v8.h>
 
 #include "Transaction/Options.h"
-#include "Transaction/UserTransaction.h"
 #include "Transaction/V8Context.h"
 #include "Transaction/types.h"
+#include "Utils/Transaction.h"
 #include "V8/v8-conv.h"
 #include "V8/v8-vpack.h"
 #include "V8/v8-helper.h"
@@ -335,8 +335,8 @@ std::tuple<Result, std::string> executeTransactionJS(
       std::make_shared<transaction::V8Context>(vocbase, embed);
 
   // start actual transaction
-  transaction::UserTransaction trx(transactionContext, readCollections, writeCollections,
-                                   exclusiveCollections, trxOptions);
+  Transaction trx(transactionContext, readCollections, writeCollections,
+                  exclusiveCollections, trxOptions);
 
   rv = trx.begin();
   if (rv.fail()) {

@@ -55,7 +55,7 @@
 #include "Utils/Events.h"
 #include "Utils/OperationCursor.h"
 #include "Utils/OperationOptions.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ManagedDocumentResult.h"
 #include "VocBase/ticks.h"

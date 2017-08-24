@@ -29,7 +29,7 @@
 #include "StorageEngine/EngineSelectorFeature.h"
 #include "StorageEngine/PhysicalCollection.h"
 #include "Utils/CollectionGuard.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "Transaction/StandaloneContext.h"
 #include "Transaction/Hints.h"
 #include "VocBase/LogicalCollection.h"
@@ -92,7 +92,7 @@ void MMFilesCollectionExport::run(uint64_t maxWaitTime, size_t limit) {
   }
 
   {
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(_collection->vocbase()), _name,
         AccessMode::Type::READ);
 

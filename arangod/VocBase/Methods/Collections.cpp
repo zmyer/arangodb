@@ -44,7 +44,7 @@
 #include "Transaction/Hints.h"
 #include "Transaction/StandaloneContext.h"
 #include "Utils/Events.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "V8Server/V8DealerFeature.h"
 #include "V8Server/v8-collection.h"
 #include "VocBase/AuthInfo.h"

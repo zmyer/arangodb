@@ -39,7 +39,7 @@
 #include "Random/RandomGenerator.h"
 #include "Utils/OperationOptions.h"
 #include "Utils/OperationResult.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "Transaction/StandaloneContext.h"
 #include "VocBase/ticks.h"
 #include "VocBase/vocbase.h"
@@ -126,8 +126,7 @@ void Constituent::termNoLock(term_t t) {
       TRI_ASSERT(_vocbase != nullptr);
       auto transactionContext =
         std::make_shared<transaction::StandaloneContext>(_vocbase);
-      SingleCollectionTransaction trx(transactionContext, "election",
-                                      AccessMode::Type::WRITE);
+      Transaction trx(transactionContext, "election", AccessMode::Type::WRITE);
       
       auto res = trx.begin();
       

@@ -47,6 +47,7 @@
 #include "Basics/memory-map.h"
 #include "Basics/threads.h"
 #include "Basics/tri-strings.h"
+#include "Cluster/ServerState.h"
 #include "Logger/Logger.h"
 #include "RestServer/DatabaseFeature.h"
 #include "RestServer/ViewTypesFeature.h"

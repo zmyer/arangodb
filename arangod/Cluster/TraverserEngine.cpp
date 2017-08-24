@@ -22,7 +22,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "TraverserEngine.h"
-#include "Aql/AqlTransaction.h"
 #include "Aql/Ast.h"
 #include "Aql/Query.h"
 #include "Aql/QueryString.h"
@@ -31,7 +30,9 @@
 #include "Graph/ShortestPathOptions.h"
 #include "Graph/TraverserCache.h"
 #include "Transaction/Context.h"
+#include "Transaction/StandaloneContext.h"
 #include "Utils/CollectionNameResolver.h"
+#include "Utils/Transaction.h"
 #include "VocBase/ManagedDocumentResult.h"
 #include "VocBase/TraverserOptions.h"
 
@@ -99,7 +100,7 @@ BaseEngine::BaseEngine(TRI_vocbase_t* vocbase, VPackSlice info)
   auto params = std::make_shared<VPackBuilder>();
   auto opts = std::make_shared<VPackBuilder>();
 
-  _trx = new arangodb::aql::AqlTransaction(
+  _trx = new arangodb::Transaction(
       arangodb::transaction::StandaloneContext::Create(vocbase),
       _collections.collections(), transaction::Options(), true);
   // true here as last argument is crucial: it leads to the fact that the

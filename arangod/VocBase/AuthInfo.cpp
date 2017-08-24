@@ -43,7 +43,7 @@
 #include "Transaction/StandaloneContext.h"
 #include "Utils/OperationOptions.h"
 #include "Utils/OperationResult.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 
 #include <velocypack/Builder.h>
 #include <velocypack/Collection.h>
@@ -307,8 +307,7 @@ Result AuthInfo::storeUserInternal(AuthUserEntry const& entry, bool replace) {
 
   std::shared_ptr<transaction::Context> ctx(
       new transaction::StandaloneContext(vocbase));
-  SingleCollectionTransaction trx(ctx, TRI_COL_NAME_USERS,
-                                  AccessMode::Type::WRITE);
+  Transaction trx(ctx, TRI_COL_NAME_USERS, AccessMode::Type::WRITE);
   trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
 
   Result res = trx.begin();
@@ -450,8 +449,7 @@ static Result UpdateUser(VPackSlice const& user) {
 
   std::shared_ptr<transaction::Context> ctx(
       new transaction::StandaloneContext(vocbase));
-  SingleCollectionTransaction trx(ctx, TRI_COL_NAME_USERS,
-                                  AccessMode::Type::WRITE);
+  Transaction trx(ctx, TRI_COL_NAME_USERS, AccessMode::Type::WRITE);
   trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
 
   Result res = trx.begin();
@@ -552,8 +550,7 @@ static Result RemoveUserInternal(AuthUserEntry const& entry) {
 
   std::shared_ptr<transaction::Context> ctx(
       new transaction::StandaloneContext(vocbase));
-  SingleCollectionTransaction trx(ctx, TRI_COL_NAME_USERS,
-                                  AccessMode::Type::WRITE);
+  Transaction trx(ctx, TRI_COL_NAME_USERS, AccessMode::Type::WRITE);
 
   trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
 

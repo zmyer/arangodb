@@ -26,9 +26,10 @@
 
 #include "Basics/Common.h"
 #include "Basics/StaticStrings.h"
+#include "Cluster/ServerState.h"
 #include "Logger/Logger.h"
 #include "Replication/Syncer.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 
 #include <velocypack/Slice.h>
 
@@ -52,7 +53,7 @@ int handleSyncKeysRocksDB(InitialSyncer& syncer,
                           std::string const& collectionName,
                           TRI_voc_tick_t maxTick, std::string& errorMsg);
 
-int syncChunkRocksDB(InitialSyncer& syncer, SingleCollectionTransaction* trx,
+int syncChunkRocksDB(InitialSyncer& syncer, Transaction* trx,
                      std::string const& keysId, uint64_t chunkId,
                      std::string const& lowString,
                      std::string const& highString,
@@ -75,7 +76,7 @@ class InitialSyncer : public Syncer {
       std::string const& collectionName, TRI_voc_tick_t maxTick,
       std::string& errorMsg);
 
-  friend int syncChunkRocksDB(InitialSyncer& syncer, SingleCollectionTransaction* trx,
+  friend int syncChunkRocksDB(InitialSyncer& syncer, Transaction* trx,
                      std::string const& keysId, uint64_t chunkId,
                      std::string const& lowString,
                      std::string const& highString,

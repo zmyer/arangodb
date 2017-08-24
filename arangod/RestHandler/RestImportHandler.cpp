@@ -30,7 +30,7 @@
 #include "Rest/HttpRequest.h"
 #include "Transaction/Helpers.h"
 #include "Utils/OperationOptions.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "Transaction/StandaloneContext.h"
 #include "VocBase/vocbase.h"
 
@@ -175,7 +175,7 @@ std::string RestImportHandler::buildParseError(size_t i,
 /// @brief process a single VelocyPack document of Object Type
 ////////////////////////////////////////////////////////////////////////////////
 
-int RestImportHandler::handleSingleDocument(SingleCollectionTransaction& trx,
+int RestImportHandler::handleSingleDocument(Transaction& trx,
                                             VPackBuilder& tempBuilder,
                                             RestImportResult& result,
                                             VPackBuilder& babies,
@@ -358,7 +358,7 @@ bool RestImportHandler::createFromJson(std::string const& type) {
   }
 
   // find and load collection given by name or identifier
-  SingleCollectionTransaction trx(
+  Transaction trx(
       transaction::StandaloneContext::Create(_vocbase), collectionName,
       AccessMode::Type::WRITE);
 
@@ -564,7 +564,7 @@ bool RestImportHandler::createFromVPack(std::string const& type) {
   }
 
   // find and load collection given by name or identifier
-  SingleCollectionTransaction trx(
+  Transaction trx(
       transaction::StandaloneContext::Create(_vocbase), collectionName,
       AccessMode::Type::WRITE);
 
@@ -745,7 +745,7 @@ bool RestImportHandler::createFromKeyValueList() {
   current = next + 1;
 
   // find and load collection given by name or identifier
-  SingleCollectionTransaction trx(
+  Transaction trx(
       transaction::StandaloneContext::Create(_vocbase), collectionName,
       AccessMode::Type::WRITE);
 
@@ -871,7 +871,7 @@ bool RestImportHandler::createFromKeyValueList() {
 /// @brief perform the actual import (insert/update/replace) operations
 ////////////////////////////////////////////////////////////////////////////////
 
-int RestImportHandler::performImport(SingleCollectionTransaction& trx,
+int RestImportHandler::performImport(Transaction& trx,
                                      RestImportResult& result,
                                      std::string const& collectionName,
                                      VPackBuilder const& babies, bool complete,

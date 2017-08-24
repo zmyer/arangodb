@@ -31,7 +31,7 @@
 #include "StorageEngine/PhysicalCollection.h"
 #include "Transaction/Helpers.h"
 #include "Utils/OperationCursor.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "Transaction/TransactionProxy.h"
 #include "Transaction/V8Context.h"
 #include "V8/v8-conv.h"
@@ -220,7 +220,7 @@ static void JS_AllQuery(v8::FunctionCallbackInfo<v8::Value> const& args) {
 
   std::shared_ptr<transaction::V8Context> transactionContext =
       transaction::V8Context::Create(collection->vocbase(), true);
-  transaction::SingleCollectionTransactionProxy trx(
+  transaction::TransactionProxy trx(
       transactionContext, collection->cid(), AccessMode::Type::READ);
 
   Result res = trx.begin();
@@ -311,7 +311,7 @@ static void JS_AnyQuery(v8::FunctionCallbackInfo<v8::Value> const& args) {
 
   std::shared_ptr<transaction::V8Context> transactionContext =
       transaction::V8Context::Create(col->vocbase(), true);
-  transaction::SingleCollectionTransactionProxy trx(
+  transaction::TransactionProxy trx(
       transactionContext, col->cid(),
       AccessMode::Type::READ);
 

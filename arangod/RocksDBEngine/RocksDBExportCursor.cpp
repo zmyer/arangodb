@@ -31,7 +31,7 @@
 #include "StorageEngine/StorageEngine.h"
 #include "Transaction/Hints.h"
 #include "Transaction/StandaloneContext.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/vocbase.h"
 
@@ -62,7 +62,7 @@ RocksDBExportCursor::RocksDBExportCursor(
 
   _collection = _collectionGuard->collection();
 
-  _trx.reset(new SingleCollectionTransaction(
+  _trx.reset(new Transaction(
       transaction::StandaloneContext::Create(_collection->vocbase()), _name,
       AccessMode::Type::READ));
 

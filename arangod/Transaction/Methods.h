@@ -89,7 +89,7 @@ struct Options;
 class Methods {
   friend class traverser::BaseEngine;
   friend class CallbackInvoker;
-  friend class SingleCollectionTransactionProxy;
+  friend class TransactionProxy;
 
  public:
   class IndexHandle {

@@ -24,7 +24,6 @@
 #include "Query.h"
 
 #include "Aql/AqlItemBlock.h"
-#include "Aql/AqlTransaction.h"
 #include "Aql/ExecutionBlock.h"
 #include "Aql/ExecutionEngine.h"
 #include "Aql/ExecutionPlan.h"
@@ -48,6 +47,7 @@
 #include "Transaction/StandaloneContext.h"
 #include "Transaction/V8Context.h"
 #include "Utils/ExecContext.h"
+#include "Utils/Transaction.h"
 #include "V8/v8-conv.h"
 #include "V8/v8-vpack.h"
 #include "V8Server/V8DealerFeature.h"
@@ -347,7 +347,7 @@ void Query::prepare(QueryRegistry* registry, uint64_t queryHash) {
       TRI_ASSERT(_collections.empty());
   
       // create the transaction object, but do not start it yet
-      AqlTransaction* trx = new AqlTransaction(
+      Transaction* trx = new Transaction(
         createTransactionContext(), _collections.collections(),
         _queryOptions.transactionOptions,
         _part == PART_MAIN);
@@ -436,7 +436,7 @@ ExecutionPlan* Query::prepare() {
   TRI_ASSERT(_trx == nullptr); 
 
   // create the transaction object, but do not start it yet
-  AqlTransaction* trx = new AqlTransaction(
+  Transaction* trx = new Transaction(
       createTransactionContext(), _collections.collections(), 
       _queryOptions.transactionOptions, _part == PART_MAIN);
   _trx = trx;
@@ -952,9 +952,9 @@ QueryResult Query::explain() {
     enterState(QueryExecutionState::ValueType::AST_OPTIMIZATION);
     
     // create the transaction object, but do not start it yet
-    _trx = new AqlTransaction(createTransactionContext(),
-                              _collections.collections(), 
-                              _queryOptions.transactionOptions, true);
+    _trx = new Transaction(createTransactionContext(),
+                           _collections.collections(), 
+                           _queryOptions.transactionOptions, true);
 
     // we have an AST
     Result res = _trx->begin();

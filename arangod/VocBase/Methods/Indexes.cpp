@@ -44,7 +44,7 @@
 #include "Transaction/Hints.h"
 #include "Transaction/StandaloneContext.h"
 #include "Utils/Events.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "V8Server/V8DealerFeature.h"
 #include "V8Server/v8-collection.h"
 #include "VocBase/AuthInfo.h"
@@ -144,7 +144,7 @@ arangodb::Result Indexes::getAll(arangodb::LogicalCollection const* collection,
   } else {
     // add locks for consistency
 
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(collection->vocbase()),
         collection->cid(), AccessMode::Type::READ);
     trx.addHint(transaction::Hints::Hint::NO_USAGE_LOCK);
@@ -252,7 +252,7 @@ static Result EnsureIndexLocal(arangodb::LogicalCollection* collection,
   TRI_ASSERT(collection != nullptr);
   READ_LOCKER(readLocker, collection->vocbase()->_inventoryLock);
 
-  SingleCollectionTransaction trx(
+  Transaction trx(
       transaction::StandaloneContext::Create(collection->vocbase()),
       collection->cid(),
       create ? AccessMode::Type::EXCLUSIVE : AccessMode::Type::READ);
@@ -552,7 +552,7 @@ arangodb::Result Indexes::drop(arangodb::LogicalCollection const* collection,
   } else {
     READ_LOCKER(readLocker, collection->vocbase()->_inventoryLock);
 
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(collection->vocbase()),
         collection->cid(), AccessMode::Type::EXCLUSIVE);
 
