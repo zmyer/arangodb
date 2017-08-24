@@ -76,13 +76,19 @@ class Query {
   Query& operator=(Query const&) = delete;
 
  public:
-  Query(bool contextOwnedByExterior, TRI_vocbase_t*, QueryString const& queryString,
+  Query(bool contextOwnedByExterior, TRI_vocbase_t*,
+        QueryString const& queryString,
         std::shared_ptr<arangodb::velocypack::Builder> const& bindParameters,
-        std::shared_ptr<arangodb::velocypack::Builder> const& options, QueryPart);
+        std::shared_ptr<arangodb::velocypack::Builder> const& options,
+        QueryPart, 
+        transaction::TransactionId const& coordinatorTid
+          = transaction::TransactionId::ZERO);
 
   Query(bool contextOwnedByExterior, TRI_vocbase_t*,
         std::shared_ptr<arangodb::velocypack::Builder> const& queryStruct,
-        std::shared_ptr<arangodb::velocypack::Builder> const& options, QueryPart);
+        std::shared_ptr<arangodb::velocypack::Builder> const& options,
+        QueryPart, transaction::TransactionId const& coordinatorTid
+          = transaction::TransactionId::ZERO);
 
   ~Query();
 
@@ -259,7 +265,6 @@ class Query {
   /// @brief whether or not the query cache can be used for the query
   bool canUseQueryCache() const;
 
- private:
   /// @brief neatly format exception messages for the users
   std::string buildErrorMessage(int errorCode) const;
 
@@ -275,7 +280,12 @@ class Query {
   /// @brief returns the next query id
   static TRI_voc_tick_t NextId();
 
- private:
+  /// @brief get our transaction from the registry
+  void leaseTransaction();
+
+  /// @brief return our transaction to the registry
+  void returnTransaction();
+
   /// @brief query id
   TRI_voc_tick_t _id;
   
@@ -329,10 +339,21 @@ class Query {
   /// @brief the ExecutionPlan object, if the query is prepared
   std::shared_ptr<ExecutionPlan> _plan;
 
-  /// @brief the transaction object, in a distributed query every part of
-  /// the query has its own transaction object. The transaction object is
-  /// created in the prepare method.
+  /// @brief the transaction object, in a distributed query every the
+  /// coordinator and every executing dbserver have exactly one transaction
+  /// object. The coordinator uses transaction ID i (divisible by 4) and
+  /// the dbservers use transaction ID i+1. The transaction object is
+  /// either handed in from the outside or created in the constructor
+  /// and begun there. After each method the object is returned to the
+  /// transaction registry.
   transaction::Methods* _trx;
+
+  /// @brief the transaction ID
+  transaction::TransactionId _trxId;
+
+  /// @brief the coordinator transaction ID or 0 in single server
+  /// on the coordinator, this is equal to _trxId
+  transaction::TransactionId _coordTrxId;
 
   /// @brief the ExecutionEngine object, if the query is prepared
   std::unique_ptr<ExecutionEngine> _engine;

@@ -59,8 +59,7 @@ class MockTransactionRegistry: public transaction::TransactionRegistry {
                             TRI_vocbase_t* vocbase = nullptr) const override
   {
     if (throw_getInfo_) {
-      THROW_ARANGO_EXCEPTION_MESSAGE(
-        TRI_ERROR_INTERNAL, "transaction with given id not found");
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_NOT_FOUND);
     } // if
 
     return (TransactionInfo *)&mock_trans_info_;

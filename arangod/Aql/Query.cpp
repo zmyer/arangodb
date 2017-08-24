@@ -75,7 +75,8 @@ constexpr uint64_t DontCache = 0;
 Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
              QueryString const& queryString,
              std::shared_ptr<VPackBuilder> const& bindParameters,
-             std::shared_ptr<VPackBuilder> const& options, QueryPart part)
+             std::shared_ptr<VPackBuilder> const& options, QueryPart part,
+             transaction::TransactionId const& coordinatorTid)
     : _id(0),
       _resourceMonitor(),
       _resources(&_resourceMonitor),
@@ -88,6 +89,8 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
       _collections(vocbase),
       _state(QueryExecutionState::ValueType::INVALID_STATE),
       _trx(nullptr),
+      _trxId(transaction::TransactionId::ZERO),
+      _coordTrxId(coordinatorTid),
       _warnings(),
       _startTime(TRI_microtime()),
       _part(part),
@@ -155,7 +158,8 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
 /// @brief creates a query from VelocyPack
 Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
              std::shared_ptr<VPackBuilder> const& queryStruct,
-             std::shared_ptr<VPackBuilder> const& options, QueryPart part)
+             std::shared_ptr<VPackBuilder> const& options, QueryPart part,
+             transaction::TransactionId const& coordinatorTid)
     : _id(0),
       _resourceMonitor(),
       _resources(&_resourceMonitor),
@@ -167,6 +171,8 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
       _collections(vocbase),
       _state(QueryExecutionState::ValueType::INVALID_STATE),
       _trx(nullptr),
+      _trxId(transaction::TransactionId::ZERO),
+      _coordTrxId(coordinatorTid),
       _warnings(),
       _startTime(TRI_microtime()),
       _part(part),
@@ -1318,5 +1324,33 @@ Graph const* Query::lookupGraphByName(std::string const& name) {
 /// @brief returns the next query id
 TRI_voc_tick_t Query::NextId() {
   return NextQueryId.fetch_add(1, std::memory_order_seq_cst);
+}
+
+/// @brief get our transaction from the registry
+void Query::leaseTransaction() {
+  TRI_ASSERT(_trx == nullptr);
+  uint64_t waitTime = 1;
+  while (true) {
+    try {
+      _trx = transaction::Methods::open(_trxId, _vocbase);
+      return;
+    } catch (std::exception const& x) {
+      usleep(waitTime);
+      uint64_t newWait = waitTime * 2;
+      if (newWait > 500000) {
+        LOG_TOPIC(WARN, arangodb::Logger::QUERIES)
+          << "Could not lease AQL transactions for 0.25s...still waiting...";
+      } else {
+        waitTime = newWait;
+      }
+    }
+  }
+}
+
+/// @brief return our transaction to the registry
+void Query::returnTransaction() {
+  TRI_ASSERT(_trx != nullptr);
+  _trx->close();
+  _trx = nullptr;
 }
 
