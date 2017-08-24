@@ -1194,7 +1194,9 @@ std::pair<TRI_voc_tick_t, TRI_voc_cid_t> RocksDBEngine::mapObjectToCollection(
   return it->second;
 }
 
-arangodb::Result RocksDBEngine::syncWal() {
+arangodb::Result RocksDBEngine::syncWal(bool waitForSync,
+                                        bool waitForCollector,
+                                        bool writeShutdownFile) {
 #ifdef _WIN32
   // SyncWAL always reports "not implemented" on Windows
   return arangodb::Result();
@@ -1202,6 +1204,14 @@ arangodb::Result RocksDBEngine::syncWal() {
   rocksdb::Status status = _db->GetBaseDB()->SyncWAL();
   if (!status.ok()) {
     return rocksutils::convertStatus(status);
+  }
+  if (waitForCollector) {
+    for (auto cf : RocksDBColumnFamily::_allHandles) {
+      status = _db->GetBaseDB()->Flush(rocksdb::FlushOptions(), cf);
+      if (!status.ok()) {
+        return rocksutils::convertStatus(status);
+      }
+    }
   }
   return arangodb::Result();
 #endif
@@ -1254,6 +1264,27 @@ Result RocksDBEngine::createLoggerState(TRI_vocbase_t* vocbase,
   builder.close();  // base
 
   return Result{};
+}
+
+std::vector<std::string> RocksDBEngine::currentWalFiles() {
+  rocksdb::VectorLogPtr files;
+  std::vector<std::string> names;
+
+  auto status = _db->GetSortedWalFiles(files);
+  if (!status.ok()) {
+    return names;  // TODO: error here?
+  }
+
+  for (size_t current = 0; current < files.size(); current++) {
+    auto f = files[current].get();
+    try {
+      names.push_back(f->PathName());
+    } catch (...) {
+      return names;
+    }
+  }
+
+  return names;
 }
 
 void RocksDBEngine::determinePrunableWalFiles(TRI_voc_tick_t minTickToKeep) {
@@ -1666,6 +1697,7 @@ int RocksDBEngine::handleSyncKeys(arangodb::InitialSyncer& syncer,
   return handleSyncKeysRocksDB(syncer, col, keysId, cid, collectionName,
                                maxTick, errorMsg);
 }
+  
 Result RocksDBEngine::createTickRanges(VPackBuilder& builder) {
   rocksdb::TransactionDB* tdb = rocksutils::globalRocksDB();
   rocksdb::VectorLogPtr walFiles;

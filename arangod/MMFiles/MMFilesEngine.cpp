@@ -3434,7 +3434,7 @@ Result MMFilesEngine::createLoggerState(TRI_vocbase_t* vocbase, VPackBuilder& bu
   return Result();
 }
 
-Result MMFilesEngine::createTickRanges(VPackBuilder& builder){
+Result MMFilesEngine::createTickRanges(VPackBuilder& builder) {
     auto const& ranges = MMFilesLogfileManager::instance()->ranges();
     builder.openArray();
     for (auto& it : ranges) {
