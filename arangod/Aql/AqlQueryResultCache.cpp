@@ -1,5 +1,6 @@
 
 #include "Aql/AqlQueryResultCache.h"
+#include "Aql/ExecutionPlan.h"
 #include "Aql/QueryCache.h"
 
 #include "Basics/Result.h"
@@ -14,6 +15,19 @@
 namespace arangodb {
 namespace aql {
 namespace cache {
+
+using EN = arangodb::aql::ExecutionNode;
+
+// generates a hashable represenation of an exectution plan for usage on dbserver
+// empty string denotes uncacheable query
+std::string fakeQueryString(ExecutionPlan const* subPlan){
+  LOG_TOPIC(ERR, Logger::FIXME) << "######### subPlan: " << subPlan->toVelocyPack()->toJson();
+  std::string result = subPlan->root()->fakeQueryString();
+  LOG_TOPIC(ERR, Logger::FIXME) << "######### subPlan String: '" << result <<"'";
+  return result;
+}
+
+
 
 Result properties(VPackBuilder& result) {
   Result rv;
@@ -76,7 +90,7 @@ Result properties(VPackBuilder& result) {
 ////////////////////////////////////////////////////////////////////////////////
 
 // set properites
-Result properties(VPackSlice properties) {
+Result properties(VPackSlice const& properties) {
   Result rv;
 
   if (!properties.isObject()) {
@@ -156,7 +170,7 @@ Result properties(VPackSlice properties) {
   return rv;
 }
 
-Result clear(VPackBuilder& result){
+Result clear(){
   Result rv;
   if(ServerState::instance()->isCoordinator()) {
     ClusterInfo* ci = ClusterInfo::instance();
@@ -175,10 +189,12 @@ Result clear(VPackBuilder& result){
     std::vector<ClusterCommRequest> requests;
     std::string const requestsUrl = "/_api/query-cache";
 
+    auto fakeBody = std::make_shared<std::string>();
+
     for (auto const& id : dbServerIdVec) {
       requests.emplace_back("server:" + id,
                             arangodb::rest::RequestType::DELETE_REQ,
-                            requestsUrl);
+                            requestsUrl, fakeBody);
     }
 
     size_t nrDone = 0;

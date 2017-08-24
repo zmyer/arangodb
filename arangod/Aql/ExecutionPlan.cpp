@@ -1657,7 +1657,7 @@ ExecutionNode* ExecutionPlan::fromNode(AstNode const* node) {
 /// @brief find nodes of a certain type
 void ExecutionPlan::findNodesOfType(SmallVector<ExecutionNode*>& result,
                                     ExecutionNode::NodeType type,
-                                    bool enterSubqueries) {
+                                    bool enterSubqueries) const {
   NodeFinder<ExecutionNode::NodeType> finder(type, result, enterSubqueries);
   root()->walk(&finder);
 }
@@ -1665,7 +1665,7 @@ void ExecutionPlan::findNodesOfType(SmallVector<ExecutionNode*>& result,
 /// @brief find nodes of a certain types
 void ExecutionPlan::findNodesOfType(
     SmallVector<ExecutionNode*>& result,
-    std::vector<ExecutionNode::NodeType> const& types, bool enterSubqueries) {
+    std::vector<ExecutionNode::NodeType> const& types, bool enterSubqueries) const {
   NodeFinder<std::vector<ExecutionNode::NodeType>> finder(types, result,
                                                           enterSubqueries);
   root()->walk(&finder);

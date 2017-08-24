@@ -156,6 +156,8 @@ class ExecutionNode {
   static ExecutionNode* fromVPackFactory(ExecutionPlan* plan,
                                          arangodb::velocypack::Slice const& slice);
 
+  std::string fakeQueryString() const;
+
   /// @brief return the node's id
   inline size_t id() const { return _id; }
 
@@ -577,6 +579,9 @@ class ExecutionNode {
   ExecutionNode const* getLoop() const;
 
  protected:
+  /// create sting representation of this node and its children
+  virtual std::string fakeQueryStringThisNode() const;
+
   /// @brief factory for sort elements
   static void getSortElements(SortElementVector& elements, ExecutionPlan* plan,
                               arangodb::velocypack::Slice const& slice,

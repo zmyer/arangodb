@@ -60,7 +60,7 @@ class ExecutionPlan {
   /// @brief create an execution plan from VelocyPack
   static ExecutionPlan* instantiateFromVelocyPack(
       Ast* ast, arangodb::velocypack::Slice const);
-  
+
   ExecutionPlan* clone(Ast*);
 
   /// @brief clone the plan by recursively cloning starting from the root
@@ -69,15 +69,19 @@ class ExecutionPlan {
   /// @brief create an execution plan identical to this one
   ///   keep the memory of the plan on the query object specified.
   ExecutionPlan* clone(Query const&);
-  
+
   /// @brief export to VelocyPack
   std::shared_ptr<arangodb::velocypack::Builder> toVelocyPack(Ast*, bool verbose) const;
-  
+
+  std::shared_ptr<arangodb::velocypack::Builder> toVelocyPack(bool verbose = true) const {
+    return toVelocyPack(this->getAst(), verbose);
+  }
+
   void toVelocyPack(arangodb::velocypack::Builder&, Ast*, bool verbose) const;
 
   /// @brief check if the plan is empty
   inline bool empty() const { return (_root == nullptr); }
-  
+
   bool isResponsibleForInitialize() const { return _isResponsibleForInitialize; }
 
   /// @brief note that an optimizer rule was applied
@@ -141,14 +145,17 @@ class ExecutionPlan {
     return (*it).second;
   }
 
+
   /// @brief find nodes of a certain type
+  /// the const is a lie because we fill the result with nodes
+  /// that can be modiefied
   void findNodesOfType(SmallVector<ExecutionNode*>& result,
                        ExecutionNode::NodeType,
-                       bool enterSubqueries);
+                       bool enterSubqueries) const;
 
   /// @brief find nodes of a certain types
   void findNodesOfType(SmallVector<ExecutionNode*>& result,
-      std::vector<ExecutionNode::NodeType> const&, bool enterSubqueries);
+      std::vector<ExecutionNode::NodeType> const&, bool enterSubqueries) const;
 
   /// @brief find all end nodes in a plan
   void findEndNodes(SmallVector<ExecutionNode*>& result,

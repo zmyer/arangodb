@@ -75,6 +75,30 @@ std::unordered_map<int, std::string const> const ExecutionNode::TypeNames{
     {static_cast<int>(TRAVERSAL), "TraversalNode"},
     {static_cast<int>(SHORTEST_PATH), "ShortestPathNode"}};
 
+
+std::string ExecutionNode::fakeQueryString() const {
+// returns fake querystring that is used to create a hash key
+// for queries on DBServers in cluster-mode
+  std::string rv="";
+  std::string thisNode = fakeQueryStringThisNode();
+  if (thisNode.empty()) { return thisNode; }
+
+  else {
+    for(auto* node : this->getDependencies()){
+      std::string childString = node->fakeQueryString();
+      if(childString.empty()){ return childString; }
+      rv += childString;
+    }
+    rv += thisNode;
+  }
+  return rv;
+}
+
+// protected - virtual 
+std::string ExecutionNode::fakeQueryStringThisNode() const {
+  return ""; // override in cache-able Nodes
+}
+
 /// @brief returns the type name of the node
 std::string const& ExecutionNode::getTypeString() const {
   auto it = TypeNames.find(static_cast<int>(getType()));
