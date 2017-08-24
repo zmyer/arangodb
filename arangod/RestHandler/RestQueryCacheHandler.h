@@ -54,7 +54,7 @@ class RestQueryCacheHandler : public RestVocbaseBaseHandler {
   /// @brief clears the cache
   //////////////////////////////////////////////////////////////////////////////
 
-  bool clearCache();
+  Result clearCache();
 };
 }
 

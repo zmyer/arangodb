@@ -61,7 +61,7 @@ class RestBaseHandler : public rest::RestHandler {
   
   /// convenience function akin to generateError,
   /// renders payload in 'result' field
-  void generateSuccess(rest::ResponseCode, velocypack::Slice const&);
+  void generateSuccess(rest::ResponseCode, velocypack::Slice const&, bool noResult = false);
 
   // generates an error
   void generateError(rest::ResponseCode, int);

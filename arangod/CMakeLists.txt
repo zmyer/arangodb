@@ -101,6 +101,7 @@ SET(ARANGOD_SOURCES
   Aql/AqlFunctionFeature.cpp
   Aql/AqlItemBlock.cpp
   Aql/AqlItemBlockManager.cpp
+  Aql/AqlQueryResultCache.cpp
   Aql/AqlTransaction.cpp
   Aql/AqlValue.cpp
   Aql/Ast.cpp
@@ -133,8 +134,8 @@ SET(ARANGOD_SOURCES
   Aql/FixedVarExpressionContext.cpp
   Aql/Function.cpp
   Aql/Functions.cpp
-  Aql/Graphs.cpp
   Aql/GraphNode.cpp
+  Aql/Graphs.cpp
   Aql/IndexBlock.cpp
   Aql/IndexNode.cpp
   Aql/ModificationBlocks.cpp
@@ -146,13 +147,13 @@ SET(ARANGOD_SOURCES
   Aql/OptimizerRulesFeature.cpp
   Aql/Parser.cpp
   Aql/PlanCache.cpp
-  Aql/QueryExecutionState.cpp
-  Aql/QueryProfile.cpp
   Aql/Quantifier.cpp
   Aql/Query.cpp
   Aql/QueryCache.cpp
+  Aql/QueryExecutionState.cpp
   Aql/QueryList.cpp
   Aql/QueryOptions.cpp
+  Aql/QueryProfile.cpp
   Aql/QueryRegistry.cpp
   Aql/QueryResources.cpp
   Aql/QueryString.cpp

@@ -99,18 +99,20 @@ void RestBaseHandler::generateResult(
   writeResult(std::forward<Payload>(payload), *(context->getVPackOptionsForDump()));
 }
 
-void RestBaseHandler::generateSuccess(rest::ResponseCode code, VPackSlice const& payload) {
+void RestBaseHandler::generateSuccess(rest::ResponseCode code, VPackSlice const& payload, bool noResult) {
   resetResponse(code);
-  
+
   VPackBuffer<uint8_t> buffer;
   VPackBuilder builder(buffer);
   try {
     builder.add(VPackValue(VPackValueType::Object));
     builder.add("error", VPackValue(false));
     builder.add("code", VPackValue(static_cast<int>(code)));
-    builder.add("result", payload);
+    if (!noResult) {
+      builder.add("result", payload);
+    }
     builder.close();
-    
+
     VPackOptions options(VPackOptions::Defaults);
     options.escapeUnicode = true;
     writeResult(std::move(buffer), options);
