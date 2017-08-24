@@ -260,9 +260,10 @@ Query* Query::clone(QueryPart part, bool withPlan) {
 
   TRI_ASSERT(clone->_trx == nullptr);
 
-  // A daughter transaction which does not
-  // actually lock the collections
-  clone->_trx = _trx->clone(_queryOptions.transactionOptions);  
+  // We use the same transaction as the original
+  clone->_trx = _trx;
+  clone->_trxId = _trxId;
+  clone->_coordTrxId = _coordTrxId;
 
   Result res = clone->_trx->begin();
 
