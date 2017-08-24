@@ -156,7 +156,7 @@ class ExecutionNode {
   static ExecutionNode* fromVPackFactory(ExecutionPlan* plan,
                                          arangodb::velocypack::Slice const& slice);
 
-  std::string fakeQueryString() const;
+  bool fakeQueryString(std::string&) const;
 
   /// @brief return the node's id
   inline size_t id() const { return _id; }
@@ -580,7 +580,7 @@ class ExecutionNode {
 
  protected:
   /// create sting representation of this node and its children
-  virtual std::string fakeQueryStringThisNode() const;
+  virtual bool fakeQueryStringThisNode(std::string&) const;
 
   /// @brief factory for sort elements
   static void getSortElements(SortElementVector& elements, ExecutionPlan* plan,
@@ -663,6 +663,7 @@ class SingletonNode : public ExecutionNode {
   SingletonNode(ExecutionPlan* plan, arangodb::velocypack::Slice const& base)
       : ExecutionNode(plan, base) {}
 
+  bool fakeQueryStringThisNode(std::string& outString) const override;
   /// @brief return the type of the node
   NodeType getType() const override final { return SINGLETON; }
 
@@ -706,7 +707,8 @@ class EnumerateCollectionNode : public ExecutionNode, public DocumentProducingNo
 
   EnumerateCollectionNode(ExecutionPlan* plan,
                           arangodb::velocypack::Slice const& base);
-  
+
+  virtual bool fakeQueryStringThisNode(std::string&) const override;
   /// @brief return the type of the node
   NodeType getType() const override final { return ENUMERATE_COLLECTION; }
 
@@ -769,6 +771,8 @@ class EnumerateListNode : public ExecutionNode {
   }
 
   EnumerateListNode(ExecutionPlan*, arangodb::velocypack::Slice const& base);
+
+  virtual bool fakeQueryStringThisNode(std::string&) const override;
 
   /// @brief return the type of the node
   NodeType getType() const override final { return ENUMERATE_LIST; }
@@ -1184,6 +1188,8 @@ class ReturnNode : public ExecutionNode {
   }
 
   ReturnNode(ExecutionPlan*, arangodb::velocypack::Slice const& base);
+
+  bool fakeQueryStringThisNode(std::string& outString) const override;
 
   /// @brief return the type of the node
   NodeType getType() const override final { return RETURN; }

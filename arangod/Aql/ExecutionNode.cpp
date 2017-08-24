@@ -76,27 +76,24 @@ std::unordered_map<int, std::string const> const ExecutionNode::TypeNames{
     {static_cast<int>(SHORTEST_PATH), "ShortestPathNode"}};
 
 
-std::string ExecutionNode::fakeQueryString() const {
+bool ExecutionNode::fakeQueryString(std::string& outString) const {
 // returns fake querystring that is used to create a hash key
 // for queries on DBServers in cluster-mode
-  std::string rv="";
-  std::string thisNode = fakeQueryStringThisNode();
-  if (thisNode.empty()) { return thisNode; }
+  bool rv = fakeQueryStringThisNode(outString);
+  if (!rv) { return false; }
 
   else {
     for(auto* node : this->getDependencies()){
-      std::string childString = node->fakeQueryString();
-      if(childString.empty()){ return childString; }
-      rv += childString;
+      rv = node->fakeQueryString(outString);
+      if(!rv){ return false; }
     }
-    rv += thisNode;
   }
   return rv;
 }
 
 // protected - virtual 
-std::string ExecutionNode::fakeQueryStringThisNode() const {
-  return ""; // override in cache-able Nodes
+bool ExecutionNode::fakeQueryStringThisNode(std::string&) const {
+  return false;
 }
 
 /// @brief returns the type name of the node
@@ -1155,6 +1152,11 @@ double SingletonNode::estimateCost(size_t& nrItems) const {
   return 1.0;
 }
 
+bool SingletonNode::fakeQueryStringThisNode(std::string& outString) const {
+  outString.append("S");
+  return true;
+}
+
 EnumerateCollectionNode::EnumerateCollectionNode(
     ExecutionPlan* plan, arangodb::velocypack::Slice const& base)
     : ExecutionNode(plan, base),
@@ -1165,6 +1167,15 @@ EnumerateCollectionNode::EnumerateCollectionNode(
       _random(base.get("random").getBoolean()) {
   TRI_ASSERT(_vocbase != nullptr);
   TRI_ASSERT(_collection != nullptr);
+}
+
+bool EnumerateCollectionNode::fakeQueryStringThisNode(std::string& outString) const {
+  if(_random) { return false; }
+  outString.append("EC");
+  outString.append(_collection->name);
+  outString.append(_outVariable->name); // is this ok?
+  //vocbase? do we alrady have the db context outside?!
+  return true;
 }
 
 /// @brief toVelocyPack, for EnumerateCollectionNode
@@ -1226,6 +1237,14 @@ EnumerateListNode::EnumerateListNode(ExecutionPlan* plan,
     : ExecutionNode(plan, base),
       _inVariable(Variable::varFromVPack(plan->getAst(), base, "inVariable")),
       _outVariable(Variable::varFromVPack(plan->getAst(), base, "outVariable")) {}
+
+bool EnumerateListNode::fakeQueryStringThisNode(std::string& outString) const {
+  outString.append("EL");
+  outString.append(_outVariable->name);
+  outString.append(_inVariable->name);
+  //outString.append(_inVariable->);
+  return true;
+}
 
 /// @brief toVelocyPack, for EnumerateListNode
 void EnumerateListNode::toVelocyPackHelper(VPackBuilder& nodes,
@@ -1671,6 +1690,12 @@ double FilterNode::estimateCost(size_t& nrItems) const {
 ReturnNode::ReturnNode(ExecutionPlan* plan, arangodb::velocypack::Slice const& base)
     : ExecutionNode(plan, base),
       _inVariable(Variable::varFromVPack(plan->getAst(), base, "inVariable")) {}
+
+bool ReturnNode::fakeQueryStringThisNode(std::string& outString) const {
+  outString.append("R");
+  outString.append(_inVariable->name);
+  return true;
+}
 
 /// @brief toVelocyPack, for ReturnNode
 void ReturnNode::toVelocyPackHelper(VPackBuilder& nodes, bool verbose) const {
