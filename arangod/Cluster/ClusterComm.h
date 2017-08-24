@@ -345,7 +345,7 @@ struct ClusterCommOperation {
 ////////////////////////////////////////////////////////////////////////////////
 
 struct ClusterCommRequest {
-  std::string destination;
+  std::string destination; // shard: <id> || server: <id> || tcp://<ip> || ssl://<ip>
   rest::RequestType requestType;
   std::string path;
   std::shared_ptr<std::string const> body;
