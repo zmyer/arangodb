@@ -1350,7 +1350,8 @@ function executePlanForDatabases(plannedDatabases) {
       console.topic('heartbeat=debug', "creating local database '%s'", name);
 
       try {
-        db._createDatabase(name);
+        let opts = plannedDatabases[name].options || {};
+        db._createDatabase(name, opts);
       } catch (err) {
         localErrors[name] = { error: true, errorNum: err.errorNum,
                               errorMessage: err.errorMessage, name: name };

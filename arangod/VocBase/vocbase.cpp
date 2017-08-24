@@ -1457,6 +1457,10 @@ TRI_vocbase_t::TRI_vocbase_t(TRI_vocbase_type_e type, TRI_voc_tick_t id,
   _deadCollections.reserve(32);
 
   TRI_CreateUserStructuresVocBase(this);
+
+#ifdef USE_ENTERPRISE
+  parseEnterpriseOptions(options.get("options"));
+#endif
 }
 
 /// @brief destroy a vocbase object

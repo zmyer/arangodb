@@ -232,7 +232,10 @@ arangodb::Result Databases::create(VPackSlice const& inUsers,
       std::string const idString(basics::StringUtils::itoa(id));
       builder.add("id", VPackValue(idString));
       builder.add("name", VPackValue(dbName));
-      builder.add("options", options);
+      auto opts = options.get("options");
+      if (!opts.isNone()) {
+        builder.add("options", opts);
+      }
       builder.add("coordinator", VPackValue(ServerState::instance()->getId()));
     } catch (VPackException const& e) {
       return Result(e.errorCode());

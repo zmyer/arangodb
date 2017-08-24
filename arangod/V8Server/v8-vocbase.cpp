@@ -1793,7 +1793,6 @@ static void JS_CreateDatabase(v8::FunctionCallbackInfo<v8::Value> const& args) {
   VPackBuilder nameBuilder;
   nameBuilder.openObject();
   nameBuilder.add("name", VPackValue(TRI_ObjectToString(args[0])));
-  nameBuilder.close();
 
   VPackBuilder options;
   if (args.Length() >= 2 && args[1]->IsObject()) {
@@ -1803,10 +1802,11 @@ static void JS_CreateDatabase(v8::FunctionCallbackInfo<v8::Value> const& args) {
     options.close();
   }
   TRI_ASSERT(options.slice().isObject());
-  options = VPackCollection::merge(options.slice(), nameBuilder.slice(), true, false);
+  nameBuilder.add("options", options.slice());
+  nameBuilder.close();
 
 
-  Result res = methods::Databases::create(users.slice(), options.slice());
+  Result res = methods::Databases::create(users.slice(), nameBuilder.slice());
   if (!res.ok()) {
     TRI_V8_THROW_EXCEPTION_MESSAGE(res.errorNumber(), res.errorMessage());
   }

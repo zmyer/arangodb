@@ -390,6 +390,10 @@ struct TRI_vocbase_t {
   /// @brief removes a view from the global list of views
   /// This function is called when a view is dropped.
   bool unregisterView(std::shared_ptr<arangodb::LogicalView> view);
+
+#ifdef USE_ENTERPRISE
+  void parseEnterpriseOptions(arangodb::velocypack::Slice const& opts);
+#endif
 };
 
 // scope guard for a database
