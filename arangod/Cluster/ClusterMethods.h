@@ -44,6 +44,8 @@ class Builder;
 class Slice;
 }
 
+static std::string const TRX_HEADER = "X-ArangoDB-Trx";
+
 struct OperationOptions;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -90,8 +92,9 @@ int figuresOnCoordinator(std::string const& dbname, std::string const& collname,
 int countOnCoordinator(std::string const& dbname, std::string const& collname,
                        std::vector<std::pair<std::string, uint64_t>>& result);
 
-int selectivityEstimatesOnCoordinator(std::string const& dbname, std::string const& collname,
-                                      std::unordered_map<std::string, double>& result);
+int selectivityEstimatesOnCoordinator(
+  std::string const& dbname, std::string const& collname,
+  std::unordered_map<std::string, double>& result);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief abort transaction on coordinator
@@ -99,7 +102,8 @@ int selectivityEstimatesOnCoordinator(std::string const& dbname, std::string con
 
 Result abortTransactionOnCoordinator(
   std::string const& dbname, transaction::TransactionId const& tid,
-  std::unordered_set<std::string> const& servers,OperationOptions const& opts);
+  std::unordered_map<ServerID,std::unordered_set<ShardID>> const& servers,
+  OperationOptions const& opts);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief commit transaction on coordinator
@@ -107,7 +111,8 @@ Result abortTransactionOnCoordinator(
 
 Result commitTransactionOnCoordinator(
   std::string const& dbname, transaction::TransactionId const& tid,
-  std::unordered_set<std::string> const& servers, OperationOptions const& opts);
+  std::unordered_map<ServerID,std::unordered_set<ShardID>> const& servers,
+  OperationOptions const& opts);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief creates a document in a coordinator
@@ -119,7 +124,7 @@ int createDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounters,
     std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
-    std::unordered_set<std::string>& shards);
+    std::unordered_map<ServerID,std::unordered_set<ShardID>>& servers);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief delete a document in a coordinator
@@ -131,7 +136,7 @@ int deleteDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounters,
     std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
-    std::unordered_set<std::string>& shards);
+    std::unordered_map<ServerID,std::unordered_set<ShardID>>& servers);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief get a document in a coordinator
@@ -246,16 +251,16 @@ int modifyDocumentOnCoordinator(
     arangodb::rest::ResponseCode& responseCode,
     std::unordered_map<int, size_t>& errorCounter,
     std::shared_ptr<arangodb::velocypack::Builder>& resultBody,
-    std::unordered_set<std::string>& shards);
+    std::unordered_map<ServerID,std::unordered_set<ShardID>>& servers);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief truncate a cluster collection on a coordinator
 ////////////////////////////////////////////////////////////////////////////////
 
-int truncateCollectionOnCoordinator(std::string const& dbname,
-                                    std::string const& collname,
-                                    OperationOptions const& options,
-                                    std::unordered_set<std::string>& shards);
+int truncateCollectionOnCoordinator(
+  std::string const& dbname, std::string const& collname,
+  OperationOptions const& options,
+  std::unordered_map<ServerID,std::unordered_set<ShardID>>& servers);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief flush Wal on all DBservers

@@ -189,6 +189,9 @@ class Methods {
   /// @brief commit / finish the transaction
   Result commit();
 
+  OperationResult commitLocal();
+
+
   /// @brief abort the transaction
   Result abort();
 
@@ -589,7 +592,7 @@ class Methods {
   _collectionCache;
 
   /// @brief subordinate transactors
-  std::unordered_set<std::string> _subActors;
+  std::unordered_map<std::string,std::unordered_set<std::string>> _subActors;
 
   /// @brief optional callback function that will be called on transaction
   /// commit or abort

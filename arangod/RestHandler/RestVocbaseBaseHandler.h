@@ -338,6 +338,9 @@ class RestVocbaseBaseHandler : public RestBaseHandler {
 
   TRI_vocbase_t* _vocbase;
 
+  /// @brief transaction stuff
+  TransactionProperties _trxProps;
+  
  public:
   bool isDirect() const override { return false; }
 
@@ -359,9 +362,6 @@ class RestVocbaseBaseHandler : public RestBaseHandler {
 
   std::unordered_set<std::string>* _nolockHeaderSet;
 
-  /// @brief transaction stuff
-  TransactionProperties _trxProps;
-  
 };
 }
 

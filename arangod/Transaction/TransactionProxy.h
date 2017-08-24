@@ -51,7 +51,8 @@ class TransactionProxy {
 
   TransactionProxy(
       std::shared_ptr<transaction::Context> const& context,
-      TRI_voc_cid_t cid, AccessMode::Type accessType) {
+      TRI_voc_cid_t cid, AccessMode::Type accessType,
+      transaction::Options const& options = transaction::Options()) {
     TransactionId parent = context->getParentTransaction();
     if (parent != TransactionId::ZERO) {
       Methods* trx = Methods::open(parent, context->vocbase());
@@ -67,7 +68,7 @@ class TransactionProxy {
       _trx->addCollection(cid, accessType);
 #warning need more thought here, what if collection already there, and, if transaction has already begun, we need to lock the collection here!
     } else {
-      _trx = new Transaction(context, cid, accessType);
+      _trx = new Transaction(context, cid, accessType, options);
       _wasCreatedHere = true;
     }
   }
@@ -78,7 +79,8 @@ class TransactionProxy {
 
   TransactionProxy(
       std::shared_ptr<transaction::Context> const& context,
-      std::string const& name, AccessMode::Type accessType) {
+      std::string const& name, AccessMode::Type accessType,
+      transaction::Options const& options = transaction::Options()) {
     TransactionId parent = context->getParentTransaction();
     if (parent != TransactionId::ZERO) {
       auto trxReg = TransactionRegistryFeature::TRANSACTION_REGISTRY;
@@ -95,7 +97,7 @@ class TransactionProxy {
       _trx->_accessType = AccessMode::Type::NONE;
       _trx->addCollection(cid, name.c_str(), accessType);
     } else {
-      _trx = new Transaction(context, name, accessType);
+      _trx = new Transaction(context, name, accessType, options);
       _wasCreatedHere = true;
     }
   }

@@ -568,7 +568,12 @@ transaction::Methods::Methods(
 
   TRI_vocbase_t* vocbase = _transactionContextPtr->vocbase();
 
-  setupToplevel(vocbase, options);
+  transaction::Options copy = options;
+  auto preTrxId = transactionContext->prescribedTransactionId();
+  if (preTrxId != transaction::TransactionId::ZERO) {
+    copy.transactionId = preTrxId;
+  }
+  setupToplevel(vocbase, copy);
 
   TRI_ASSERT(_state != nullptr);
 
@@ -776,6 +781,9 @@ Result transaction::Methods::commit() {
     
     return TRI_ERROR_NO_ERROR;
   }
+
+  // Commit on all before local commit.
+  OperationResult result = commitLocal();
   
   transactionRegistry->reportCommit(this);  
   return _state->commitTransaction(this);
@@ -1525,6 +1533,11 @@ OperationResult transaction::Methods::insertLocal(
   if (res.ok() && _state->isDBServer()) {
     // Now replicate the same operation on all followers:
     auto const& followerInfo = collection->followers();
+
+    // Transaction headers
+    auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+    *headers = {{TRX_HEADER,(id()+1).toString()}};
+
     std::shared_ptr<std::vector<ServerID> const> followers = followerInfo->get();
     // Now see whether or not we have to do synchronous replication:
     bool doingSynchronousReplication = !isFollower && followers->size() > 0;
@@ -1580,7 +1593,7 @@ OperationResult transaction::Methods::insertLocal(
         std::vector<ClusterCommRequest> requests;
         for (auto const& f : *followers) {
           requests.emplace_back("server:" + f, arangodb::rest::RequestType::POST,
-              path, body);
+                                path, body, headers);
         }
         auto cc = arangodb::ClusterComm::instance();
         if (cc != nullptr) {
@@ -1904,6 +1917,10 @@ OperationResult transaction::Methods::modifyLocal(
     std::shared_ptr<std::vector<ServerID> const> followers = followerInfo->get();
     bool doingSynchronousReplication = !isFollower && followers->size() > 0;
 
+    // Transaction headers
+    auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+    *headers = {{TRX_HEADER,(id()+1).toString()}};
+
     if (doingSynchronousReplication) {
       // In the multi babies case res is always TRI_ERROR_NO_ERROR if we
       // get here, in the single document case, we do not try to replicate
@@ -1962,7 +1979,7 @@ OperationResult transaction::Methods::modifyLocal(
                 operation == TRI_VOC_DOCUMENT_OPERATION_REPLACE
                 ? arangodb::rest::RequestType::PUT
                 : arangodb::rest::RequestType::PATCH,
-                path, body);
+                                  path, body, headers);
           }
           size_t nrDone = 0;
           size_t nrGood = cc->performRequests(requests, chooseTimeout(count),
@@ -2204,6 +2221,10 @@ OperationResult transaction::Methods::removeLocal(
     std::shared_ptr<std::vector<ServerID> const> followers = followerInfo->get();
     bool doingSynchronousReplication = !isFollower && followers->size() > 0;
 
+    // Transaction headers
+    auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+    *headers = {{TRX_HEADER,(id()+1).toString()}};
+
     if (doingSynchronousReplication) {
       // In the multi babies case res is always TRI_ERROR_NO_ERROR if we
       // get here, in the single document case, we do not try to replicate
@@ -2261,7 +2282,7 @@ OperationResult transaction::Methods::removeLocal(
           for (auto const& f : *followers) {
             requests.emplace_back("server:" + f,
                 arangodb::rest::RequestType::DELETE_REQ, path,
-                body);
+                                  body, headers);
           }
           size_t nrDone = 0;
           size_t nrGood = cc->performRequests(requests, chooseTimeout(count),
@@ -2442,6 +2463,84 @@ OperationResult transaction::Methods::truncateCoordinator(
 }
 #endif
 
+OperationResult transaction::Methods::commitLocal() {
+
+  TRI_ASSERT(_state->status() == transaction::Status::RUNNING);
+/*  
+  // Now see whether or not we have to do synchronous replication:
+  if (_state->isDBServer()) {
+
+    // Transaction headers
+    auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+    *headers = {{TRX_HEADER,(id()+1).toString()}};
+
+    
+
+    if (!isFollower && followers->size() > 0) {
+      // Now replicate the good operations on all followers:
+      auto cc = arangodb::ClusterComm::instance();
+      if (cc != nullptr) {
+        // nullptr only happens on controlled shutdown
+        std::string path =
+            "/_db/" + arangodb::basics::StringUtils::urlEncode(databaseName()) +
+            "/_api/collection/" +
+            arangodb::basics::StringUtils::urlEncode(collectionName) +
+            "/truncate?isSynchronousReplication=" +
+            ServerState::instance()->getId();
+
+        auto body = std::make_shared<std::string>();
+
+        // Now prepare the requests:
+        std::vector<ClusterCommRequest> requests;
+        for (auto const& f : *followers) {
+          requests.emplace_back("server:" + f, arangodb::rest::RequestType::PUT,
+                                path, body, headers);
+        }
+        size_t nrDone = 0;
+        size_t nrGood = cc->performRequests(requests, TRX_FOLLOWER_TIMEOUT,
+                                            nrDone, Logger::REPLICATION, false);
+        if (nrGood < followers->size()) {
+          // If any would-be-follower refused to follow there must be a
+          // new leader in the meantime, in this case we must not allow
+          // this operation to succeed, we simply return with a refusal
+          // error (note that we use the follower version, since we have
+          // lost leadership):
+          if (findRefusal(requests)) {
+            return OperationResult(TRI_ERROR_CLUSTER_SHARD_LEADER_RESIGNED);
+          }
+          // we drop all followers that were not successful:
+          for (size_t i = 0; i < followers->size(); ++i) {
+            bool replicationWorked =
+                requests[i].done &&
+                requests[i].result.status == CL_COMM_RECEIVED &&
+                (requests[i].result.answer_code ==
+                     rest::ResponseCode::ACCEPTED ||
+                 requests[i].result.answer_code == rest::ResponseCode::OK);
+            if (!replicationWorked) {
+              auto const& followerInfo = collection->followers();
+              if (followerInfo->remove((*followers)[i])) {
+                LOG_TOPIC(WARN, Logger::REPLICATION)
+                    << "truncateLocal: dropping follower " << (*followers)[i]
+                    << " for shard " << collectionName;
+              } else {
+                LOG_TOPIC(ERR, Logger::REPLICATION)
+                    << "truncateLocal: could not drop follower "
+                    << (*followers)[i] << " for shard " << collectionName;
+                THROW_ARANGO_EXCEPTION(TRI_ERROR_CLUSTER_COULD_NOT_DROP_FOLLOWER);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  res = unlock(trxCollection(cid), AccessMode::Type::WRITE);
+*/
+  return OperationResult();
+}
+
+  
 /// @brief remove all documents in a collection, local
 OperationResult transaction::Methods::truncateLocal(
     std::string const& collectionName, OperationOptions& options) {
@@ -2496,6 +2595,11 @@ OperationResult transaction::Methods::truncateLocal(
     // Now replicate the same operation on all followers:
     auto const& followerInfo = collection->followers();
     std::shared_ptr<std::vector<ServerID> const> followers = followerInfo->get();
+
+    // Transaction headers
+    auto headers = std::make_shared<std::unordered_map<std::string,std::string>>();
+    *headers = {{TRX_HEADER,(id()+1).toString()}};
+
     if (!isFollower && followers->size() > 0) {
       // Now replicate the good operations on all followers:
       auto cc = arangodb::ClusterComm::instance();
@@ -2514,7 +2618,7 @@ OperationResult transaction::Methods::truncateLocal(
         std::vector<ClusterCommRequest> requests;
         for (auto const& f : *followers) {
           requests.emplace_back("server:" + f, arangodb::rest::RequestType::PUT,
-                                path, body);
+                                path, body, headers);
         }
         size_t nrDone = 0;
         size_t nrGood = cc->performRequests(requests, TRX_FOLLOWER_TIMEOUT,
@@ -3070,6 +3174,7 @@ transaction::Methods::indexesForCollectionCoordinator(
 ///        return a valid index. nullptr is impossible.
 transaction::Methods::IndexHandle transaction::Methods::getIndexByIdentifier(
     std::string const& collectionName, std::string const& indexHandle) {
+  
   if (_state->isCoordinator()) {
     if (indexHandle.empty()) {
       THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_BAD_PARAMETER,
@@ -3120,9 +3225,9 @@ transaction::Methods::IndexHandle transaction::Methods::getIndexByIdentifier(
 }
 
 /// @brief add a collection to an embedded transaction
-Result transaction::Methods::addCollectionEmbedded(TRI_voc_cid_t cid,
-                                                   char const* name,
-                                                   AccessMode::Type type) {
+Result transaction::Methods::addCollectionEmbedded(
+  TRI_voc_cid_t cid, char const* name, AccessMode::Type type) {
+  
   TRI_ASSERT(_state != nullptr);
 
   int res = _state->addCollection(cid, type, _state->nestingLevel(), false);
@@ -3175,9 +3280,12 @@ Result transaction::Methods::addCollectionToplevel(TRI_voc_cid_t cid,
 }
 
 /// @brief set up a top-level transaction
-void transaction::Methods::setupToplevel(TRI_vocbase_t* vocbase, transaction::Options const& options) {
+void transaction::Methods::setupToplevel(
+  TRI_vocbase_t* vocbase, transaction::Options const& options) {
+  
   // we are not embedded. now start our own transaction
   StorageEngine* engine = EngineSelectorFeature::ENGINE;
+  
   _state = engine->createTransactionState(vocbase, options);
 
   TRI_ASSERT(_state != nullptr);
@@ -3233,8 +3341,8 @@ void transaction::CallbackInvoker::invoke() noexcept {
 }
 
 /// @brief get an ongoing transaction from the registry:
-transaction::Methods* transaction::Methods::open(transaction::TransactionId const& tid,
-                                TRI_vocbase_t* vocbase) {
+transaction::Methods* transaction::Methods::open(
+  transaction::TransactionId const& tid, TRI_vocbase_t* vocbase) {
   auto trxReg = TransactionRegistryFeature::TRANSACTION_REGISTRY;
   return trxReg->open(tid, vocbase);
 }

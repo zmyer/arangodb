@@ -40,21 +40,25 @@
 using namespace arangodb;
 
 /// @brief transaction type
-TransactionState::TransactionState(TRI_vocbase_t* vocbase,
-                                   transaction::Options const& options)
-    : _vocbase(vocbase),
-      _type(AccessMode::Type::READ),
-      _status(transaction::Status::CREATED),
-      _arena(),
-      _collections{_arena},  // assign arena to vector
-      _serverRole(ServerState::instance()->getRole()),
-      _resolver(new CollectionNameResolver(vocbase)),
-      _hints(),
-      _nestingLevel(0),
-      _options(options) {
-        // get a new id
-        _id = TransactionRegistryFeature::TRANSACTION_REGISTRY->generateId();
-      }
+TransactionState::TransactionState(
+  TRI_vocbase_t* vocbase, transaction::Options const& options) 
+  : _vocbase(vocbase),
+    _type(AccessMode::Type::READ),
+    _status(transaction::Status::CREATED),
+    _arena(),
+    _collections{_arena},  // assign arena to vector
+    _serverRole(ServerState::instance()->getRole()),
+    _resolver(new CollectionNameResolver(vocbase)),
+    _hints(),
+    _nestingLevel(0),
+    _options(options) {
+    
+  // If id was passed in with the options we are living inside a enclosing
+  // transaction. Else a transaction in our own right.
+  _id = (options.transactionId == transaction::TransactionId::ZERO) ?
+    TransactionRegistryFeature::TRANSACTION_REGISTRY->generateId() :
+    options.transactionId;
+}
 
 /// @brief free a transaction container
 TransactionState::~TransactionState() {

@@ -49,14 +49,16 @@ class Transaction final : public transaction::Methods {
   //////////////////////////////////////////////////////////////////////////////
 
   Transaction(std::shared_ptr<transaction::Context> const&,
-              TRI_voc_cid_t, AccessMode::Type);
+              TRI_voc_cid_t, AccessMode::Type,
+              transaction::Options const& options = transaction::Options());
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief create the transaction, using a collection name
   //////////////////////////////////////////////////////////////////////////////
 
   Transaction(std::shared_ptr<transaction::Context> const&,
-              std::string const&, AccessMode::Type);
+              std::string const&, AccessMode::Type,
+              transaction::Options const& options = transaction::Options());
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief create a transaction for AQL

@@ -25,6 +25,7 @@
 #define ARANGOD_TRANSACTION_OPTIONS_H 1
 
 #include "Basics/Common.h"
+#include "Transaction/types.h"
 
 namespace arangodb {
 namespace velocypack {
@@ -35,10 +36,12 @@ class Slice;
 namespace transaction {
 
 struct Options {
-  Options();
+  Options(TransactionId const& id = TransactionId::ZERO);
   
   /// @brief adjust the global default values for transactions
-  static void setLimits(uint64_t maxTransactionSize, uint64_t intermediateCommitSize, uint64_t intermediateCommitCount);
+  static void setLimits(
+    uint64_t maxTransactionSize, uint64_t intermediateCommitSize,
+    uint64_t intermediateCommitCount);
 
   /// @brief read the options from a vpack slice
   void fromVelocyPack(arangodb::velocypack::Slice const&);
@@ -58,6 +61,7 @@ struct Options {
   uint64_t intermediateCommitCount;
   bool allowImplicitCollections; 
   bool waitForSync;
+  TransactionId transactionId;
 };
 
 }
