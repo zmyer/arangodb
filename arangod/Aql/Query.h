@@ -82,7 +82,8 @@ class Query {
 
   Query(bool contextOwnedByExterior, TRI_vocbase_t*,
         std::shared_ptr<arangodb::velocypack::Builder> const& queryStruct,
-        std::shared_ptr<arangodb::velocypack::Builder> const& options, QueryPart);
+        std::shared_ptr<arangodb::velocypack::Builder> const& options, QueryPart,
+        std::string queryString = std::string(""));
 
   ~Query();
 

@@ -90,6 +90,12 @@ void RestAqlHandler::createQueryFromVelocyPack() {
     return;
   }
 
+  std::string fakeQueryString;
+  VPackSlice fakeQuerySlice = querySlice.get("fakeQueryString");
+  if (!fakeQuerySlice.isNone() && fakeQuerySlice.isString()) {
+    fakeQueryString = fakeQuerySlice.copyString();
+  }
+
   auto options = std::make_shared<VPackBuilder>(
       VPackBuilder::clone(querySlice.get("options")));
 
@@ -98,7 +104,8 @@ void RestAqlHandler::createQueryFromVelocyPack() {
 
   auto planBuilder = std::make_shared<VPackBuilder>(VPackBuilder::clone(plan));
   auto query = std::make_unique<Query>(false, _vocbase, planBuilder, options,
-                                      (part == "main" ? PART_MAIN : PART_DEPENDENT));
+                                      (part == "main" ? PART_MAIN : PART_DEPENDENT),
+                                      std::move(fakeQueryString));
   
   try {
     query->prepare(_queryRegistry, 0);
