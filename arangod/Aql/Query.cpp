@@ -76,7 +76,8 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
              QueryString const& queryString,
              std::shared_ptr<VPackBuilder> const& bindParameters,
              std::shared_ptr<VPackBuilder> const& options, QueryPart part,
-             transaction::TransactionId const& coordinatorTid)
+             transaction::TransactionId const& coordinatorTid,
+             transaction::TransactionId const& trxId)
     : _id(0),
       _resourceMonitor(),
       _resources(&_resourceMonitor),
@@ -89,8 +90,9 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
       _collections(vocbase),
       _state(QueryExecutionState::ValueType::INVALID_STATE),
       _trx(nullptr),
-      _trxId(transaction::TransactionId::ZERO),
+      _trxId(trxId),
       _coordTrxId(coordinatorTid),
+      _trxCreatedHere(false),
       _warnings(),
       _startTime(TRI_microtime()),
       _part(part),
@@ -159,7 +161,8 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
 Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
              std::shared_ptr<VPackBuilder> const& queryStruct,
              std::shared_ptr<VPackBuilder> const& options, QueryPart part,
-             transaction::TransactionId const& coordinatorTid)
+             transaction::TransactionId const& coordinatorTid,
+             transaction::TransactionId const& trxId)
     : _id(0),
       _resourceMonitor(),
       _resources(&_resourceMonitor),
@@ -171,8 +174,9 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
       _collections(vocbase),
       _state(QueryExecutionState::ValueType::INVALID_STATE),
       _trx(nullptr),
-      _trxId(transaction::TransactionId::ZERO),
+      _trxId(trxId),
       _coordTrxId(coordinatorTid),
+      _trxCreatedHere(false),
       _warnings(),
       _startTime(TRI_microtime()),
       _part(part),
@@ -261,15 +265,10 @@ Query* Query::clone(QueryPart part, bool withPlan) {
   TRI_ASSERT(clone->_trx == nullptr);
 
   // We use the same transaction as the original
-  clone->_trx = _trx;
+  clone->_trx = nullptr;  // but it is not leased to us yet
   clone->_trxId = _trxId;
   clone->_coordTrxId = _coordTrxId;
-
-  Result res = clone->_trx->begin();
-
-  if (!res.ok()) {
-    THROW_ARANGO_EXCEPTION(res);
-  }
+  clone->_trxCreatedHere = false;  // the original will take care of it
 
   return clone.release();
 }
@@ -353,12 +352,11 @@ void Query::prepare(QueryRegistry* registry, uint64_t queryHash) {
       TRI_ASSERT(_trx == nullptr); 
       TRI_ASSERT(_collections.empty());
   
-      // create the transaction object, but do not start it yet
-      Transaction* trx = new Transaction(
-        createTransactionContext(), _collections.collections(),
-        _queryOptions.transactionOptions,
-        _part == PART_MAIN);
-      _trx = trx;
+      int r = initTransaction();
+      if (r != TRI_ERROR_NO_ERROR) {
+        THROW_ARANGO_EXCEPTION(r);
+      }
+      // _trx now created and leased for us
 
       VPackBuilder* builder = planCacheEntry->builder.get();
       VPackSlice slice = builder->slice();
@@ -367,9 +365,10 @@ void Query::prepare(QueryRegistry* registry, uint64_t queryHash) {
     
       enterState(QueryExecutionState::ValueType::LOADING_COLLECTIONS);
     
+#warning FIXME if !_trxCreatedHere we simply need to check if the collections are there and throw an error if not
       int res = trx->addCollections(*_collections.collections());
       
-      if (res == TRI_ERROR_NO_ERROR) {
+      if (res == TRI_ERROR_NO_ERROR && _trxCreatedHere) {
         res = _trx->begin();
       }
     
@@ -443,11 +442,12 @@ ExecutionPlan* Query::prepare() {
   TRI_ASSERT(_trx == nullptr); 
 
   // create the transaction object, but do not start it yet
-  Transaction* trx = new Transaction(
-      createTransactionContext(), _collections.collections(), 
-      _queryOptions.transactionOptions, _part == PART_MAIN);
-  _trx = trx;
-    
+  int r = initTransaction();
+  if (r != TRI_ERROR_NO_ERROR) {
+    THROW_ARANGO_EXCEPTION(r);
+  }
+  // _trx now created and leased for us
+ 
   // As soon as we start du instantiate the plan we have to clean it
   // up before killing the unique_ptr
   if (!_queryString.empty()) {
@@ -459,7 +459,10 @@ ExecutionPlan* Query::prepare() {
     
     enterState(QueryExecutionState::ValueType::LOADING_COLLECTIONS);
   
-    Result res = _trx->begin();
+    Result res;
+    if (_trxCreatedHere) {
+      res = _trx->begin();
+    }
 
     if (!res.ok()) {
       THROW_ARANGO_EXCEPTION(res);
@@ -492,9 +495,10 @@ ExecutionPlan* Query::prepare() {
     
     enterState(QueryExecutionState::ValueType::LOADING_COLLECTIONS);
     
+    auto trx = static_cast<Transaction*>(_trx);
     Result res = trx->addCollections(*_collections.collections());
 
-    if (res.ok()) {
+    if (res.ok() && _trxCreatedHere) {
       res = _trx->begin();
     }
 
@@ -663,7 +667,9 @@ QueryResult Query::execute(QueryRegistry* registry) {
                                       << "Query::execute: before _trx->commit"
                                       << " this: " << (uintptr_t) this;
 
-    _trx->commit();
+    if (_trxCreatedHere) {
+      _trx->commit();
+    }
     
     LOG_TOPIC(DEBUG, Logger::QUERIES)
         << TRI_microtime() - _startTime << " "
@@ -866,7 +872,9 @@ QueryResultV8 Query::executeV8(v8::Isolate* isolate, QueryRegistry* registry) {
                                       << "Query::executeV8: before _trx->commit"
                                       << " this: " << (uintptr_t) this;
 
-    _trx->commit();
+    if (_trxCreatedHere) {
+      _trx->commit();
+    }
 
     LOG_TOPIC(DEBUG, Logger::QUERIES)
         << TRI_microtime() - _startTime << " "
@@ -959,12 +967,13 @@ QueryResult Query::explain() {
     enterState(QueryExecutionState::ValueType::AST_OPTIMIZATION);
     
     // create the transaction object, but do not start it yet
-    _trx = new Transaction(createTransactionContext(),
-                           _collections.collections(), 
-                           _queryOptions.transactionOptions, true);
+    initTransaction();
 
     // we have an AST
-    Result res = _trx->begin();
+    Result res;
+    if (_trxCreatedHere) {
+      res = _trx->begin();
+    }
 
     if (!res.ok()) {
       THROW_ARANGO_EXCEPTION(res);
@@ -1025,7 +1034,9 @@ QueryResult Query::explain() {
                        _ast->root()->isCacheable());
     }
 
-    _trx->commit();
+    if (_trxCreatedHere) {
+      _trx->commit();
+    }
 
     result.warnings = warningsToVelocyPack();
 
@@ -1282,11 +1293,12 @@ void Query::cleanupPlanAndEngine(int errorCode, VPackBuilder* statsBuilder) {
     _engine.reset();
   }
 
-  if (_trx != nullptr) {
+  TRI_ASSERT(_trx != nullptr);
+  if (_trxCreatedHere) {
     // If the transaction was not committed, it is automatically aborted
     delete _trx;
-    _trx = nullptr;
   }
+  _trx = nullptr;
 
   _plan.reset();
 }
@@ -1327,6 +1339,39 @@ TRI_voc_tick_t Query::NextId() {
   return NextQueryId.fetch_add(1, std::memory_order_seq_cst);
 }
 
+/// @brief initTransaction create a new transaction or activate one
+/// from the query registry, returns an error code, transaction is leased
+/// and in _trx when this returns successfully
+int Query::initTransaction() {
+  if (_trxId != transaction::TransactionId::ZERO) {
+    leaseTransaction();
+    return TRI_ERROR_NO_ERROR;
+  }
+  // In this case we might have to create our own transaction if there is
+  // none given to us from V8:
+  auto trxContext = createTransactionContext();
+  _trxId = trxContext->getParentTransaction();
+  if (_trxId != transaction::TransactionId::ZERO) {
+    leaseTransaction();
+    return TRI_ERROR_NO_ERROR;
+  }
+  // Finally, there is no way out, we have to create our own:
+  _trx = new Transaction(trxContext, _collections.collections(),
+                         _queryOptions.transactionOptions, false);
+  return TRI_ERROR_NO_ERROR;
+}
+
+/// @brief exitTransaction get rid of transaction (if created here)
+/// or just leave it in the registry, transaction must not be leased
+/// when calling this
+void Query::exitTransaction() {
+  if (_trxCreatedHere) {
+    leaseTransaction();
+    delete _trx;
+    _trx = nullptr;
+  }
+}
+
 /// @brief get our transaction from the registry
 void Query::leaseTransaction() {
   TRI_ASSERT(_trx == nullptr);
@@ -1334,16 +1379,21 @@ void Query::leaseTransaction() {
   while (true) {
     try {
       _trx = transaction::Methods::open(_trxId, _vocbase);
-      return;
-    } catch (std::exception const& x) {
-      usleep(waitTime);
-      uint64_t newWait = waitTime * 2;
-      if (newWait > 500000) {
-        LOG_TOPIC(WARN, arangodb::Logger::QUERIES)
-          << "Could not lease AQL transactions for 0.25s...still waiting...";
-      } else {
-        waitTime = newWait;
+      if (_trx != nullptr) {
+        return;  // Fine, we got the lease
       }
+      // If we get here, the transaction exists and is OK, but somebody else
+      // is currently using it, we have to wait...
+    } catch (std::exception const& x) {
+      // Handle error of already aborted or committed or not found
+    }
+    usleep(waitTime);
+    uint64_t newWait = waitTime * 2;
+    if (newWait > 500000) {
+      LOG_TOPIC(WARN, arangodb::Logger::QUERIES)
+        << "Could not lease AQL transactions for 0.25s...still waiting...";
+    } else {
+      waitTime = newWait;
     }
   }
 }

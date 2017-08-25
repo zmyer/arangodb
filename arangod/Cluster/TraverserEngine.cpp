@@ -109,6 +109,7 @@ BaseEngine::BaseEngine(TRI_vocbase_t* vocbase, VPackSlice info)
   _query =
       new aql::Query(false, vocbase, aql::QueryString(), params, opts, aql::PART_DEPENDENT);
   _query->injectTransaction(_trx);
+#warning FIXME we have to get rid of injectTransaction
 
   VPackSlice variablesSlice = info.get(VARIABLES);
   if (!variablesSlice.isNone()) {
