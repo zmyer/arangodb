@@ -21,13 +21,14 @@ using EN = arangodb::aql::ExecutionNode;
 // generates a hashable represenation of an exectution plan for usage on dbserver
 // empty string denotes uncacheable query
 std::string fakeQueryString(ExecutionPlan const* subPlan){
-  LOG_TOPIC(ERR, Logger::FIXME) << "######### subPlan: " << subPlan->toVelocyPack()->toJson();
-  std::string result = subPlan->root()->fakeQueryString();
-  LOG_TOPIC(ERR, Logger::FIXME) << "######### subPlan String: '" << result <<"'";
+  std::string result;
+  bool stringValid = subPlan->root()->fakeQueryString(result);
+  LOG_TOPIC(ERR, Logger::FIXME) << "######### subPlan String: '" << result <<"' " << std::boolalpha << stringValid;
+  if (!stringValid) {
+    result.clear();
+  }
   return result;
 }
-
-
 
 Result properties(VPackBuilder& result) {
   Result rv;

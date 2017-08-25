@@ -908,6 +908,8 @@ class CalculationNode : public ExecutionNode {
 
   ~CalculationNode() { delete _expression; }
 
+  bool fakeQueryStringThisNode(std::string& outString) const override;
+
   /// @brief return the type of the node
   NodeType getType() const override final { return CALCULATION; }
 

@@ -45,6 +45,14 @@ using namespace arangodb::aql;
 
 static bool const Optional = true;
 
+static std::string getStringValue(Variable const* var){
+  if(var->value){
+    return static_cast<AstNode*>(var->value)->getString();
+  } else {
+    return std::string("");
+  }
+}
+
 /// @brief maximum register id that can be assigned.
 /// this is used for assertions
 RegisterId const ExecutionNode::MaxRegisterId = 1000;
@@ -1153,7 +1161,7 @@ double SingletonNode::estimateCost(size_t& nrItems) const {
 }
 
 bool SingletonNode::fakeQueryStringThisNode(std::string& outString) const {
-  outString.append("S");
+  outString.append("S",1);
   return true;
 }
 
@@ -1171,7 +1179,7 @@ EnumerateCollectionNode::EnumerateCollectionNode(
 
 bool EnumerateCollectionNode::fakeQueryStringThisNode(std::string& outString) const {
   if(_random) { return false; }
-  outString.append("EC");
+  outString.append("EC",2);
   outString.append(_collection->name);
   outString.append(_outVariable->name); // is this ok?
   //vocbase? do we alrady have the db context outside?!
@@ -1239,10 +1247,10 @@ EnumerateListNode::EnumerateListNode(ExecutionPlan* plan,
       _outVariable(Variable::varFromVPack(plan->getAst(), base, "outVariable")) {}
 
 bool EnumerateListNode::fakeQueryStringThisNode(std::string& outString) const {
-  outString.append("EL");
+  outString.append("EL",2);
   outString.append(_outVariable->name);
   outString.append(_inVariable->name);
-  //outString.append(_inVariable->);
+  outString.append(getStringValue(_inVariable));
   return true;
 }
 
@@ -1366,6 +1374,15 @@ CalculationNode::CalculationNode(ExecutionPlan* plan,
       _outVariable(Variable::varFromVPack(plan->getAst(), base, "outVariable")),
       _expression(new Expression(plan->getAst(), base)),
       _canRemoveIfThrows(false) {}
+
+bool CalculationNode::fakeQueryStringThisNode(std::string& outString) const {
+  outString.append("CN",2);
+  outString.append(_outVariable->name);
+  arangodb::basics::StringBuffer buff{TRI_UNKNOWN_MEM_ZONE};
+  _expression->stringify(&buff);
+  outString.append(buff.c_str(),buff.length());
+  return true;
+}
 
 /// @brief toVelocyPack, for CalculationNode
 void CalculationNode::toVelocyPackHelper(VPackBuilder& nodes,
@@ -1692,7 +1709,7 @@ ReturnNode::ReturnNode(ExecutionPlan* plan, arangodb::velocypack::Slice const& b
       _inVariable(Variable::varFromVPack(plan->getAst(), base, "inVariable")) {}
 
 bool ReturnNode::fakeQueryStringThisNode(std::string& outString) const {
-  outString.append("R");
+  outString.append("R",1);
   outString.append(_inVariable->name);
   return true;
 }
