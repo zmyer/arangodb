@@ -1358,6 +1358,7 @@ int Query::initTransaction() {
   // Finally, there is no way out, we have to create our own:
   _trx = new Transaction(trxContext, _collections.collections(),
                          _queryOptions.transactionOptions, false);
+  _trxCreatedHere = true;
   return TRI_ERROR_NO_ERROR;
 }
 
