@@ -577,7 +577,7 @@ class Methods {
   /// @brief pointer to transaction context (faster than shared ptr)
   transaction::Context* const _transactionContextPtr;
 
- private:
+ protected:
   /// @brief transaction hints
   transaction::Hints _localHints;
 
@@ -588,6 +588,7 @@ class Methods {
   }
   _collectionCache;
 
+ private:
   /// @brief subordinate transactors
   std::unordered_map<std::string,std::unordered_set<std::string>> _subActors;
 

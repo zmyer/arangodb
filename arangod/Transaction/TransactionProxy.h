@@ -60,10 +60,15 @@ class TransactionProxy {
       // not have the transaction or if it is already in use.
       _trx = static_cast<Transaction*>(trx);
       _wasCreatedHere = false;
-      // make the (sole) collection the current one for quick access:
+      // make the (sole) collection the current one for quick access but
+      // keep previous values for later repair:
+      _cidSave = _trx->_cid;
       _trx->_cid = cid;
+      _trxCollectionSave = _trx->_trxCollection;
       _trx->_trxCollection = nullptr;
+      _documentCollectionSave = _trx->_documentCollection;
       _trx->_documentCollection = nullptr;
+      _accessTypeSave = _trx->_accessType;
       _trx->_accessType = AccessMode::Type::NONE;
       _trx->addCollection(cid, accessType);
 #warning need more thought here, what if collection already there, and, if transaction has already begun, we need to lock the collection here!
@@ -90,10 +95,15 @@ class TransactionProxy {
       _trx = static_cast<Transaction*>(trx);
       _wasCreatedHere = false;
       TRI_voc_cid_t cid = _trx->resolver()->getCollectionId(name);
-      // make the (sole) collection the current one for quick access:
+      // make the (sole) collection the current one for quick access but
+      // keep previous values for later repair:
+      _cidSave = _trx->_cid;
       _trx->_cid = cid;
+      _trxCollectionSave = _trx->_trxCollection;
       _trx->_trxCollection = nullptr;
+      _documentCollectionSave = _trx->_documentCollection;
       _trx->_documentCollection = nullptr;
+      _accessTypeSave = _trx->_accessType;
       _trx->_accessType = AccessMode::Type::NONE;
       _trx->addCollection(cid, name.c_str(), accessType);
     } else {
@@ -110,6 +120,10 @@ class TransactionProxy {
     if (_wasCreatedHere) {
       delete _trx;
     } else {
+      _trx->_cid = _cidSave;
+      _trx->_trxCollection = _trxCollectionSave;
+      _trx->_documentCollection = _documentCollectionSave;
+      _trx->_accessType = _accessTypeSave;
       _trx->close();
     }
   }
@@ -197,7 +211,10 @@ class TransactionProxy {
 
   Transaction* _trx;
   bool _wasCreatedHere;
-
+  TRI_voc_cid_t _cidSave;
+  TransactionCollection* _trxCollectionSave;
+  LogicalCollection* _documentCollectionSave;
+  AccessMode::Type _accessTypeSave;
 };
 
 }  // namespace arangodb::transaction

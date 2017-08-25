@@ -121,9 +121,7 @@ class Transaction final : public transaction::Methods {
   inline TRI_voc_cid_t cid() const { return _cid; }
   
   /// @brief add a collection to the transaction for read, at runtime
-  /// note that this can only be ourselves
-  TRI_voc_cid_t addCollectionAtRuntime(std::string const&) override final { return _cid; }
-
+  TRI_voc_cid_t addCollectionAtRuntime(std::string const& collectionName) override final;
   /// @brief must counter name deletion to make the base class method available:
   TRI_voc_cid_t addCollectionAtRuntime(
       TRI_voc_cid_t cid,
