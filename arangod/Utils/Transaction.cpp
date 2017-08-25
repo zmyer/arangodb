@@ -280,7 +280,7 @@ TransactionCollection* Transaction::trxCollection(TRI_voc_cid_t cid) {
 
 /// @brief add a collection to the transaction for read, at runtime
 TRI_voc_cid_t Transaction::addCollectionAtRuntime(
-    std::string const& collectionName) override final {
+    std::string const& collectionName) {
   // Optimization for the case that a default collection has been set:
   if (_cid != 0) {
     return _cid;
