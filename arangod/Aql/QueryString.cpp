@@ -25,7 +25,7 @@
 #include "Basics/fasthash.h"
 
 using namespace arangodb::aql;
-  
+
 void QueryString::append(std::string& out) const {
   if (empty()) {
     return;
@@ -45,7 +45,7 @@ uint64_t QueryString::hash() {
 
   return _hash;
 }
-    
+
 std::string QueryString::extract(size_t maxLength) const {
   if (_length <= maxLength) {
     // no truncation
@@ -54,7 +54,7 @@ std::string QueryString::extract(size_t maxLength) const {
 
   // query string needs truncation
   size_t length = maxLength;
-    
+
   // do not create invalid UTF-8 sequences
   while (length > 0) {
     uint8_t c = _data[length - 1];
@@ -145,7 +145,7 @@ std::ostream& operator<<(std::ostream& stream, QueryString const& queryString) {
   } else {
     stream.write(queryString.data(), queryString.length());
   }
-   
+
   return stream;
 }
 

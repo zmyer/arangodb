@@ -25,7 +25,6 @@
 
 #include "Aql/AqlItemBlock.h"
 #include "Aql/AqlTransaction.h"
-#include "Aql/AqlQueryResultCache.h"
 #include "Aql/ExecutionBlock.h"
 #include "Aql/ExecutionEngine.h"
 #include "Aql/ExecutionPlan.h"
@@ -83,6 +82,7 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
       _vocbase(vocbase),
       _context(nullptr),
       _queryString(queryString),
+      _fakeQueryString(),
       _queryBuilder(),
       _bindParameters(bindParameters),
       _options(options),
@@ -157,13 +157,14 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
 Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
              std::shared_ptr<VPackBuilder> const& queryStruct,
              std::shared_ptr<VPackBuilder> const& options, QueryPart part,
-             std::string queryString)
+             std::string const& queryString)
     : _id(0),
       _resourceMonitor(),
       _resources(&_resourceMonitor),
       _vocbase(vocbase),
       _context(nullptr),
-      _queryString(std::move(queryString)),
+      _queryString(),
+      _fakeQueryString(QueryString(queryString)),
       _queryBuilder(queryStruct),
       _options(options),
       _collections(vocbase),
@@ -338,12 +339,12 @@ void Query::prepare(QueryRegistry* registry, uint64_t queryHash) {
   if (!_queryString.empty() &&
       queryHash != DontCache &&
       _part == PART_MAIN) {
-    // LOG_TOPIC(INFO, Logger::FIXME) << "trying to find query in execution plan cache: '" << _queryString << "', hash: " << queryHash;
+    //LOG_TOPIC(INFO, Logger::FIXME) << "trying to find query in execution plan cache: '" << _queryString << "', hash: " << queryHash;
 
     // store & lookup velocypack plans!!
     std::shared_ptr<PlanCacheEntry> planCacheEntry = PlanCache::instance()->lookup(_vocbase, queryHash, queryString);
     if (planCacheEntry != nullptr) {
-      // LOG_TOPIC(INFO, Logger::FIXME) << "query found in execution plan cache: '" << _queryString << "'";
+      //LOG_TOPIC(INFO, Logger::FIXME) << "query found in execution plan cache: '" << _queryString << "'";
 
       TRI_ASSERT(_trx == nullptr);
       TRI_ASSERT(_collections.empty());
@@ -392,7 +393,7 @@ void Query::prepare(QueryRegistry* registry, uint64_t queryHash) {
         _part == PART_MAIN &&
         _warnings.empty() &&
         _ast->root()->isCacheable()) {
-      // LOG_TOPIC(INFO, Logger::FIXME) << "storing query in execution plan cache '" << _queryString << "', hash: " << queryHash;
+      //LOG_TOPIC(INFO, Logger::FIXME) << "storing query in execution plan cache '" << _queryString << "', hash: " << queryHash;
       PlanCache::instance()->store(_vocbase, queryHash, _queryString, plan.get());
     }
 #endif
@@ -414,7 +415,6 @@ void Query::prepare(QueryRegistry* registry, uint64_t queryHash) {
   }
 
   _plan = std::move(plan);
-  arangodb::aql::cache::fakeQueryString(_plan.get());
 }
 
 /// @brief prepare an AQL query, this is a preparation for execute, but
@@ -1181,12 +1181,13 @@ void Query::log() {
 
 /// @brief calculate a hash value for the query and bind parameters
 uint64_t Query::hash() {
-  if (_queryString.empty()) {
+  QueryString& string = hashString();
+  if (string.empty()) {
     return DontCache;
   }
 
   // hash the query string first
-  uint64_t hash = _queryString.hash();
+  uint64_t hash = string.hash();
 
   // handle "fullCount" option. if this option is set, the query result will
   // be different to when it is not set!
@@ -1216,8 +1217,8 @@ uint64_t Query::hash() {
 }
 
 /// @brief whether or not the query cache can be used for the query
-bool Query::canUseQueryCache() const {
-  if (_queryString.size() < 8) {
+bool Query::canUseQueryCache() {
+  if (hashString().size() < 8) {
     return false;
   }
 
@@ -1230,7 +1231,7 @@ bool Query::canUseQueryCache() const {
     // query will only be cached if `cache` attribute is not set to false
 
     // cannot use query cache on a coordinator at the moment
-    return !arangodb::ServerState::instance()->isRunningInCluster();
+    return !arangodb::ServerState::instance()->isCoordinator();
   }
 
   return false;

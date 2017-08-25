@@ -83,7 +83,7 @@ class Query {
   Query(bool contextOwnedByExterior, TRI_vocbase_t*,
         std::shared_ptr<arangodb::velocypack::Builder> const& queryStruct,
         std::shared_ptr<arangodb::velocypack::Builder> const& options, QueryPart,
-        std::string queryString = std::string(""));
+        std::string const& queryString = std::string(""));
 
   ~Query();
 
@@ -95,6 +95,13 @@ class Query {
  public:
 
   QueryString const& queryString() const { return _queryString; }
+  QueryString& hashString() {
+    if (_fakeQueryString.empty()) {
+      return _queryString;
+    } else {
+      return _fakeQueryString;
+    }
+  }
 
   /// @brief Inject a transaction from outside. Use with care!
   void injectTransaction (transaction::Methods* trx) {
@@ -258,7 +265,7 @@ class Query {
   uint64_t hash();
 
   /// @brief whether or not the query cache can be used for the query
-  bool canUseQueryCache() const;
+  bool canUseQueryCache();
 
  private:
   /// @brief neatly format exception messages for the users
@@ -300,6 +307,7 @@ class Query {
 
   /// @brief the actual query string
   QueryString _queryString;
+  QueryString _fakeQueryString;
 
   /// @brief query in a VelocyPack structure
   std::shared_ptr<arangodb::velocypack::Builder> const _queryBuilder;

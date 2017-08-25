@@ -94,7 +94,9 @@ void RestAqlHandler::createQueryFromVelocyPack() {
   VPackSlice fakeQuerySlice = querySlice.get("fakeQueryString");
   if (!fakeQuerySlice.isNone() && fakeQuerySlice.isString()) {
     fakeQueryString = fakeQuerySlice.copyString();
+    LOG_TOPIC(ERR,Logger::FIXME) << "###########createQueryFromVelocyPack: '" << fakeQueryString << "'";
   }
+
 
   auto options = std::make_shared<VPackBuilder>(
       VPackBuilder::clone(querySlice.get("options")));
@@ -105,16 +107,16 @@ void RestAqlHandler::createQueryFromVelocyPack() {
   auto planBuilder = std::make_shared<VPackBuilder>(VPackBuilder::clone(plan));
   auto query = std::make_unique<Query>(false, _vocbase, planBuilder, options,
                                       (part == "main" ? PART_MAIN : PART_DEPENDENT),
-                                      std::move(fakeQueryString));
+                                      fakeQueryString);
   
   try {
     query->prepare(_queryRegistry, 0);
   } catch (std::exception const& ex) {
-    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "failed to instantiate the query: " << ex.what();
+    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "failed to instantiate the query (prepare): " << ex.what();
     generateError(rest::ResponseCode::BAD, TRI_ERROR_QUERY_BAD_JSON_PLAN, ex.what());
     return;
   } catch (...) {
-    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "failed to instantiate the query";
+    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "failed to instantiate the query (prepare)";
     generateError(rest::ResponseCode::BAD, TRI_ERROR_QUERY_BAD_JSON_PLAN);
     return;
   }
@@ -182,7 +184,7 @@ void RestAqlHandler::parseQuery() {
                 std::shared_ptr<VPackBuilder>(), nullptr, PART_MAIN);
   QueryResult res = query->parse();
   if (res.code != TRI_ERROR_NO_ERROR) {
-    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "failed to instantiate the Query: " << res.details;
+    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "failed to instantiate the Query (parse): " << res.details;
     generateError(rest::ResponseCode::BAD, res.code, res.details);
     return;
   }
@@ -253,7 +255,7 @@ void RestAqlHandler::explainQuery() {
                               bindVars, options, PART_MAIN);
   QueryResult res = query->explain();
   if (res.code != TRI_ERROR_NO_ERROR) {
-    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "failed to instantiate the Query: " << res.details;
+    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "failed to instantiate the Query (explain): " << res.details;
     generateError(rest::ResponseCode::BAD, res.code, res.details);
     return;
   }

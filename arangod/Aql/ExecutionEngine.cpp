@@ -601,7 +601,7 @@ struct CoordinatorInstanciator : public WalkerWorker<ExecutionNode> {
     query->queryOptions().toVelocyPack(result, true);
 
     if(!fakeQueryString.empty()){
-      result.add("fakeQueryString", VPackValue(fakeQueryString));
+      result.add("fakeQueryString", VPackValuePair(fakeQueryString.data(), fakeQueryString.size(), VPackValueType::String));
     }
 
     result.close();
