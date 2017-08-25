@@ -30,7 +30,7 @@
 #include "RocksDBEngine/RocksDBEdgeIndex.h"
 #include "RocksDBEngine/RocksDBEngine.h"
 #include "RocksDBEngine/RocksDBFulltextIndex.h"
-#include "RocksDBEngine/RocksDBGeoIndex.h"
+#include "RocksDBEngine/GeoIndex/RocksDBGeoIndex.h"
 #include "RocksDBEngine/RocksDBHashIndex.h"
 #include "RocksDBEngine/RocksDBPersistentIndex.h"
 #include "RocksDBEngine/RocksDBPrimaryIndex.h"

@@ -26,7 +26,7 @@
 
 #include "Basics/Common.h"
 #include "Indexes/IndexIterator.h"
-#include "RocksDBEngine/RocksDBGeoIndexImpl.h"
+#include "RocksDBEngine/GeoIndex/RocksDBGeoIndexImpl.h"
 #include "RocksDBEngine/RocksDBIndex.h"
 #include "VocBase/voc-types.h"
 #include "VocBase/vocbase.h"

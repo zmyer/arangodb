@@ -12,8 +12,6 @@ set(ROCKSDB_SOURCES
   RocksDBEngine/RocksDBEngine.cpp
   RocksDBEngine/RocksDBExportCursor.cpp
   RocksDBEngine/RocksDBFulltextIndex.cpp
-  RocksDBEngine/RocksDBGeoIndex.cpp
-  RocksDBEngine/RocksDBGeoIndexImpl.cpp
   RocksDBEngine/RocksDBHashIndex.cpp
   RocksDBEngine/RocksDBIncrementalSync.cpp
   RocksDBEngine/RocksDBIndex.cpp
@@ -40,5 +38,9 @@ set(ROCKSDB_SOURCES
   RocksDBEngine/RocksDBVPackIndex.cpp
   RocksDBEngine/RocksDBValue.cpp
   RocksDBEngine/RocksDBView.cpp
+  RocksDBEngine/GeoIndex/RocksDBGeoIndex.cpp
+  RocksDBEngine/GeoIndex/RocksDBGeoIndexImpl.cpp
+  RocksDBEngine/GeoIndex/stones.cpp
+  RocksDBEngine/GeoIndex/RocksDBGeoIndexImpl.cpp
 )
 set(ROCKSDB_SOURCES ${ROCKSDB_SOURCES} PARENT_SCOPE)
