@@ -34,6 +34,20 @@
 
 using namespace arangodb;
 
+namespace {
+
+static void throwCollectionNotFound(char const* name) {
+  if (name == nullptr) {
+    THROW_ARANGO_EXCEPTION(TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND);
+  }
+  THROW_ARANGO_EXCEPTION_MESSAGE(
+      TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND,
+      std::string(TRI_errno_string(TRI_ERROR_ARANGO_COLLECTION_NOT_FOUND)) +
+          ": " + name);
+}
+
+}
+
 /// @brief create the transaction, using a collection id
 Transaction::Transaction(
   std::shared_ptr<transaction::Context> const& transactionContext,
