@@ -1293,12 +1293,13 @@ void Query::cleanupPlanAndEngine(int errorCode, VPackBuilder* statsBuilder) {
     _engine.reset();
   }
 
-  TRI_ASSERT(_trx != nullptr);
-  if (_trxCreatedHere) {
-    // If the transaction was not committed, it is automatically aborted
-    delete _trx;
+  if (_trx != nullptr) {
+    if (_trxCreatedHere) {
+      // If the transaction was not committed, it is automatically aborted
+      delete _trx;
+    }
+    _trx = nullptr;
   }
-  _trx = nullptr;
 
   _plan.reset();
 }
@@ -1358,6 +1359,7 @@ int Query::initTransaction() {
   // Finally, there is no way out, we have to create our own:
   _trx = new Transaction(trxContext, _collections.collections(),
                          _queryOptions.transactionOptions, false);
+  _trxId = _trx->id();
   _trxCreatedHere = true;
   return TRI_ERROR_NO_ERROR;
 }
@@ -1370,6 +1372,7 @@ void Query::exitTransaction() {
     leaseTransaction();
     delete _trx;
     _trx = nullptr;
+    _trxId = transaction::TransactionId::ZERO;
   }
 }
 
