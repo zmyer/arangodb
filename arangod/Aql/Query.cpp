@@ -1038,9 +1038,14 @@ QueryResult Query::explain() {
                        TRI_errno_string(TRI_ERROR_INTERNAL) + QueryExecutionState::toStringWithPrefix(_state));
   }
 }
-   
-void Query::engine(ExecutionEngine* engine) {
-  _engine.reset(engine); 
+
+void Query::setEngine(ExecutionEngine* engine) {
+  TRI_ASSERT(engine != nullptr);
+  _engine.reset(engine);
+}
+
+void Query::releaseEngine() {
+  _engine.release();
 }
 
 /// @brief get v8 executor

@@ -59,7 +59,7 @@ class WalkerWorker {
       _done.emplace(en);
       return false;
     }
-
+    
     TRI_ASSERT(false);
 
     return true;

@@ -42,11 +42,7 @@ CollectOptions::CollectOptions(VPackSlice const& slice)
 
 /// @brief whether or not the hash method can be used
 bool CollectOptions::canUseHashMethod() const {
-  if (method == CollectMethod::COLLECT_METHOD_SORTED) {
-    return false;
-  }
-
-  return true;
+  return (method != CollectMethod::COLLECT_METHOD_SORTED);
 }
 
 /// @brief convert the options to VelocyPack
