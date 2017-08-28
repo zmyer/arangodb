@@ -46,12 +46,16 @@ class ClusterFeature : public application_features::ApplicationFeature {
   void beginShutdown() override final;
   void unprepare() override final;
 
-  std::string agencyPrefix() {
+  std::string agencyPrefix() const {
     return _agencyPrefix;
   }
 
-  double syncReplTimeoutFactor() {
+  double syncReplTimeoutFactor() const {
     return _syncReplTimeoutFactor;
+  }
+
+  uint32_t systemReplicationFactor() const {
+    return _systemReplicationFactor;
   }
 
  private:

@@ -273,6 +273,21 @@ class ClusterMethods {
 
  private:
 
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief Enterprise trigger for createCollection
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef USE_ENTERPRISE
+
+  static std::unique_ptr<LogicalCollection> createCollectionOnCoordinatorEE(
+      TRI_col_type_e collectionType, TRI_vocbase_t* vocbase,
+      arangodb::velocypack::Slice parameters,
+      bool ignoreDistributeShardsLikeErrors,
+      bool waitForSyncReplication);
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief Persist collection in Agency and trigger shard creation process
 ////////////////////////////////////////////////////////////////////////////////
