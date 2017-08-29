@@ -98,7 +98,7 @@ void RestAqlHandler::createQueryFromVelocyPack() {
   VPackSlice fakeQuerySlice = querySlice.get("fakeQueryString");
   if (!fakeQuerySlice.isNone() && fakeQuerySlice.isString()) {
     fakeQueryString = fakeQuerySlice.copyString();
-    LOG_TOPIC(ERR,Logger::FIXME) << "###########createQueryFromVelocyPack: '" << fakeQueryString << "'";
+    LOG_DEVEL << "RestAqlHandler::createQueryFromVelocyPack: '" << fakeQueryString << "'";
   }
 
 
@@ -115,8 +115,9 @@ void RestAqlHandler::createQueryFromVelocyPack() {
   
   try {
     query->prepare(_queryRegistry, 0);
+    LOG_DEVEL << "RestAqlHandler::createQueryFromVelocyPack - prepared Query with id: " << query->hashId();
   } catch (std::exception const& ex) {
-    LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "failed to instantiate the query (prepare): " << ex.what();
+    LOG_DEVEL << "failed to instantiate the query (prepare): " << ex.what();
     generateError(rest::ResponseCode::BAD, TRI_ERROR_QUERY_BAD_JSON_PLAN, ex.what());
     return;
   } catch (...) {
@@ -136,9 +137,12 @@ void RestAqlHandler::createQueryFromVelocyPack() {
 
   _qId = TRI_NewTickServer();
   auto transactionContext = query->trx()->transactionContext().get();
+  // CREATE CHACE ENTRY HERE WITH query->hashId()
 
   try {
     _queryRegistry->insert(_qId, query.get(), ttl);
+    //TODO store cache result
+    //query->cacheStart()
     query.release();
   } catch (...) {
     LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "could not keep query in registry";
@@ -619,6 +623,7 @@ RestStatus RestAqlHandler::execute() {
         generateError(rest::ResponseCode::NOT_FOUND,
                       TRI_ERROR_HTTP_NOT_FOUND);
       } else {
+        // path that is used for getSome / skipSome
         useQuery(suffixes[0], suffixes[1]);
       }
       break;
@@ -688,6 +693,8 @@ bool RestAqlHandler::findQuery(std::string const& idString, Query*& query) {
     return true;
   }
 
+  //LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "### ### RestAqlHander::findQuery - by ID: " << idString
+  //                                        << " hash " << query->hashId();
   TRI_ASSERT(_qId > 0);
 
   return false;
@@ -696,6 +703,12 @@ bool RestAqlHandler::findQuery(std::string const& idString, Query*& query) {
 // handle for useQuery
 void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
                                     VPackSlice const querySlice) {
+
+  LOG_DEVEL << "RestAqlHandler::handleUseQuery: " << operation
+            << " ID: " << query->hashId()
+            << " slice: " << querySlice.toJson()
+            ;
+
   bool found;
   std::string shardId;
   std::string const& shardIdCharP = _request->header("shard-id", found);
@@ -744,6 +757,8 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
             THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "unexpected node type");
           }
           items.reset(block->getSomeForShard(atLeast, atMost, shardId));
+          //TODO add to cache
+          //query->cacheAdd(*items);
         }
         if (items.get() == nullptr) {
           answerBuilder.add("exhausted", VPackValue(true));
@@ -855,6 +870,9 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         try {
           res = query->engine()->shutdown(
               errorCode);  // pass errorCode to shutdown
+          
+          //TODO store cache result
+          //query->cacheStore(somehash);
 
           // return statistics
           answerBuilder.add(VPackValue("stats"));

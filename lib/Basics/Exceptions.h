@@ -58,6 +58,15 @@
 #define THROW_ARANGO_EXCEPTION_MESSAGE(code, message) \
   throw arangodb::basics::Exception(code, message, __FILE__, __LINE__)
 
+/// @brief throws an arango result if the result fails
+#define THROW_ARANGO_EXCEPTION_RESULT(result) \
+  do { \
+    if ((result).fail()) { \
+      throw arangodb::basics::Exception((result), __FILE__, __LINE__); \
+    } \
+  } while(0);
+
+
 namespace arangodb {
 namespace basics {
 

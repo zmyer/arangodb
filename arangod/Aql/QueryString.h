@@ -33,6 +33,10 @@ namespace arangodb {
 namespace aql {
 
 class QueryString {
+ // ATTENTION
+ // The QueryString does not own the data!!
+ // make sure the passed in pointer or string
+ // lives as long as you want to use this class
  public:
   QueryString(QueryString const& other) = default;
   QueryString& operator=(QueryString const& other) = default;

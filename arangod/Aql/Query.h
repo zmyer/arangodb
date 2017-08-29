@@ -66,6 +66,7 @@ class Query;
 struct QueryProfile;
 class QueryRegistry;
 class V8Executor;
+class AqlItemBlock;
 
 /// @brief equery part
 enum QueryPart { PART_MAIN, PART_DEPENDENT };
@@ -103,6 +104,26 @@ class Query {
       return _fakeQueryString;
     }
   }
+
+  uint64_t hashId() const {
+    if(_queryHashId){
+      return *_queryHashId.get();
+    } else {
+      return 0;
+    }
+  }
+
+  Result cacheStart();
+  Result cacheAdd(VPackSlice const&); //single doc
+  Result cacheAdd(AqlItemBlock const&);
+
+  // this function is just there to have the same interface in all functions
+  // it is possible that the cache is not used at all
+  // because the QueryResultV8 expects to be filled in one go this can not be
+  // used with getSome!
+  Result cacheAdd(AqlItemBlock const&, v8::Isolate* isolate, QueryResultV8&, bool canCache = true);
+
+  Result cacheStore(uint64_t queryHash);
 
   /// @brief Inject a transaction from outside. Use with care!
   void injectTransaction (transaction::Methods* trx) {
@@ -250,6 +271,10 @@ class Query {
 
   QueryExecutionState::ValueType state() const { return _state; }
 
+  /// @brief calculate a hash value for the query and bind parameters
+  uint64_t hash();
+
+
  private:
   /// @brief initializes the query
   void init();
@@ -265,11 +290,12 @@ class Query {
   /// @brief log a query
   void log();
 
-  /// @brief calculate a hash value for the query and bind parameters
-  uint64_t hash();
-
   /// @brief whether or not the query cache can be used for the query
-  bool canUseQueryCache();
+  // probably we do not need to distinguish, if so we can store use querycache
+  // in the execute functions and reuse it not loosing performance by redundant
+  // lookup
+  bool canReadFromQueryCache();
+  bool canWriteToQueryCache();
 
  private:
   /// @brief neatly format exception messages for the users
@@ -312,6 +338,9 @@ class Query {
   /// @brief the actual query string
   QueryString _queryString;
   QueryString _fakeQueryString;
+  std::string _usedQueryStdString;
+
+  std::unique_ptr<uint64_t> _queryHashId;
 
   /// @brief query in a VelocyPack structure
   std::shared_ptr<arangodb::velocypack::Builder> const _queryBuilder;
@@ -321,6 +350,10 @@ class Query {
 
   /// @brief query options
   std::shared_ptr<arangodb::velocypack::Builder> _options;
+  
+  /// @brief cacheResultBuilder
+  std::shared_ptr<arangodb::velocypack::Builder> _cacheResultBuilder;
+  std::string _cacheResultIdString;
 
   /// @brief query options
   QueryOptions _queryOptions;
