@@ -218,7 +218,7 @@ function optimizerRuleTestSuite() {
     testMultipleConditions : function () {
       var query = "FOR v IN " + colName + " FILTER v.d == 'foo' || v.d == 'bar' RETURN v";
       var result = AQL_EXPLAIN(query);
-      assertEqual([ "remove-filter-covered-by-index", "remove-unnecessary-calculations-2", "use-indexes", "replace-or-with-in" ].sort(),  
+      assertEqual([ "optimize-cluster-single-shard", "remove-filter-covered-by-index", "remove-unnecessary-calculations-2", "use-indexes", "replace-or-with-in" ].sort(),  
         removeAlwaysOnClusterRules(result.plan.rules.sort()), query);
       hasNoFilterNode(result);
       hasIndexNodeWithRanges(result);
@@ -226,7 +226,7 @@ function optimizerRuleTestSuite() {
       query = "FOR v IN " + colName + " FILTER 'foo' IN v.z && 'bar' IN v.z RETURN v";
       result = AQL_EXPLAIN(query);
       // should optimize away one part of the filter
-      assertEqual([ "remove-filter-covered-by-index", "use-indexes" ].sort(),  
+      assertEqual([ "optimize-cluster-single-shard","remove-filter-covered-by-index", "use-indexes" ].sort(),  
         removeAlwaysOnClusterRules(result.plan.rules.sort()), query);
       hasFilterNode(result);
       hasIndexNodeWithRanges(result);
@@ -234,21 +234,21 @@ function optimizerRuleTestSuite() {
       query = "FOR v IN " + colName + " FILTER 'foo' IN v.z[*] && 'bar' IN v.z[*] RETURN v";
       result = AQL_EXPLAIN(query);
       // should optimize away one part of the filter
-      assertEqual([ "remove-filter-covered-by-index", "use-indexes" ].sort(),  
+      assertEqual([ "optimize-cluster-single-shard", "remove-filter-covered-by-index", "use-indexes" ].sort(),  
         removeAlwaysOnClusterRules(result.plan.rules.sort()), query);
       hasFilterNode(result);
       hasIndexNodeWithRanges(result);
       
       query = "FOR v IN " + colName + " FILTER 'foo' IN v.z || 'bar' IN v.z RETURN v";
       result = AQL_EXPLAIN(query);
-      assertEqual([ "use-indexes" ].sort(),  
+      assertEqual([ "optimize-cluster-single-shard", "use-indexes" ].sort(),  
         removeAlwaysOnClusterRules(result.plan.rules.sort()), query);
       hasFilterNode(result);
       hasIndexNodeWithRanges(result);
       
       query = "FOR v IN " + colName + " FILTER 'foo' IN v.z[*] || 'bar' IN v.z[*] RETURN v";
       result = AQL_EXPLAIN(query);
-      assertEqual([ "use-indexes" ].sort(),  
+      assertEqual([ "optimize-cluster-single-shard", "use-indexes" ].sort(),  
         removeAlwaysOnClusterRules(result.plan.rules.sort()), query);
       hasFilterNode(result);
       hasIndexNodeWithRanges(result);
