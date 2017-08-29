@@ -518,7 +518,7 @@ ArangoDatabase.prototype._isSystem = function () {
 // / @brief return whether or not the current database is single sharded (EE only)
 // //////////////////////////////////////////////////////////////////////////////
 ArangoDatabase.prototype._isSingleShard = function () {
-  return this._queryProperties().isSingleShard;
+  return this._queryProperties().singleShard;
 };
 
 // //////////////////////////////////////////////////////////////////////////////

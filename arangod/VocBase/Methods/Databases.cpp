@@ -125,9 +125,14 @@ arangodb::Result Databases::info(TRI_vocbase_t* vocbase, VPackBuilder& result) {
       }
       result.add("path", value.get("none"));
       result.add("isSystem", VPackValue(name[0] == '_'));
-      result.add("isSingleShard", VPackValue(
-        basics::VelocyPackHelper::getBooleanValue(value, "isSingleShard", false))
-      );
+      VPackSlice opts = value.get("options");
+      if (opts.isObject()) {
+        result.add("singleShard", VPackValue(
+          basics::VelocyPackHelper::getBooleanValue(opts, "singleShard", false))
+        );
+      } else {
+        result.add("singleShard", VPackValue(false));
+      }
     }
   } else {
     VPackObjectBuilder b(&result);

@@ -125,12 +125,7 @@ RestStatus RestDatabaseHandler::createDatabase() {
   VPackBuilder optBuilder;
   optBuilder.openObject();
   optBuilder.add("name", nameVal);
-  for (auto const& it : VPackObjectIterator(options)) {
-    if (StringRef(it.key) == "name") {
-      optBuilder.add(it.key);
-      optBuilder.add(it.value);
-    }
-  }
+  optBuilder.add("options", options);
   optBuilder.close();
 
   Result res = methods::Databases::create(users, optBuilder.slice());
