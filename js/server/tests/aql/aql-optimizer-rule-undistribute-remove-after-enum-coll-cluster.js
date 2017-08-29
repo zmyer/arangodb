@@ -198,18 +198,32 @@ function optimizerRuleTestSuite () {
         "FOR d IN " + cn1 + " FILTER d.Hallo < 5 FILTER d.Hallo > 1 REMOVE d._key in " 
           + cn1,
         "FOR d IN " + cn1 + " FILTER d.Hallo < 5 FILTER d.Hallo > 1 REMOVE d.blah in " 
-          + cn1,
-        "FOR d IN " + cn2 + " FILTER d.Hallo < 5 FILTER d.Hallo > 1 REMOVE d in " + cn2,
-        "FOR d IN " + cn2 + " FILTER d.Hallo < 5 FILTER d.Hallo > 1 REMOVE d._key in " 
-          + cn2,
-        "FOR d IN " + cn2 + " FILTER d.Hallo < 5 FILTER d.Hallo > 1 REMOVE d.blah in " 
-          + cn2];
+          + cn1
+        ];
 
       queries.forEach(function(query) {
         var result1 = AQL_EXPLAIN(query, { }, thisRuleEnabled);
         var result2 = AQL_EXPLAIN(query, { }, rulesAll);
         assertTrue(result1.plan.rules.indexOf(ruleName) !== -1, query);
         assertTrue(result2.plan.rules.indexOf(ruleName) !== -1, query);
+      });
+    },
+
+    testRuleOnNotDistributedCollection : function () {
+      const singleShardRuleName = "optimize-cluster-single-shard";
+      var queries = [ 
+        `FOR d IN ${cn2} FILTER d.Hallo < 5 FILTER d.Hallo > 1 REMOVE d in ${cn2}`,
+        `FOR d IN ${cn2} FILTER d.Hallo < 5 FILTER d.Hallo > 1 REMOVE d._key in ${cn2}`,
+          `FOR d IN ${cn2} FILTER d.Hallo < 5 FILTER d.Hallo > 1 REMOVE d.blah in ${cn2}`
+      ];
+
+      queries.forEach(function(query) {
+        var result1 = AQL_EXPLAIN(query, { }, thisRuleEnabled);
+        var result2 = AQL_EXPLAIN(query, { }, rulesAll);
+        assertTrue(result1.plan.rules.indexOf(ruleName) !== -1, query);
+        // In this case we expect that the entire query is executed on the db server
+        assertTrue(result2.plan.rules.indexOf(ruleName) === -1, query);
+        assertTrue(result2.plan.rules.indexOf(singleShardRuleName) !== -1, query);
       });
     },
   };
