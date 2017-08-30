@@ -31,7 +31,6 @@
 #include "Transaction/Context.h"
 #include "Transaction/Options.h"
 #include "Transaction/TransactionRegistryMock.h"
-#include "Transaction/UserTransaction.h"
 #include "Transaction/V8Context.h"
 #include "VocBase/Methods/Transactions.h"
 
