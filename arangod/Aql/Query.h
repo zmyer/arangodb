@@ -124,6 +124,7 @@ class Query {
   Result cacheAdd(AqlItemBlock const&, v8::Isolate* isolate, QueryResultV8&, bool canCache = true);
 
   Result cacheStore(uint64_t queryHash);
+  Result cacheUse(uint64_t queryHash); //fills _cachedResultBuilder member variable and initalizes / Array Iterator
 
   /// @brief Inject a transaction from outside. Use with care!
   void injectTransaction (transaction::Methods* trx) {
@@ -351,9 +352,11 @@ class Query {
   /// @brief query options
   std::shared_ptr<arangodb::velocypack::Builder> _options;
   
-  /// @brief cacheResultBuilder
-  std::shared_ptr<arangodb::velocypack::Builder> _cacheResultBuilder;
-  std::string _cacheResultIdString;
+  /// @brief cachedResultBuilder
+  std::shared_ptr<arangodb::velocypack::Builder> _resultBuilder;
+  std::shared_ptr<arangodb::velocypack::Builder> _cachedResultBuilder;
+  std::unique_ptr<velocypack::ArrayIterator> _cachedResultIterator;
+  std::string _cachedResultIdString;
 
   /// @brief query options
   QueryOptions _queryOptions;
