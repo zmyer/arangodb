@@ -101,7 +101,6 @@ SET(ARANGOD_SOURCES
   Aql/AqlFunctionFeature.cpp
   Aql/AqlItemBlock.cpp
   Aql/AqlItemBlockManager.cpp
-  Aql/AqlTransaction.cpp
   Aql/AqlValue.cpp
   Aql/Ast.cpp
   Aql/AstNode.cpp
@@ -363,7 +362,7 @@ SET(ARANGOD_SOURCES
   Utils/CursorRepository.cpp
   Utils/ExecContext.cpp
   Utils/OperationCursor.cpp
-  Utils/SingleCollectionTransaction.cpp
+  Utils/Transaction.cpp
   Utils/WorkMonitorArangod.cpp
   V8Server/FoxxQueuesFeature.cpp
   V8Server/V8Context.cpp

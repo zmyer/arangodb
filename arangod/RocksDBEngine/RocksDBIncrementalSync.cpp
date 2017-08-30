@@ -30,6 +30,7 @@
 #include "SimpleHttpClient/SimpleHttpResult.h"
 #include "StorageEngine/PhysicalCollection.h"
 #include "Transaction/Helpers.h"
+#include "Transaction/StandaloneContext.h"
 #include "Utils/OperationOptions.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ManagedDocumentResult.h"
@@ -41,7 +42,7 @@
 
 namespace arangodb {
 int syncChunkRocksDB(
-    InitialSyncer& syncer, SingleCollectionTransaction* trx,
+    InitialSyncer& syncer, Transaction* trx,
     std::string const& keysId, uint64_t chunkId, std::string const& lowString,
     std::string const& highString,
     std::vector<std::pair<std::string, uint64_t>> const& markers,
@@ -414,7 +415,7 @@ int handleSyncKeysRocksDB(InitialSyncer& syncer,
   // remove all keys that are below first remote key or beyond last remote key
   if (numChunks > 0) {
     // first chunk
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(syncer._vocbase), col->cid(),
         AccessMode::Type::EXCLUSIVE);
 
@@ -470,7 +471,7 @@ int handleSyncKeysRocksDB(InitialSyncer& syncer,
       return TRI_ERROR_REPLICATION_APPLIER_STOPPED;
     }
 
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(syncer._vocbase), col->cid(),
         AccessMode::Type::EXCLUSIVE);
 

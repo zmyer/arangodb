@@ -67,16 +67,16 @@ RestStatus RestTransactionHandler::execute() {
 
     // original single operation transaction and
     //  start for multi-operation transaction
-    case rest::RequestType::POST: {
-      executePost();
-      break;
-    }
+  case rest::RequestType::POST: {
+    executePost();
+    break;
+  }
 
     // commit for multi-operation transaction
-    case rest::RequestType::PUT: {
-      executePut();
-      break;
-    }
+  case rest::RequestType::PUT: {
+    executePut();
+    break;
+  }
 
     // status of given ID or list of all
     case rest::RequestType::GET: {
@@ -85,16 +85,16 @@ RestStatus RestTransactionHandler::execute() {
     }
 
     // abort given ID
-    case rest::RequestType::DELETE_REQ: {
-      executeDelete();
-      break;
-    }
+  case rest::RequestType::DELETE_REQ: {
+    executeDelete();
+    break;
+  }
 
     // oops, not supported
-    default: {
-      generateError(rest::ResponseCode::METHOD_NOT_ALLOWED, 405);
-      break;
-    }
+  default: {
+    generateError(rest::ResponseCode::METHOD_NOT_ALLOWED, 405);
+    break;
+  }
   } //switch
 
   return RestStatus::DONE;

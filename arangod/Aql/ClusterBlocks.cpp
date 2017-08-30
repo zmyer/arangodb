@@ -1269,13 +1269,15 @@ std::unique_ptr<ClusterCommResult> RemoteBlock::sendRequest(
       JobGuard guard(SchedulerFeature::SCHEDULER);
       guard.block();
 
+      auto query = _engine->getQuery();
+      std::string path = std::string("/_db/") +
+        arangodb::basics::StringUtils::urlEncode(
+          query->trx()->vocbase()->name()) + urlPart + _queryId;
+      query->returnTransaction();
       auto result =
-          cc->syncRequest(clientTransactionId, coordTransactionId, _server, type,
-                          std::string("/_db/") +
-                              arangodb::basics::StringUtils::urlEncode(
-                                  _engine->getQuery()->trx()->vocbase()->name()) +
-                              urlPart + _queryId,
-                          body, headers, defaultTimeOut);
+          cc->syncRequest(clientTransactionId, coordTransactionId, _server,
+                          type, path, body, headers, defaultTimeOut);
+      query->leaseTransaction();
 
       return result;
     }

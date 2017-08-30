@@ -1786,14 +1786,14 @@ void RocksDBRestReplicationHandler::handleCommandHoldReadLockCollection() {
 
   {
     CONDITION_LOCKER(locker, _condVar);
-    _holdReadLockJobs.emplace(id, std::shared_ptr<SingleCollectionTransaction>(nullptr));
+    _holdReadLockJobs.emplace(id, std::shared_ptr<Transaction>(nullptr));
   }
 
   // we need to lock in EXCLUSIVE mode here, because simply locking
   // in READ mode will not stop other writers in RocksDB. In order
   // to stop other writers, we need to fetch the EXCLUSIVE lock
   auto trxContext = transaction::StandaloneContext::Create(_vocbase);
-  auto trx = std::make_shared<SingleCollectionTransaction>(
+  auto trx = std::make_shared<Transaction>(
     trxContext, col->cid(), AccessMode::Type::EXCLUSIVE);
   trx->addHint(transaction::Hints::Hint::LOCK_ENTIRELY);
   Result res = trx->begin();
@@ -2054,7 +2054,7 @@ int RocksDBRestReplicationHandler::processRestoreCollection(
         // some collections must not be dropped
 
         // instead, truncate them
-        SingleCollectionTransaction trx(
+        Transaction trx(
             transaction::StandaloneContext::Create(_vocbase), col->cid(),
             AccessMode::Type::EXCLUSIVE);
         trx.addHint(
@@ -2157,7 +2157,7 @@ int RocksDBRestReplicationHandler::processRestoreCollectionCoordinator(
               TRI_ERROR_CLUSTER_MUST_NOT_DROP_COLL_OTHER_DISTRIBUTESHARDSLIKE) {
         // some collections must not be dropped
         OperationOptions options;
-        std::unordered_set<std::string> tmp;
+        std::unordered_map<std::string,std::unordered_set<std::string>> tmp;
 
         res = truncateCollectionOnCoordinator(dbName, name, options, tmp);
         if (res != TRI_ERROR_NO_ERROR) {
@@ -2423,7 +2423,7 @@ int RocksDBRestReplicationHandler::processRestoreIndexes(
 
     LogicalCollection* collection = guard.collection();
 
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(_vocbase), collection->cid(),
         AccessMode::Type::EXCLUSIVE);
 
@@ -2592,5 +2592,5 @@ arangodb::basics::ConditionVariable RocksDBRestReplicationHandler::_condVar;
 /// the flag is set of the ID of a job, the job is cancelled
 //////////////////////////////////////////////////////////////////////////////
 
-std::unordered_map<std::string, std::shared_ptr<SingleCollectionTransaction>>
+std::unordered_map<std::string, std::shared_ptr<Transaction>>
     RocksDBRestReplicationHandler::_holdReadLockJobs;

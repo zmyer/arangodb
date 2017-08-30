@@ -85,6 +85,15 @@ protected:
       builder.add("open", VPackValue(_isOpen));
       builder.add("status", VPackValue(_lifeCycle));
     }
+    inline void checkAbortedOrCommitted() const {
+      if (_lifeCycle == ABORTED) {
+        THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_ABORTED);
+      }
+  
+      if (_lifeCycle == COMMITTED) {
+        THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_COMMITTED);
+      }
+    }
   };
 
  public:
@@ -104,7 +113,9 @@ protected:
   /// called from storage engine implementations of TransactionState
   TransactionId insert(Methods* transaction, double ttl = 600.0);
 
-  /// @brief Lease and open a transaction
+  /// @brief Lease and open a transaction, returns nullptr if somebody
+  /// else has already leased the transaction, throws an exception if
+  /// the transaction is not yet found or already committed or aborted.
   Methods* open(TransactionId const& id, TRI_vocbase_t* vocbase = nullptr);
 
   /// @brief Return a leased open transaction

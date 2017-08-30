@@ -44,7 +44,7 @@
 #include "RestServer/QueryRegistryFeature.h"
 #include "Utils/OperationOptions.h"
 #include "Utils/OperationResult.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "Transaction/StandaloneContext.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/vocbase.h"
@@ -104,8 +104,7 @@ bool State::persist(index_t index, term_t term,
   TRI_ASSERT(_vocbase != nullptr);
   auto transactionContext =
     std::make_shared<transaction::StandaloneContext>(_vocbase);
-  SingleCollectionTransaction trx(
-    transactionContext, "log", AccessMode::Type::WRITE);
+  Transaction trx(transactionContext, "log", AccessMode::Type::WRITE);
 
   trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   Result res = trx.begin();
@@ -735,7 +734,7 @@ bool State::loadOrPersistConfiguration() {
 
     auto transactionContext =
         std::make_shared<transaction::StandaloneContext>(_vocbase);
-    SingleCollectionTransaction trx(
+    Transaction trx(
       transactionContext, "configuration", AccessMode::Type::WRITE);
 
     Result res = trx.begin();
@@ -967,8 +966,7 @@ bool State::persistReadDB(index_t cind) {
     TRI_ASSERT(_vocbase != nullptr);
     auto transactionContext =
         std::make_shared<transaction::StandaloneContext>(_vocbase);
-    SingleCollectionTransaction trx(
-      transactionContext, "compact", AccessMode::Type::WRITE);
+    Transaction trx( transactionContext, "compact", AccessMode::Type::WRITE);
 
     Result res = trx.begin();
 
@@ -1005,8 +1003,7 @@ bool State::persistCompactionSnapshot(index_t cind,
     TRI_ASSERT(_vocbase != nullptr);
     auto transactionContext =
         std::make_shared<transaction::StandaloneContext>(_vocbase);
-    SingleCollectionTransaction trx(
-      transactionContext, "compact", AccessMode::Type::WRITE);
+    Transaction trx( transactionContext, "compact", AccessMode::Type::WRITE);
 
     Result res = trx.begin();
 
@@ -1076,7 +1073,7 @@ void State::persistActiveAgents(query_t const& active, query_t const& pool) {
 
   auto transactionContext =
       std::make_shared<transaction::StandaloneContext>(_vocbase);
-  SingleCollectionTransaction trx(
+  Transaction trx(
     transactionContext, "configuration", AccessMode::Type::WRITE);
 
   Result res = trx.begin();

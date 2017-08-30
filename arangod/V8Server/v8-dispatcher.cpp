@@ -38,7 +38,7 @@
 #include "Transaction/V8Context.h"
 #include "Utils/ExecContext.h"
 #include "Utils/OperationOptions.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "V8/v8-conv.h"
 #include "V8/v8-utils.h"
 #include "V8/v8-vpack.h"
@@ -697,8 +697,7 @@ static void JS_CreateQueue(v8::FunctionCallbackInfo<v8::Value> const& args) {
   TRI_GET_GLOBALS();
 
   auto transactionContext = std::make_shared<transaction::V8Context>(v8g->_vocbase, true);
-  SingleCollectionTransaction trx(transactionContext, "_queues",
-                                  AccessMode::Type::EXCLUSIVE);
+  Transaction trx(transactionContext, "_queues", AccessMode::Type::EXCLUSIVE);
   Result res = trx.begin();
   if (!res.ok()) {
     TRI_V8_THROW_EXCEPTION(res);
@@ -742,8 +741,7 @@ static void JS_DeleteQueue(v8::FunctionCallbackInfo<v8::Value> const& args) {
   TRI_GET_GLOBALS();
 
   auto transactionContext = std::make_shared<transaction::V8Context>(v8g->_vocbase, true);
-  SingleCollectionTransaction trx(transactionContext, "_queues",
-                                  AccessMode::Type::WRITE);
+  Transaction trx(transactionContext, "_queues", AccessMode::Type::WRITE);
   trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
   Result res = trx.begin();
   if (!res.ok()) {

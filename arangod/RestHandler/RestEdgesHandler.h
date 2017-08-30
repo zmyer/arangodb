@@ -31,7 +31,7 @@
 
 namespace arangodb {
 struct DocumentIdentifierToken;
-class SingleCollectionTransaction;
+class Transaction;
 
 namespace aql {
 struct AstNode;
@@ -65,7 +65,7 @@ class RestEdgesHandler : public RestVocbaseBaseHandler {
 
   void readCursor(aql::AstNode* condition, aql::Variable const* var,
                   std::string const& collectionName,
-                  SingleCollectionTransaction& trx,
+                  Transaction& trx,
                   std::function<void(DocumentIdentifierToken const&)> cb);
 
   //////////////////////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ class RestEdgesHandler : public RestVocbaseBaseHandler {
 
   bool getEdgesForVertex(
       std::string const& id, std::string const& collectionName,
-      TRI_edge_direction_e direction, SingleCollectionTransaction& trx,
+      TRI_edge_direction_e direction, Transaction& trx,
       std::function<void(DocumentIdentifierToken const&)> cb);
 
   //////////////////////////////////////////////////////////////////////////////

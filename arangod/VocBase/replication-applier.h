@@ -27,7 +27,6 @@
 #include "Basics/Common.h"
 #include "Basics/ReadWriteLock.h"
 #include "Basics/threads.h"
-#include "Replication/ReplicationTransaction.h"
 #include "VocBase/replication-common.h"
 #include "VocBase/voc-types.h"
 

@@ -33,7 +33,7 @@
 
 namespace arangodb {
 struct OperationOptions;
-class SingleCollectionTransaction;
+class Transaction;
 
 struct RestImportResult {
  public:
@@ -91,7 +91,7 @@ class RestImportHandler : public RestVocbaseBaseHandler {
   /// @brief process a single VelocyPack document
   //////////////////////////////////////////////////////////////////////////////
 
-  int handleSingleDocument(SingleCollectionTransaction& trx,
+  int handleSingleDocument(Transaction& trx,
                            VPackBuilder& lineBuilder,
                            RestImportResult& result,
                            arangodb::velocypack::Builder& babies,
@@ -126,7 +126,7 @@ class RestImportHandler : public RestVocbaseBaseHandler {
   /// @brief perform the actual import (insert/update/replace) operations
   //////////////////////////////////////////////////////////////////////////////
 
-  int performImport(SingleCollectionTransaction& trx, RestImportResult& result,
+  int performImport(Transaction& trx, RestImportResult& result,
                     std::string const& collectionName,
                     VPackBuilder const& babies, bool complete,
                     OperationOptions const& opOptions);

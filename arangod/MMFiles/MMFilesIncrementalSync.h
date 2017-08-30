@@ -35,6 +35,7 @@
 #include "SimpleHttpClient/SimpleHttpClient.h"
 #include "SimpleHttpClient/SimpleHttpResult.h"
 #include "Transaction/Helpers.h"
+#include "Transaction/StandaloneContext.h"
 #include "Utils/OperationOptions.h"
 
 #include <velocypack/Builder.h>
@@ -128,7 +129,7 @@ int handleSyncKeysMMFiles(arangodb::InitialSyncer& syncer,
   // acquire a replication ditch so no datafiles are thrown away from now on
   // note: the ditch also protects against unloading the collection
   {
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(syncer.vocbase()), col->cid(),
         AccessMode::Type::READ);
 
@@ -156,7 +157,7 @@ int handleSyncKeysMMFiles(arangodb::InitialSyncer& syncer,
                 ->freeDitch(ditch));
 
   {
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(syncer.vocbase()), col->cid(),
         AccessMode::Type::READ);
 
@@ -305,7 +306,7 @@ int handleSyncKeysMMFiles(arangodb::InitialSyncer& syncer,
   // remove all keys that are below first remote key or beyond last remote key
   if (n > 0) {
     // first chunk
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(syncer._vocbase), col->cid(),
         AccessMode::Type::WRITE);
 
@@ -379,7 +380,7 @@ int handleSyncKeysMMFiles(arangodb::InitialSyncer& syncer,
       return TRI_ERROR_REPLICATION_APPLIER_STOPPED;
     }
 
-    SingleCollectionTransaction trx(
+    Transaction trx(
         transaction::StandaloneContext::Create(syncer._vocbase), col->cid(),
         AccessMode::Type::WRITE);
 

@@ -62,7 +62,7 @@
 #include "Utils/CollectionNameResolver.h"
 #include "Utils/Events.h"
 #include "Utils/OperationOptions.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "VocBase/KeyGenerator.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ticks.h"
@@ -1779,7 +1779,7 @@ void MMFilesCollection::open(bool ignoreErrors) {
             "': " + TRI_errno_string(res));
   }
 
-  arangodb::SingleCollectionTransaction trx(
+  arangodb::Transaction trx(
       arangodb::transaction::StandaloneContext::Create(vocbase), cid,
       AccessMode::Type::READ);
   // the underlying collections must not be locked here because the "load"

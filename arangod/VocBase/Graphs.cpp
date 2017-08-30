@@ -27,7 +27,7 @@
 #include "Basics/StaticStrings.h"
 #include "Cluster/ClusterMethods.h"
 #include "Utils/OperationOptions.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "Transaction/StandaloneContext.h"
 #include "Transaction/TransactionProxy.h"
 #include <sstream>
@@ -42,7 +42,7 @@ std::string const GRAPHS = "_graphs";
 
 arangodb::aql::Graph* arangodb::lookupGraphByName(std::shared_ptr<transaction::Context> transactionContext,
                                                   std::string const& name) {
-  transaction::SingleCollectionTransactionProxy trx(
+  transaction::TransactionProxy trx(
       transactionContext, GRAPHS, AccessMode::Type::READ);
 
   Result res = trx.begin();

@@ -31,7 +31,7 @@
 #include "Transaction/StandaloneContext.h"
 #include "Transaction/TransactionProxy.h"
 #include "Utils/OperationOptions.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "VocBase/vocbase.h"
 
 #include "Logger/Logger.h"
@@ -138,7 +138,7 @@ bool RestDocumentHandler::createDocument() {
   // find and load collection given by name or identifier
   auto transactionContext = 
     transaction::StandaloneContext::Create(_vocbase, _trxProps.transactionId);
-  transaction::SingleCollectionTransactionProxy trx(
+  transaction::TransactionProxy trx(
     transactionContext, collectionName, AccessMode::Type::WRITE);
   
   bool const isMultiple = body.isArray();
@@ -246,7 +246,7 @@ bool RestDocumentHandler::readSingleDocument(bool generateBody) {
   // find and load collection given by name or identifier
   auto transactionContext(
     transaction::StandaloneContext::Create(_vocbase, _trxProps.transactionId));
-  transaction::SingleCollectionTransactionProxy trx(
+  transaction::TransactionProxy trx(
     transactionContext, collection, AccessMode::Type::READ);
   if (trx.wasCreatedHere()) {
     trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
@@ -441,7 +441,7 @@ bool RestDocumentHandler::modifyDocument(bool isPatch) {
   // find and load collection given by name or identifier
   auto transactionContext(
     transaction::StandaloneContext::Create(_vocbase, _trxProps.transactionId));
-  transaction::SingleCollectionTransactionProxy trx(
+  transaction::TransactionProxy trx(
     transactionContext, collectionName, AccessMode::Type::WRITE);
   if (!isArrayCase && trx.wasCreatedHere()) {
     trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
@@ -574,7 +574,7 @@ bool RestDocumentHandler::deleteDocument() {
     return false;
   }
 
-  transaction::SingleCollectionTransactionProxy trx(
+  transaction::TransactionProxy trx(
     transactionContext, collectionName, AccessMode::Type::WRITE);
   if ((suffixes.size() == 2 || !search.isArray()) && trx.wasCreatedHere()) {
     trx->addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
@@ -629,7 +629,7 @@ bool RestDocumentHandler::readManyDocuments() {
 
   auto transactionContext(
     transaction::StandaloneContext::Create(_vocbase, _trxProps.transactionId));
-  transaction::SingleCollectionTransactionProxy trx(
+  transaction::TransactionProxy trx(
     transactionContext, collectionName, AccessMode::Type::READ);
 
   // ...........................................................................

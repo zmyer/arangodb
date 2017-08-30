@@ -58,7 +58,7 @@
 #include "Utils/CollectionNameResolver.h"
 #include "Utils/Events.h"
 #include "Utils/OperationOptions.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "VocBase/KeyGenerator.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/ticks.h"
@@ -1751,7 +1751,7 @@ int RocksDBCollection::unlockRead() {
 // rescans the collection to update document count
 uint64_t RocksDBCollection::recalculateCounts() {
   // start transaction to get a collection lock
-  arangodb::SingleCollectionTransaction trx(
+  arangodb::Transaction trx(
       arangodb::transaction::StandaloneContext::Create(
           _logicalCollection->vocbase()),
       _logicalCollection->cid(), AccessMode::Type::EXCLUSIVE);
@@ -1877,7 +1877,7 @@ void RocksDBCollection::recalculateIndexEstimates() {
 void RocksDBCollection::recalculateIndexEstimates(
     std::vector<std::shared_ptr<Index>> const& indexes) {
   // start transaction to get a collection lock
-  arangodb::SingleCollectionTransaction trx(
+  arangodb::Transaction trx(
       arangodb::transaction::StandaloneContext::Create(
           _logicalCollection->vocbase()),
       _logicalCollection->cid(), AccessMode::Type::EXCLUSIVE);

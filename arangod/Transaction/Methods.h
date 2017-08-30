@@ -89,7 +89,7 @@ struct Options;
 class Methods {
   friend class traverser::BaseEngine;
   friend class CallbackInvoker;
-  friend class SingleCollectionTransactionProxy;
+  friend class TransactionProxy;
 
  public:
   class IndexHandle {
@@ -188,6 +188,9 @@ class Methods {
 
   /// @brief commit / finish the transaction
   Result commit();
+
+  OperationResult commitLocal();
+
 
   /// @brief abort the transaction
   Result abort();
@@ -391,9 +394,6 @@ class Methods {
   /// @brief Lock all collections. Only works for selected sub-classes
   virtual int lockCollections();
 
-  /// @brief Clone this transaction. Only works for selected sub-classes
-  virtual transaction::Methods* clone(transaction::Options const&) const;
-
   /// @brief return the collection name resolver
   CollectionNameResolver const* resolver() const;
 
@@ -577,7 +577,7 @@ class Methods {
   /// @brief pointer to transaction context (faster than shared ptr)
   transaction::Context* const _transactionContextPtr;
 
- private:
+ protected:
   /// @brief transaction hints
   transaction::Hints _localHints;
 
@@ -588,8 +588,9 @@ class Methods {
   }
   _collectionCache;
 
+ private:
   /// @brief subordinate transactors
-  std::unordered_set<std::string> _subActors;
+  std::unordered_map<std::string,std::unordered_set<std::string>> _subActors;
 
   /// @brief optional callback function that will be called on transaction
   /// commit or abort

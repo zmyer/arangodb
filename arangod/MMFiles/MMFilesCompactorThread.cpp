@@ -39,7 +39,7 @@
 #include "MMFiles/MMFilesIndexElement.h"
 #include "MMFiles/MMFilesPrimaryIndex.h"
 #include "StorageEngine/EngineSelectorFeature.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "Transaction/StandaloneContext.h"
 #include "Transaction/Helpers.h"
 #include "Transaction/Hints.h"
@@ -439,7 +439,7 @@ void MMFilesCompactorThread::compactDatafiles(LogicalCollection* collection,
     return true;
   };
 
-  arangodb::SingleCollectionTransaction trx(
+  arangodb::Transaction trx(
       arangodb::transaction::StandaloneContext::Create(collection->vocbase()), 
       collection->cid(), AccessMode::Type::WRITE);
   trx.addHint(transaction::Hints::Hint::NO_BEGIN_MARKER);
@@ -982,7 +982,7 @@ void MMFilesCompactorThread::run() {
 
 /// @brief determine the number of documents in the collection
 uint64_t MMFilesCompactorThread::getNumberOfDocuments(LogicalCollection* collection) {
-  SingleCollectionTransaction trx(
+  Transaction trx(
       transaction::StandaloneContext::Create(_vocbase), collection->cid(),
       AccessMode::Type::READ);
   // only try to acquire the lock here

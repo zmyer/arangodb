@@ -181,7 +181,7 @@ void TransactionRegistry::insert(
 
   } else {
     THROW_ARANGO_EXCEPTION_MESSAGE(
-        TRI_ERROR_INTERNAL, "transaction with given vocbase and id already there");
+        TRI_ERROR_TRANSACTION_INTERNAL, "transaction with given vocbase and id already there");
   }
 }
 
@@ -192,19 +192,10 @@ Methods* TransactionRegistry::open(TransactionId const& id, TRI_vocbase_t* vocba
 
   TransactionInfo* ti = getInfo(id, vocbase);
 
-  if (ti->_lifeCycle == ABORTED) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(
-      TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been aborted already");
-  }
-
-  if (ti->_lifeCycle == COMMITTED) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(
-      TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been committed already");
-  }
+  ti->checkAbortedOrCommitted();
 
   if (ti->_isOpen) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(
-        TRI_ERROR_INTERNAL, "transaction with given vocbase and id is already open");
+    return nullptr;
   }
 
   ti->_isOpen = true;
@@ -235,19 +226,11 @@ void TransactionRegistry::close(
 
   TransactionInfo* ti = getInfo(id, vocbase);
 
-  if (ti->_lifeCycle == ABORTED) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(
-      TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been aborted already");
-  }
-
-  if (ti->_lifeCycle == COMMITTED) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(
-      TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been committed already");
-  }
+  ti->checkAbortedOrCommitted();
 
   if (!ti->_isOpen) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
-        TRI_ERROR_INTERNAL, "transaction with given vocbase and id is not open");
+        TRI_ERROR_TRANSACTION_INTERNAL, "transaction with given vocbase and id is not open");
   }
 
   if (lc == COMMITTED) {
@@ -283,26 +266,16 @@ void TransactionRegistry::report(
   auto q = m->second.find(id);
   if (q == m->second.end()) {
 #warning Needs fixing: transaction being reported, which never existed in the registry
-    /*THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL,
-      "transaction with given vocbase and id not found");*/
+    /*THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_NOT_FOUND);*/
     LOG_TOPIC(WARN, Logger::TRANSACTIONS) << "Needs fixing: transaction was never in the registry";
     return;
   }
 
   TransactionInfo* ti = q->second;
 
-  if (ti->_lifeCycle == ABORTED) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(
-      TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been aborted already");
-  }
-
-  if (ti->_lifeCycle == COMMITTED) {
-    THROW_ARANGO_EXCEPTION_MESSAGE(
-      TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been committed already");
-  }
+  ti->checkAbortedOrCommitted();
 
   ti->_expires = TRI_microtime() + ti->_timeToLive;
-
 }
 
 /// @brief close
@@ -329,11 +302,9 @@ void TransactionRegistry::destroy(
 
   auto t = m->second.find(id);          // Find transaction with id in vocbase
   if (t == m->second.end()) {           // Not found: error!
-    THROW_ARANGO_EXCEPTION_MESSAGE(
-      TRI_ERROR_INTERNAL, "transaction with given vocbase and id not found");
+    THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_NOT_FOUND);
   }
   TransactionInfo* ti = t->second;
-
 
   if (ti->_isOpen) {
     ti->_transaction->abortExternal(); // Thread safe abort
@@ -433,8 +404,7 @@ TransactionRegistry::TransactionInfo* TransactionRegistry::getInfo(
       }
     }
     if (!found) {
-      THROW_ARANGO_EXCEPTION_MESSAGE(
-        TRI_ERROR_INTERNAL, "transaction with given id not found");
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_NOT_FOUND);
     }
   } else {
     auto m = _transactions.find(vocbase->name());
@@ -451,8 +421,7 @@ TransactionRegistry::TransactionInfo* TransactionRegistry::getInfo(
     }
     e = m->second.find(id);
     if (e == m->second.end()) {
-      THROW_ARANGO_EXCEPTION_MESSAGE(
-        TRI_ERROR_INTERNAL, "transaction with given vocbase and id not found");
+      THROW_ARANGO_EXCEPTION(TRI_ERROR_TRANSACTION_NOT_FOUND);
     }
   }
 

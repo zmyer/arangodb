@@ -39,8 +39,9 @@
 #include "StorageEngine/EngineSelectorFeature.h"
 #include "StorageEngine/StorageEngine.h"
 #include "Utils/CollectionGuard.h"
-#include "Utils/SingleCollectionTransaction.h"
+#include "Utils/Transaction.h"
 #include "Transaction/Hints.h"
+#include "Transaction/StandaloneContext.h"
 #include "VocBase/LogicalCollection.h"
 #include "VocBase/vocbase.h"
 #include "VocBase/voc-types.h"
@@ -579,8 +580,8 @@ int ContinuousSyncer::processDocument(TRI_replication_operation_e type,
   else {
     // standalone operation
     // update the apply tick for all standalone operations
-    SingleCollectionTransaction trx(transaction::StandaloneContext::Create(_vocbase),
-                                            cid, AccessMode::Type::EXCLUSIVE);
+    Transaction trx(transaction::StandaloneContext::Create(_vocbase),
+                    cid, AccessMode::Type::EXCLUSIVE);
   
     if (_supportsSingleOperations) {
       trx.addHint(transaction::Hints::Hint::SINGLE_DOCUMENT_OPERATION);
@@ -642,7 +643,7 @@ int ContinuousSyncer::startTransaction(VPackSlice const& slice) {
 
   LOG_TOPIC(TRACE, Logger::REPLICATION) << "starting replication transaction " << tid;
 
-  auto trx = std::make_unique<ReplicationTransaction>(_vocbase);
+  auto trx = std::make_unique<Transaction>(_vocbase);
   Result res = trx->begin();
 
   if (res.ok()) {

@@ -75,14 +75,47 @@ class Query {
   Query(Query const&) = delete;
   Query& operator=(Query const&) = delete;
 
+  // Creating a query object can get two transaction IDs. The default is
+  // that both are ZERO.
+  //
+  // On a single server this is OK, as long as one does not want to
+  // execute the AQL in the context of a given, open transaction. In
+  // that case one can give trxId and then this transaction will be used.
+  // If trxId is ZERO, then a new transaction is created for this query
+  // and committed in the end. Note that if there is an ongoing V8 
+  // transaction, this will also be picked up, even if trxId is ZERO.
+  // In all these cases one can leave coordinatorTid as ZERO.
+  //
+  // In the cluster, the situation on the coordinator is the same, except
+  // that one should hand in a transaction ID in both arguments coordinatorTid
+  // and trxId. However, these constructors are also used for sub parts
+  // of queries, which are deployed to DBservers and indeed to the coordinator.
+  // For a query part on the DBserver we need to set the coordinatorTid but
+  // let the trxId be ZERO, such that the query creates a new transaction
+  // for the shard which recalls the coordinator transaction. That is why
+  // we need two arguments. In the case that we run an AQL on a coordinator
+  // with an existing transaction, we need to prescribe not only the 
+  // coordinatorTid but also the local transaction id for that shard.
+
  public:
-  Query(bool contextOwnedByExterior, TRI_vocbase_t*, QueryString const& queryString,
+  Query(bool contextOwnedByExterior, TRI_vocbase_t*,
+        QueryString const& queryString,
         std::shared_ptr<arangodb::velocypack::Builder> const& bindParameters,
-        std::shared_ptr<arangodb::velocypack::Builder> const& options, QueryPart);
+        std::shared_ptr<arangodb::velocypack::Builder> const& options,
+        QueryPart, 
+        transaction::TransactionId const& coordinatorTid
+          = transaction::TransactionId::ZERO,
+        transaction::TransactionId const& trxId
+          = transaction::TransactionId::ZERO);
 
   Query(bool contextOwnedByExterior, TRI_vocbase_t*,
         std::shared_ptr<arangodb::velocypack::Builder> const& queryStruct,
-        std::shared_ptr<arangodb::velocypack::Builder> const& options, QueryPart);
+        std::shared_ptr<arangodb::velocypack::Builder> const& options,
+        QueryPart,
+        transaction::TransactionId const& coordinatorTid
+          = transaction::TransactionId::ZERO,
+        transaction::TransactionId const& trxId
+          = transaction::TransactionId::ZERO);
 
   ~Query();
 
@@ -177,13 +210,16 @@ class Query {
   /// @brief register a warning
   void registerWarning(int, char const* = nullptr);
   
+  /// @brief finish startup, this creates the transaction or reuses an
+  /// existing one. When this method returns, the transaction is leased
+  /// out to for this query.
   void prepare(QueryRegistry*, uint64_t queryHash);
 
   /// @brief execute an AQL query
   QueryResult execute(QueryRegistry*);
 
-  /// @brief execute an AQL query
-  /// may only be called with an active V8 handle scope
+  /// @brief executeV8, execute an AQL query, may only be called with an
+  /// active V8 handle scope
   QueryResultV8 executeV8(v8::Isolate* isolate, QueryRegistry*);
 
   /// @brief parse an AQL query
@@ -201,8 +237,12 @@ class Query {
   /// @brief inject the engine
   void engine(ExecutionEngine* engine);
 
-  /// @brief return the transaction, if prepared
-  inline transaction::Methods* trx() { return _trx; }
+  /// @brief return the transaction, if prepared, the transaction has to
+  /// be leased for this to be successful
+  inline transaction::Methods* trx() {
+    TRI_ASSERT(_trx != nullptr);
+    return _trx;
+  }
 
   /// @brief get the plan for the query
   ExecutionPlan* plan() const { return _plan.get(); }
@@ -238,6 +278,12 @@ class Query {
  
   QueryExecutionState::ValueType state() const { return _state; }
 
+  /// @brief get our transaction from the registry
+  void leaseTransaction();
+
+  /// @brief return our transaction to the registry
+  void returnTransaction();
+
  private:
   /// @brief initializes the query
   void init();
@@ -259,7 +305,6 @@ class Query {
   /// @brief whether or not the query cache can be used for the query
   bool canUseQueryCache() const;
 
- private:
   /// @brief neatly format exception messages for the users
   std::string buildErrorMessage(int errorCode) const;
 
@@ -275,7 +320,15 @@ class Query {
   /// @brief returns the next query id
   static TRI_voc_tick_t NextId();
 
- private:
+  /// @brief initTransaction create a new transaction or activate one
+  /// from the query registry
+  int initTransaction();
+
+  /// @brief exitTransaction get rid of transaction (if created here)
+  /// or just leave it in the registry, transaction must not be leased
+  /// when calling this
+  void exitTransaction();
+
   /// @brief query id
   TRI_voc_tick_t _id;
   
@@ -329,10 +382,24 @@ class Query {
   /// @brief the ExecutionPlan object, if the query is prepared
   std::shared_ptr<ExecutionPlan> _plan;
 
-  /// @brief the transaction object, in a distributed query every part of
-  /// the query has its own transaction object. The transaction object is
-  /// created in the prepare method.
+  /// @brief the transaction object, in a distributed query every the
+  /// coordinator and every executing dbserver have exactly one transaction
+  /// object. The coordinator uses transaction ID i (divisible by 4) and
+  /// the dbservers use transaction ID i+1. The transaction object is
+  /// either handed in from the outside or created in the constructor
+  /// and begun there. After each method the object is returned to the
+  /// transaction registry.
   transaction::Methods* _trx;
+
+  /// @brief the transaction ID
+  transaction::TransactionId _trxId;
+
+  /// @brief the coordinator transaction ID or 0 in single server
+  /// on the coordinator, this is equal to _trxId
+  transaction::TransactionId _coordTrxId;
+
+  /// @brief flag, if transaction was created by this query
+  bool _trxCreatedHere;
 
   /// @brief the ExecutionEngine object, if the query is prepared
   std::unique_ptr<ExecutionEngine> _engine;

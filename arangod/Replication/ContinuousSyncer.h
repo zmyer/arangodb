@@ -26,6 +26,7 @@
 
 #include "Basics/Common.h"
 #include "Replication/Syncer.h"
+#include "Utils/Transaction.h"
 #include "VocBase/replication-applier.h"
 
 struct TRI_vocbase_t;
@@ -39,8 +40,6 @@ class SimpleHttpResult;
 namespace velocypack {
 class Slice;
 }
-
-class ReplicationTransaction;
 
 enum RestrictType : uint32_t {
   RESTRICT_NONE,
@@ -262,8 +261,7 @@ class ContinuousSyncer : public Syncer {
   /// @brief which transactions were open and need to be treated specially
   //////////////////////////////////////////////////////////////////////////////
 
-  std::unordered_map<TRI_voc_tid_t, ReplicationTransaction*>
-      _ongoingTransactions;
+  std::unordered_map<TRI_voc_tid_t, Transaction*> _ongoingTransactions;
 };
 }
 

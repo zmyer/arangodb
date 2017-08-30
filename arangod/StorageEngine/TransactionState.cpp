@@ -188,7 +188,7 @@ int TransactionState::addCollection(TRI_voc_cid_t cid,
 
   TRI_ASSERT(trxCollection != nullptr);
 
-  // std::cout << "SingleCollectionTransaction::lockRead() database: " /*<<
+  // std::cout << "Transaction::lockRead() database: " /*<<
   // documentCollection()->dbName()*/ << ", collection: " <<
   // trxCollection->collectionName() << "\n";
 

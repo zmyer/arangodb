@@ -31,7 +31,7 @@ namespace arangodb {
 class LogicalCollection;
 
 int syncChunkRocksDB(
-    InitialSyncer& syncer, SingleCollectionTransaction* trx,
+    InitialSyncer& syncer, Transaction* trx,
     std::string const& keysId, uint64_t chunkId, std::string const& lowString,
     std::string const& highString,
     std::vector<std::pair<std::string, uint64_t>> const& markers,

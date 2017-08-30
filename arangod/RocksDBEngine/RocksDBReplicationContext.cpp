@@ -34,9 +34,9 @@
 #include "RocksDBEngine/RocksDBMethods.h"
 #include "Transaction/Helpers.h"
 #include "Transaction/StandaloneContext.h"
-#include "Transaction/UserTransaction.h"
 #include "Utils/DatabaseGuard.h"
 #include "Utils/ExecContext.h"
+#include "Utils/Transaction.h"
 #include "VocBase/replication-common.h"
 #include "VocBase/ticks.h"
 
@@ -477,7 +477,7 @@ RocksDBReplicationContext::createTransaction(TRI_vocbase_t* vocbase) {
   std::shared_ptr<transaction::StandaloneContext> ctx =
       transaction::StandaloneContext::Create(vocbase);
   std::unique_ptr<transaction::Methods> trx(
-      new transaction::UserTransaction(ctx, {}, {}, {}, transactionOptions));
+      new Transaction(ctx, {}, {}, {}, transactionOptions));
   Result res = trx->begin();
   if (!res.ok()) {
     _guard.reset();

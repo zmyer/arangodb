@@ -69,6 +69,7 @@ QueryRegistry::~QueryRegistry() {
 void QueryRegistry::insert(QueryId id, Query* query, double ttl) {
   TRI_ASSERT(query != nullptr);
   TRI_ASSERT(query->trx() != nullptr);
+  query->returnTransaction();
   auto vocbase = query->vocbase();
 
   WRITE_LOCKER(writeLocker, _lock);
@@ -141,6 +142,7 @@ Query* QueryRegistry::open(TRI_vocbase_t* vocbase, QueryId id) {
     }
   }
 
+  qi->_query->leaseTransaction();
   return qi->_query;
 }
 
@@ -186,6 +188,7 @@ void QueryRegistry::close(TRI_vocbase_t* vocbase, QueryId id, double ttl) {
   }
 
   qi->_isOpen = false;
+  qi->_query->returnTransaction();
   qi->_expires = TRI_microtime() + qi->_timeToLive;
 }
 
@@ -223,6 +226,7 @@ void QueryRegistry::destroy(std::string const& vocbase, QueryId id,
         LOG_TOPIC(WARN, arangodb::Logger::FIXME) << "Found strange lockedShards in thread, not overwriting!";
       }
     }
+    qi->_query->leaseTransaction();
   }
 
   if (errorCode == TRI_ERROR_NO_ERROR) {

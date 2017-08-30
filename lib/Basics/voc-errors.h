@@ -549,6 +549,11 @@
 ///   transaction.
 /// - 1654: @LIT{transaction aborted}
 ///   Will be raised when a transaction was aborted.
+/// - 1655: @LIT{transaction committed}
+///   Will be raised when a transaction was already committed.
+/// -  1656: @LIT{transaction with given id not found}
+///   Will be raised by the transaction registry if a transaction with a given
+///   id is not found.
 /// - 1700: @LIT{invalid user name}
 ///   Will be raised when an invalid user name is used.
 /// - 1701: @LIT{invalid password}
@@ -2494,7 +2499,8 @@ void TRI_InitializeErrorMessages ();
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief 1493: ERROR_CLUSTER_DISTRIBUTE_SHARDS_LIKE_REPLICATION_FACTOR
 ///
-/// conflicting replication factor with distributeShardsLike parameter assignment
+/// conflicting replication factor with distributeShardsLike parameter
+/// assignment
 ///
 /// Will be raised if intended replication factor does not match that of the
 /// prototype shard given in ditributeShardsLike parameter.
@@ -3014,6 +3020,27 @@ void TRI_InitializeErrorMessages ();
 ////////////////////////////////////////////////////////////////////////////////
 
 #define TRI_ERROR_TRANSACTION_ABORTED                                     (1654)
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief 1655: ERROR_TRANSACTION_COMMITTED
+///
+/// transaction committed
+///
+/// Will be raised when a transaction was already committed.
+////////////////////////////////////////////////////////////////////////////////
+
+#define TRI_ERROR_TRANSACTION_COMMITTED                                   (1655)
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  1656: ERROR_TRANSACTION_NOT_FOUND
+///
+/// transaction with given id not found
+///
+/// Will be raised by the transaction registry if a transaction with a given id
+/// is not found.
+////////////////////////////////////////////////////////////////////////////////
+
+#define TRI_ERROR_TRANSACTION_NOT_FOUND                                   ( 1656)
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief 1700: ERROR_USER_INVALID_NAME

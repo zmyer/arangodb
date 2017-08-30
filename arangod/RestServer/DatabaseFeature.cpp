@@ -45,8 +45,10 @@
 #include "RestServer/FeatureCacheFeature.h"
 #include "RestServer/QueryRegistryFeature.h"
 #include "RestServer/TraverserEngineRegistryFeature.h"
+#include "RestServer/TransactionRegistryFeature.h"
 #include "StorageEngine/EngineSelectorFeature.h"
 #include "StorageEngine/StorageEngine.h"
+#include "Transaction/TransactionRegistry.h"
 #include "Utils/CursorRepository.h"
 #include "Utils/Events.h"
 #include "V8Server/V8DealerFeature.h"
@@ -183,6 +185,12 @@ void DatabaseManagerThread::run() {
           = TraverserEngineRegistryFeature::TRAVERSER_ENGINE_REGISTRY;
         if (engineRegistry != nullptr) {
           engineRegistry->expireEngines();
+        }
+
+        auto transactionRegistry
+          = TransactionRegistryFeature::TRANSACTION_REGISTRY;
+        if (transactionRegistry != nullptr) {
+          transactionRegistry->expireTransactions();
         }
 
         // on a coordinator, we have no cleanup threads for the databases
