@@ -72,13 +72,18 @@ static int indexOf(std::vector<std::string> const& haystack, std::string const& 
 }
 
 static aql::Collection const* getCollection(ExecutionNode const* node) {
-  if (node->getType() == EN::ENUMERATE_COLLECTION) {
+  switch (node->getType()) {
+  case EN::ENUMERATE_COLLECTION:
     return static_cast<EnumerateCollectionNode const*>(node)->collection();
-  } else if (node->getType() == EN::INDEX) {
+  case EN::INDEX:
     return static_cast<IndexNode const*>(node)->collection();
+  case EN::TRAVERSAL:
+  case EN::SHORTEST_PATH:
+    return static_cast<GraphNode const*>(node)->collection();
+  default:
+    // note: modification nodes are not covered here yet 
+    THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "node type does not have a collection");
   }
-  // note: modification nodes are not covered here yet 
-  THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "node type does not have a collection");
 }
 
 static aql::Variable const* getVariable(ExecutionNode const* node) {
@@ -2265,13 +2270,14 @@ void arangodb::aql::optimizeClusterSingleShardRule(Optimizer* opt,
   // TODO: properly handle subqueries here
   SmallVector<ExecutionNode*>::allocator_type::arena_type s;
   SmallVector<ExecutionNode*> nodes{s};
-  std::vector<ExecutionNode::NodeType> types = {ExecutionNode::TRAVERSAL, ExecutionNode::SHORTEST_PATH, ExecutionNode::SUBQUERY}; 
+  // std::vector<ExecutionNode::NodeType> types = {ExecutionNode::TRAVERSAL, ExecutionNode::SHORTEST_PATH, ExecutionNode::SUBQUERY}; 
+  std::vector<ExecutionNode::NodeType> types = {ExecutionNode::SHORTEST_PATH, ExecutionNode::SUBQUERY}; 
   plan->findNodesOfType(nodes, types, true);
 
   bool hasIncompatibleNodes = !nodes.empty();
     
   nodes.clear();
-  types = {ExecutionNode::INDEX, ExecutionNode::ENUMERATE_COLLECTION}; 
+  types = {ExecutionNode::INDEX, ExecutionNode::ENUMERATE_COLLECTION, ExecutionNode::TRAVERSAL}; 
   plan->findNodesOfType(nodes, types, false);
 
   if (!nodes.empty() && !hasIncompatibleNodes) {
