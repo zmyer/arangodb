@@ -68,6 +68,9 @@ class RestTransactionHandler : public arangodb::RestVocbaseBaseHandler {
   /// @brief handle Delete methods sent to execute()
   void executeDelete();
 
+  /// @brief handle GET methods sent to execute()
+  void executeGet();
+
  private:
   void returnContext();
 };

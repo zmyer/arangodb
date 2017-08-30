@@ -36,21 +36,23 @@ struct TransactionId {
 
   TransactionId(uint32_t c = 0, uint32_t i = 0) : coordinator(c), identifier(i) {}
   TransactionId(std::string const&);
+  TransactionId(char const*);
 
   TransactionId& operator=(std::string const&);
+  TransactionId & operator=(char const *);
 
   bool operator== (TransactionId const&) const;
   bool operator!= (TransactionId const&) const;
 
   TransactionId operator+(uint32_t) const;
-  
+
   std::string toString() const;
   TRI_voc_tid_t id() const;
   void clear();
 
   uint32_t coordinator;
   uint32_t identifier;
-  static const TransactionId ZERO; 
+  static const TransactionId ZERO;
 };
 
 static char const SEPARATOR = '-';

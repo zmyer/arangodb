@@ -31,6 +31,13 @@ TransactionId::TransactionId(std::string const& stringId) {
   *this = stringId;
 }
 
+TransactionId::TransactionId(const char * charId) {
+  if (nullptr != charId) {
+    std::string temp(charId);
+    operator=(temp);
+  } // if
+}
+
 TransactionId& TransactionId::operator=(std::string const& stringId) {
 
   auto sep_pos = stringId.find_first_not_of("0123456789");
@@ -51,6 +58,15 @@ TransactionId& TransactionId::operator=(std::string const& stringId) {
 
   return *this;
 } // TransactionId::operator=(std::string const&)
+
+TransactionId & TransactionId::operator=(char const * charId) {
+  if (nullptr != charId) {
+    std::string temp(charId);
+    operator=(temp);
+  } // if
+
+  return *this;
+} // TransactionId::operator=(char const *)
 
 void TransactionId::clear() {
   coordinator=0;
@@ -84,4 +100,3 @@ size_t hash<arangodb::transaction::TransactionId>::operator()
   (arangodb::transaction::TransactionId const& t) const {
   return 0.5*( t.coordinator+t.identifier)*(t.coordinator+t.identifier+1)+t.identifier;
 }}
-

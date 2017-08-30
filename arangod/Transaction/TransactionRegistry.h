@@ -69,7 +69,7 @@ class TransactionRegistry {
 
   };
 
- protected:
+protected:
   struct TransactionInfo {
     TRI_vocbase_t* _vocbase;  // the vocbase
     TransactionId _id;        // id of the transaction
@@ -87,7 +87,7 @@ class TransactionRegistry {
     }
   };
 
-public:
+ public:
 
   TransactionRegistry() {}
 
@@ -162,6 +162,9 @@ public:
 
   /// @brief dump to velocypack
   void toVelocyPack(VPackBuilder&) const;
+
+  /// @brief a specific transaction ... can throw
+  bool toVelocyPack(VPackBuilder& vb, TransactionId const & id) const;
 
   /// @brief dump to velocypack
   void decomission(TRI_vocbase_t* vocbase, TransactionId const& id);

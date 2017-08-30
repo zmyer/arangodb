@@ -17,11 +17,11 @@
 ///
 /// Copyright holder is ArangoDB GmbH, Cologne, Germany
 ///
-/// @author 
+/// @author
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef ARANGOD_VOCBASE_METHODS_TRANSACTIONS_HANDLER_H
-#define ARANGOD_VOCBASW_METHODS_TRANSACTIONS_HANDLER_H 1
+#define ARANGOD_VOCBASE_METHODS_TRANSACTIONS_HANDLER_H 1
 
 #include "Basics/ReadWriteLock.h"
 #include "Basics/Result.h"

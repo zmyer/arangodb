@@ -80,26 +80,7 @@ RestStatus RestTransactionHandler::execute() {
 
     // status of given ID or list of all
     case rest::RequestType::GET: {
-#if 0
-#include "transaction/TransactionRegistry.h"
-#include "transaction/TransactionRegistryFeature.h"
-auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
-
-VPackBuilder builder;
-{
-  VPackObjectBuilder b(&builder)
-  transactionRegistry->toVelocyPack(builder);
-}
-
-... or ...
-
-auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
-VPackBuilder builder;
-{
-  VPackObjectBuilder b(&builder)
-  transactionRegistry(transactionId[, vocbase])->toVelocyPack(builder);
-}
-#endif
+      executeGet();
       break;
     }
 
@@ -211,7 +192,7 @@ void RestTransactionHandler::executePost() {
   // identify the type of POST:  multi-operation has "/start" suffix
   if (0!=_request->suffixes().size()) {
 
-    if (1==_request->suffixes().size() && _request->suffixes().at(0).compare("start")) {
+    if (1==_request->suffixes().size() && 0==_request->suffixes().at(0).compare("start")) {
       expectAction=false;
     } else {
       generateError(rest::ResponseCode::NOT_FOUND, 404);
@@ -255,8 +236,6 @@ void RestTransactionHandler::executePost() {
 
     res = std::get<0>(rvTuple);
     if (!expectAction && res.ok()) {
-      _response->setHeader(std::string(kTransactionHeader), std::get<1>(rvTuple));
-
       VPackObjectBuilder b(&result);
       result.add(kTransactionHeader, VPackValue(std::get<1>(rvTuple)));
     } // if
@@ -267,6 +246,10 @@ void RestTransactionHandler::executePost() {
         generateSuccess(rest::ResponseCode::OK, VPackSlice::nullSlice());
       } else {
         generateSuccess(rest::ResponseCode::OK, slice);
+        // generateSuccess resets headers ... set now.
+        if (!expectAction) {
+          _response->setHeaderNC(std::string(kTransactionHeader), std::get<1>(rvTuple));
+        }
       }
     } else {
       generateError(res);
@@ -349,3 +332,48 @@ void RestTransactionHandler::executeDelete() {
 
   return;
 } // RestTransactionHandler::executeDelete
+
+/// @brief handle the GET method(s), current only abort
+void RestTransactionHandler::executeGet() {
+  Result res;
+  transaction::TransactionId tx_id;
+  auto transactionRegistry = TransactionRegistryFeature::TRANSACTION_REGISTRY;
+
+  res=ExtractTransactionId(_request.get(), _response.get(), tx_id);
+
+  // result ok if transaction given for specific transaction, fail() if all
+  try {
+    VPackBuilder builder;
+
+    if (res.ok()) {
+      bool found(false);
+      {
+        VPackObjectBuilder b(&builder);
+        found=transactionRegistry->toVelocyPack(builder, tx_id);
+      }
+
+      if (found) {
+        _response->setPayload(builder.slice(), true, VPackOptions::Defaults);
+      } else {
+        generateError(rest::ResponseCode::NOT_FOUND, 404);
+      } // else
+    } else {
+      // dump all
+
+      VPackBuilder builder;
+      {
+        VPackObjectBuilder b(&builder);
+        transactionRegistry->toVelocyPack(builder);
+      }
+      _response->setPayload(builder.slice(), true, VPackOptions::Defaults);
+    } // else
+  } catch (std::exception const& ex) {
+    generateError(GeneralResponse::responseCode(TRI_ERROR_INTERNAL),
+                  TRI_ERROR_INTERNAL, ex.what());
+  } catch (...) {
+    generateError(GeneralResponse::responseCode(TRI_ERROR_INTERNAL),
+                  TRI_ERROR_INTERNAL);
+  } // catch
+
+  return;
+} // RestTransactionHandler::executeGet

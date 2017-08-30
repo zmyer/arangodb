@@ -31,6 +31,7 @@
 #include "StorageEngine/StorageEngineMock.h"
 #include "Transaction/TransactionRegistryMock.h"
 #include "V8Server/V8DealerFeatureMock.h"
+#include "VocBase/Methods/TransactionsMock.h"
 #include "VocBase/vocbase.h"
 
 using namespace arangodb;
@@ -46,25 +47,12 @@ struct MOCK_vocbase_t : public TRI_vocbase_t {
 };
 
 
-std::tuple<Result, std::string> executeTransactionMock(
-    v8::Isolate* isolate,
-    basics::ReadWriteLock& lock,
-    std::atomic<bool>& canceled,
-    VPackSlice slice,
-    std::string portType,
-    VPackBuilder& builder,
-    bool expectAction) {
-
-  Result result;
-  return std::make_tuple(result, std::string());
-}
-
-
 TEST_CASE("Test pre 3.2", "[unittest]") {
   MockStorageEngine mock_engine;  // must precede MOCK_vocbase_t
   MOCK_vocbase_t mock_database;
   mock_database.forceUse();       // prevent double delete
   MockV8DealerFeature mock_dealer;
+  MockTransactions mock_trans;
 
   SECTION("Always fails") {
     char const body[] = "";
@@ -107,9 +95,7 @@ TEST_CASE("Test pre 3.2", "[unittest]") {
     // RestTransactionHandler owns and deletes GeneralRequest and GeneralResponse
     std::unique_ptr<RestTransactionHandler> handler(
       new RestTransactionHandler(req, resp));
-    RestTransactionHandler::_executeTransactionPtr = & executeTransactionMock;
 
-    // ILLEGAL is default ... but set just to be safe and future proof
     req->setRequestType(rest::RequestType::POST);
     RestStatus status = handler->execute();
 
@@ -119,7 +105,7 @@ TEST_CASE("Test pre 3.2", "[unittest]") {
 } // TEST_CASE
 
 
-TEST_CASE("Retrieve Tx Id", "[unittest][walkme]") {
+TEST_CASE("Retrieve Tx Id", "[unittest]") {
   MockStorageEngine mock_engine;  // must precede MOCK_vocbase_t
   MOCK_vocbase_t mock_database;
   mock_database.forceUse();       // prevent double delete
@@ -295,6 +281,73 @@ TEST_CASE("Retrieve Tx Id", "[unittest][walkme]") {
     delete req;
   } // SECTION
 
+} // TEST_CASE
+
+
+TEST_CASE("Start/Stat/Commit Txn", "[unittest][walkme]") {
+  MockStorageEngine mock_engine;  // must precede MOCK_vocbase_t
+  MOCK_vocbase_t mock_database;
+  mock_database.forceUse();       // prevent double delete
+  MockV8DealerFeature mock_dealer;
+  MockTransactions mock_trans;
+
+  SECTION("Simple triplet") {
+    //
+    // start
+    //
+    static const char *start_tx = R"=(
+{
+  "collections" : {
+    "write" : [
+      "products",
+      "materials"
+    ]
+  }
+}
+)=";
+    std::unordered_map<std::string, std::string> headers;
+    GeneralRequest* req1(HttpRequest::createHttpRequest(ContentType::JSON, start_tx,
+                                                       strlen(start_tx), headers));
+    req1->setRequestContext(new VocbaseContext(req1, &mock_database), true);
+
+    GeneralResponse* resp1(new HttpResponse(rest::ResponseCode::OK));
+
+    // RestTransactionHandler owns and deletes GeneralRequest and GeneralResponse
+    std::unique_ptr<RestTransactionHandler> handler(
+      new RestTransactionHandler(req1, resp1));
+
+    req1->setRequestType(rest::RequestType::POST);
+    req1->addSuffix("start");
+    RestStatus status = handler->execute();
+
+    CHECK( !status.isFailed() );
+    REQUIRE ( resp1->responseCode() == rest::ResponseCode::OK);
+
+    std::string txn_string = resp1->headers()[RestTransactionHandler::kTransactionHeader];
+    CHECK( 0!=txn_string.length() );
+    handler.reset();
+    //
+    // status
+    //
+#if 0 // not yet working
+    headers.insert(std::pair<std::string,std::string>(RestTransactionHandler::kTransactionHeaderLowerCase,txn_string));
+
+    GeneralRequest* req2(HttpRequest::createHttpRequest(ContentType::JSON, "",
+                                                       0, headers));
+    req2->setRequestContext(new VocbaseContext(req2, &mock_database), true);
+
+    GeneralResponse* resp2(new HttpResponse(rest::ResponseCode::OK));
+
+    // RestTransactionHandler owns and deletes GeneralRequest and GeneralResponse
+    handler.reset(new RestTransactionHandler(req2, resp2));
+
+    req2->setRequestType(rest::RequestType::GET);
+    RestStatus status2 = handler->execute();
+
+    CHECK( !status2.isFailed() );
+    REQUIRE ( resp2->responseCode() == rest::ResponseCode::OK);
+#endif
+  } // SECTION
 
 } // TEST_CASE
 

@@ -24,7 +24,8 @@
 /// @author Matthew Von-Maszewski
 /// @author Copyright 2017, ArangoDB GmbH, Cologne, Germany
 ////////////////////////////////////////////////////////////////////////////////
-#include "catch.hpp"
+#ifndef ARANGOD_TRANSACTION_TRANSACTIONREGISTRY_MOCK_H
+#define ARANGOD_TRANSACTION_TRANSACTIONREGISTRY_MOCK_H 1
 
 #include "RestServer/TransactionRegistryFeature.h"
 #include "Transaction/TransactionRegistry.h"
@@ -82,3 +83,4 @@ class MockTransactionRegistry: public transaction::TransactionRegistry {
 };
 
 }} // two namespaces
+#endif // ARANGOD_VOCBASE_METHODS_TRANSACTIONS_MOCK_H

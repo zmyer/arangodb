@@ -59,7 +59,7 @@ inline TransactionId TransactionRegistry::UniqueGenerator::operator()() {
 inline void TransactionRegistry::UniqueGenerator::getSomeNoLock() {
   _next = 0;
   _last = _next + _chunks - 1;
-  uint64_t r = _next%4; 
+  uint64_t r = _next%4;
   if(r != 0) {
     _next += 4-r;
   }
@@ -136,32 +136,32 @@ TransactionId TransactionRegistry::insert(Methods* transaction, double ttl) {
 
     auto vocbaseTrxs = _transactions.find(vocbaseName)->second;
     TRI_ASSERT(vocbaseTrxs.find(id) != vocbaseTrxs.end());
-    
+
   } else {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id already there");
   }
-  
+
   return id;
-  
+
 }
 
 /// @brief insert transaction on db servers
 void TransactionRegistry::insert(
   TransactionId const& id, Methods* transaction, double ttl) {
-  
+
   TRI_ASSERT(transaction != nullptr);
 
   auto vocbase = transaction->vocbase();
   auto vocbaseName = vocbase->name();
-  
+
   MUTEX_LOCKER(locker, _lock);
-  
+
   auto m = _transactions.find(vocbaseName);
   if (m == _transactions.end()) {
     m = _transactions.emplace(vocbaseName,
                               std::unordered_map<TransactionId, TransactionInfo*>()).first;
-    
+
     TRI_ASSERT(_transactions.find(vocbaseName) != _transactions.end());
   }
   auto t = m->second.find(id);
@@ -185,7 +185,7 @@ void TransactionRegistry::insert(
   }
 }
 
-/// @brief open 
+/// @brief open
 Methods* TransactionRegistry::open(TransactionId const& id, TRI_vocbase_t* vocbase) {
   // std::cout << "Taking out transaction with ID " << id << std::endl;
   MUTEX_LOCKER(locker, _lock);
@@ -196,21 +196,21 @@ Methods* TransactionRegistry::open(TransactionId const& id, TRI_vocbase_t* vocba
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been aborted already");
   }
-  
+
   if (ti->_lifeCycle == COMMITTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been committed already");
   }
-  
+
   if (ti->_isOpen) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
         TRI_ERROR_INTERNAL, "transaction with given vocbase and id is already open");
   }
-  
+
   ti->_isOpen = true;
 
   return ti->_transaction;
-  
+
 }
 
 void TransactionRegistry::closeAbort(TransactionId const& id, double ttl) {
@@ -218,7 +218,7 @@ void TransactionRegistry::closeAbort(TransactionId const& id, double ttl) {
 }
 
 void TransactionRegistry::closeCommit(TransactionId const& id, double ttl) {
-  close(nullptr, id, ttl, COMMITTED);  
+  close(nullptr, id, ttl, COMMITTED);
 }
 
 void TransactionRegistry::closeAbort(Methods* transaction, double ttl) {
@@ -226,25 +226,25 @@ void TransactionRegistry::closeAbort(Methods* transaction, double ttl) {
 }
 
 void TransactionRegistry::closeCommit(Methods* transaction, double ttl) {
-  close(transaction->vocbase(), transaction->id(), ttl, COMMITTED);  
+  close(transaction->vocbase(), transaction->id(), ttl, COMMITTED);
 }
 
 /// @brief close
 void TransactionRegistry::close(
   TRI_vocbase_t* vocbase, TransactionId const& id, double ttl, LifeCycle lc) {
-  
+
   TransactionInfo* ti = getInfo(id, vocbase);
-  
+
   if (ti->_lifeCycle == ABORTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been aborted already");
   }
-  
+
   if (ti->_lifeCycle == COMMITTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been committed already");
   }
-  
+
   if (!ti->_isOpen) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
         TRI_ERROR_INTERNAL, "transaction with given vocbase and id is not open");
@@ -258,7 +258,7 @@ void TransactionRegistry::close(
 
   ti->_isOpen = false;
   ti->_expires = TRI_microtime() + ti->_timeToLive;
-  
+
 }
 
 void TransactionRegistry::closeAbort(TRI_vocbase_t* vocbase, TransactionId const& id, double ttl) {
@@ -288,19 +288,19 @@ void TransactionRegistry::report(
     LOG_TOPIC(WARN, Logger::TRANSACTIONS) << "Needs fixing: transaction was never in the registry";
     return;
   }
-  
+
   TransactionInfo* ti = q->second;
-  
+
   if (ti->_lifeCycle == ABORTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been aborted already");
   }
-  
+
   if (ti->_lifeCycle == COMMITTED) {
     THROW_ARANGO_EXCEPTION_MESSAGE(
       TRI_ERROR_INTERNAL, "transaction with given vocbase and id has been committed already");
   }
-  
+
   ti->_expires = TRI_microtime() + ti->_timeToLive;
 
 }
@@ -326,7 +326,7 @@ void TransactionRegistry::destroy(
     m = _transactions.emplace(
       vocbase, std::unordered_map<TransactionId, TransactionInfo*>()).first;
   }
-  
+
   auto t = m->second.find(id);          // Find transaction with id in vocbase
   if (t == m->second.end()) {           // Not found: error!
     THROW_ARANGO_EXCEPTION_MESSAGE(
@@ -334,12 +334,12 @@ void TransactionRegistry::destroy(
   }
   TransactionInfo* ti = t->second;
 
-  
+
   if (ti->_isOpen) {
     ti->_transaction->abortExternal(); // Thread safe abort
     return;
   }
-  
+
   // Now we can delete it:
   //delete ti->_transaction;
   delete ti;
@@ -457,22 +457,33 @@ TransactionRegistry::TransactionInfo* TransactionRegistry::getInfo(
   }
 
   return e->second;
-  
+
 }
 
 
 void TransactionRegistry::toVelocyPack(VPackBuilder& builder) const {
   TRI_ASSERT(builder.isOpenObject());
   // Iterate over vocbases
-  for (auto const& vocbase : _transactions) { 
+  for (auto const& vocbase : _transactions) {
     builder.add(VPackValue(vocbase.first));
     VPackArrayBuilder b(&builder);
     // Iterate over transactions
-    for (auto const& transaction : vocbase.second) { 
+    for (auto const& transaction : vocbase.second) {
       transaction.second->toVelocyPack(builder);
     }
   }
 }
+
+
+bool TransactionRegistry::toVelocyPack(VPackBuilder& vb, TransactionId const &id) const {
+  TransactionInfo * info;
+  info = getInfo(id);
+  if (nullptr!=info) {
+    info->toVelocyPack(vb);
+  }
+  return nullptr!=info;
+}
+
 
 uint64_t TransactionRegistry::id() const {
   return _generator.registryId();
@@ -487,4 +498,3 @@ void TransactionRegistry::decomission(TRI_vocbase_t* vocbase, TransactionId cons
   } catch (...) {
   }
 }
-
