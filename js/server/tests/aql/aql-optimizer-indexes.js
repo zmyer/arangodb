@@ -764,7 +764,8 @@ function optimizerIndexesTestSuite () {
     testUseIndexSimple : function () {
       var query = "FOR i IN " + c.name() + " FILTER i.value >= 10 SORT i.value LIMIT 10 RETURN i.value";
 
-      var plan = AQL_EXPLAIN(query).plan;
+      // This optimizer rule modifies the plan and moves the RETURN node too high
+      var plan = AQL_EXPLAIN(query, {}, {optimizer: {rules: ["-optimize-cluster-single-shard"]}}).plan;
       var nodeTypes = plan.nodes.map(function(node) {
         return node.type;
       });
