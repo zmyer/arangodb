@@ -167,56 +167,6 @@ ShortestPathNode::ShortestPathNode(ExecutionPlan* plan,
     }
   }
 
-  // TODO SP Difference is here:
-  /*
-  std::string graphName;
-  if (base.hasKey("graph") && (base.get("graph").isString())) {
-    graphName = base.get("graph").copyString();
-    if (base.hasKey("graphDefinition")) {
-      _graphObj = plan->getAst()->query()->lookupGraphByName(graphName);
-
-      if (_graphObj == nullptr) {
-        THROW_ARANGO_EXCEPTION(TRI_ERROR_GRAPH_NOT_FOUND);
-      }
-
-      auto const& eColls = _graphObj->edgeCollections();
-      for (auto const& it : eColls) {
-        _edgeColls.push_back(it);
-
-        // if there are twice as many directions as collections, this means we
-        // have a shortest path with direction ANY. we must add each collection
-        // twice then
-        if (_directions.size() == 2 * eColls.size()) {
-          // add collection again
-          _edgeColls.push_back(it);
-        }
-      }
-    } else {
-      THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_QUERY_BAD_JSON_PLAN,
-                                     "missing graphDefinition.");
-    }
-  } else {
-    _graphInfo.add(base.get("graph"));
-    if (!_graphInfo.slice().isArray()) {
-      THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_QUERY_BAD_JSON_PLAN,
-                                     "graph has to be an array.");
-    }
-    // List of edge collection names
-    for (auto const& it : VPackArrayIterator(_graphInfo.slice())) {
-      if (!it.isString()) {
-        THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_QUERY_BAD_JSON_PLAN,
-                                       "graph has to be an array of strings.");
-      }
-      _edgeColls.emplace_back(it.copyString());
-    }
-    if (_edgeColls.empty()) {
-      THROW_ARANGO_EXCEPTION_MESSAGE(
-          TRI_ERROR_QUERY_BAD_JSON_PLAN,
-          "graph has to be a non empty array of strings.");
-    }
-  }
-  */
-
   // Filter Condition Parts
   TRI_ASSERT(base.hasKey("fromCondition"));
   _fromCondition = new AstNode(plan->getAst(), base.get("fromCondition"));
