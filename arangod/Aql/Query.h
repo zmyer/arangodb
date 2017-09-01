@@ -113,18 +113,27 @@ class Query {
     }
   }
 
+  //// Cache Operations
+  /// Create and Finalize Cache
   Result cacheStart();
-  Result cacheAdd(VPackSlice const&); //single doc
-  Result cacheAdd(AqlItemBlock const&);
+  Result cacheStore(uint64_t queryHash);
 
+  /// Add Items to Cache
+  //Result cacheAdd(VPackSlice const&); //single doc
+  Result cacheAdd(AqlItemBlock const&);
   // this function is just there to have the same interface in all functions
   // it is possible that the cache is not used at all
   // because the QueryResultV8 expects to be filled in one go this can not be
   // used with getSome!
   Result cacheAdd(AqlItemBlock const&, v8::Isolate* isolate, QueryResultV8&, bool canCache = true);
 
-  Result cacheStore(uint64_t queryHash);
+  /// Work on Cache Entry
+  // try to use cache -- will set _cacgedResultBuilder if possible
   Result cacheUse(uint64_t queryHash); //fills _cachedResultBuilder member variable and initalizes / Array Iterator
+  bool   cacheEntryAvailable() { if (_cachedResultBuilder){return true;} return false;}
+  bool   cacheBuildingResult() { if (_resultBuilder){return true;} return false;}
+  Result cacheGetSome(std::size_t atLeast, std::size_t atMost, VPackBuilder& builder, std::size_t& count);
+  Result cacheSkipSome(std::size_t atLeast, std::size_t atMost, std::size_t& count, bool& exhausted);
 
   /// @brief Inject a transaction from outside. Use with care!
   void injectTransaction (transaction::Methods* trx) {

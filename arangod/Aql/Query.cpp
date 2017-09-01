@@ -230,17 +230,15 @@ Query::~Query() {
 Result Query::cacheStart(){
   Result rv;
   if(! _resultBuilder){
-    _resultBuilder = std::make_shared<VPackBuilder>();
-    _resultBuilder->buffer()->reserve( 16 * 1024);  // reserve some space in Builder to avoid frequent reallocs
+    VPackOptions options = VPackOptions::Defaults;
+    options.buildUnindexedArrays = true;
+    options.buildUnindexedObjects = true;
+    _resultBuilder = std::make_shared<VPackBuilder>(&options);
+    _resultBuilder->buffer()->reserve(16 * 1024);  // reserve some space in Builder to avoid frequent reallocs
     _resultBuilder->openArray();
   } else {
     return rv.reset(TRI_ERROR_INTERNAL,"cache entry already open");
   }
-  return rv;
-}
-
-Result Query::cacheAdd(VPackSlice const& slice){
-  Result rv;
   return rv;
 }
 
@@ -302,7 +300,7 @@ Result Query::cacheUse(uint64_t queryHash){
   Result rv;
   auto cacheEntry = arangodb::aql::QueryCache::instance()->lookup( _vocbase, queryHash, _queryString);
   arangodb::aql::QueryCacheResultEntryGuard guard(cacheEntry);
-      
+
   if (cacheEntry != nullptr) {
     // got a result from the query cache
     if(ExecContext::CURRENT != nullptr) {
@@ -318,6 +316,44 @@ Result Query::cacheUse(uint64_t queryHash){
     _cachedResultBuilder = cacheEntry->_queryResult;
     _cachedResultIterator = std::unique_ptr<VPackArrayIterator>( new VPackArrayIterator(_cachedResultBuilder->slice()));
   }
+  return rv;
+}
+
+Result Query::cacheGetSome(std::size_t atLeast, std::size_t atMost, VPackBuilder& builder, std::size_t& count){
+  Result rv;
+	if(! _cachedResultBuilder || ! _cachedResultIterator){
+		return rv.reset(TRI_ERROR_INTERNAL, "cached result not available");
+	}
+
+  count = 0;
+  while(_cachedResultIterator->valid() && count <= atMost){
+    builder.add(_cachedResultIterator->value());
+    _cachedResultIterator->next();
+  }
+
+  if (count < atLeast) {
+    rv.reset(TRI_ERROR_BAD_PARAMETER, "you tried to get more items than there are in the iterator");
+  }
+
+  return rv;
+}
+
+Result Query::cacheSkipSome(std::size_t atLeast, std::size_t atMost, std::size_t& count, bool& exhausted){
+  Result rv;
+  exhausted = false;
+	if(! _cachedResultBuilder || ! _cachedResultIterator){
+		return rv.reset(TRI_ERROR_INTERNAL, "cached result not available");
+	}
+
+  count = 0;
+  while(_cachedResultIterator->valid() && count <= atMost){
+    _cachedResultIterator->next();
+  }
+
+  if (count < atLeast) {
+    exhausted = true;
+  }
+
   return rv;
 }
 
@@ -675,10 +711,6 @@ QueryResult Query::execute(QueryRegistry* registry) {
 
     log();
 
-    VPackOptions options = VPackOptions::Defaults;
-    options.buildUnindexedArrays = true;
-    options.buildUnindexedObjects = true;
-
     TRI_ASSERT(_engine != nullptr);
 
     // this is the RegisterId our results can be found in
@@ -814,13 +846,8 @@ QueryResultV8 Query::executeV8(v8::Isolate* isolate, QueryRegistry* registry) {
 
     log();
 
-    VPackOptions options = VPackOptions::Defaults;
-    options.buildUnindexedArrays = true;
-    options.buildUnindexedObjects = true;
-
     QueryResultV8 result;
     result.result = v8::Array::New(isolate);
-
     TRI_ASSERT(_engine != nullptr);
 
     // this is the RegisterId our results can be found in
