@@ -177,6 +177,7 @@ SET(ARANGOD_SOURCES
   Aql/VariableGenerator.cpp
   Aql/grammar.cpp
   Aql/tokens.cpp
+  Cache/BucketState.cpp
   Cache/Cache.cpp
   Cache/CacheManagerFeature.cpp
   Cache/CacheManagerFeatureThreads.cpp
@@ -188,7 +189,6 @@ SET(ARANGOD_SOURCES
   Cache/PlainBucket.cpp
   Cache/PlainCache.cpp
   Cache/Rebalancer.cpp
-  Cache/State.cpp
   Cache/Table.cpp
   Cache/Transaction.cpp
   Cache/TransactionalBucket.cpp
@@ -429,6 +429,8 @@ target_link_libraries(arangoserver
 )
 
 if (USE_ENTERPRISE)
+  target_compile_definitions(arangoserver PUBLIC "-DUSE_ENTERPRISE=1")
+  target_include_directories(arangoserver PUBLIC ${ENTERPRISE_INCLUDE_DIR})
   if (MSVC)
     target_link_libraries(arangoserver
       Wldap32.lib
