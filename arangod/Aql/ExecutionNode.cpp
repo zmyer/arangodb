@@ -1675,6 +1675,13 @@ void FilterNode::toVelocyPackHelper(VPackBuilder& nodes, bool verbose) const {
   nodes.close();
 }
 
+bool FilterNode::fakeQueryStringThisNode(std::string& outString) const {
+  outString.append("F",1);
+  outString.append(_inVariable->name);
+  outString.append(getStringValue(_inVariable));
+  return true;
+}
+
 ExecutionNode* FilterNode::clone(ExecutionPlan* plan, bool withDependencies,
                                  bool withProperties) const {
   auto inVariable = _inVariable;

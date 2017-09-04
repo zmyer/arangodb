@@ -85,7 +85,7 @@ class Query {
   Query(bool contextOwnedByExterior, TRI_vocbase_t*,
         std::shared_ptr<arangodb::velocypack::Builder> const& queryStruct,
         std::shared_ptr<arangodb::velocypack::Builder> const& options, QueryPart,
-        std::string const& queryString = std::string(""));
+        uint64_t cacheId = 0);
 
   ~Query();
 
@@ -97,20 +97,9 @@ class Query {
  public:
 
   QueryString const& queryString() const { return _queryString; }
-  QueryString& hashString() {
-    if (_fakeQueryString.empty()) {
-      return _queryString;
-    } else {
-      return _fakeQueryString;
-    }
-  }
 
-  uint64_t hashId() const {
-    if(_queryHashId){
-      return *_queryHashId.get();
-    } else {
-      return 0;
-    }
+  uint64_t cacheId() const {
+    return _queryCacheId;
   }
 
   //// Cache Operations
@@ -121,19 +110,23 @@ class Query {
   /// Add Items to Cache
   //Result cacheAdd(VPackSlice const&); //single doc
   Result cacheAdd(AqlItemBlock const&);
+
+private:
   // this function is just there to have the same interface in all functions
   // it is possible that the cache is not used at all
   // because the QueryResultV8 expects to be filled in one go this can not be
   // used with getSome!
-  Result cacheAdd(AqlItemBlock const&, v8::Isolate* isolate, QueryResultV8&, bool canCache = true);
-
+  Result cacheAdd(AqlItemBlock const&, v8::Isolate* isolate, QueryResultV8&, uint32_t& position, bool canCache = true);
+public:
   /// Work on Cache Entry
   // try to use cache -- will set _cacgedResultBuilder if possible
   Result cacheUse(uint64_t queryHash); //fills _cachedResultBuilder member variable and initalizes / Array Iterator
-  bool   cacheEntryAvailable() { if (_cachedResultBuilder){return true;} return false;}
+  bool   cacheEntryAvailable() { if (_cachedResultBuilder && _cachedResultIterator){return true;} return false;}
   bool   cacheBuildingResult() { if (_resultBuilder){return true;} return false;}
   Result cacheGetSome(std::size_t atLeast, std::size_t atMost, VPackBuilder& builder, std::size_t& count);
   Result cacheSkipSome(std::size_t atLeast, std::size_t atMost, std::size_t& count, bool& exhausted);
+  bool   cacheExhausted();
+  void   cacheCursorReset();
 
   /// @brief Inject a transaction from outside. Use with care!
   void injectTransaction (transaction::Methods* trx) {
@@ -347,10 +340,8 @@ class Query {
 
   /// @brief the actual query string
   QueryString _queryString;
-  QueryString _fakeQueryString;
-  std::string _usedQueryStdString;
 
-  std::unique_ptr<uint64_t> _queryHashId;
+  uint64_t _queryCacheId;
 
   /// @brief query in a VelocyPack structure
   std::shared_ptr<arangodb::velocypack::Builder> const _queryBuilder;

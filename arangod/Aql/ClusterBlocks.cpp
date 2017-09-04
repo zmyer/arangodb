@@ -1458,6 +1458,8 @@ AqlItemBlock* RemoteBlock::getSome(size_t atLeast, size_t atMost) {
       res->result->getBodyVelocyPack();
   VPackSlice responseBody = responseBodyBuilder->slice();
 
+  LOG_DEVEL << responseBody.toJson();
+
   if (VelocyPackHelper::getBooleanValue(responseBody, "exhausted", true)) {
     traceGetSomeEnd(nullptr);
     return nullptr;

@@ -1092,6 +1092,8 @@ class FilterNode : public ExecutionNode {
 
   FilterNode(ExecutionPlan*, arangodb::velocypack::Slice const& base);
 
+  bool fakeQueryStringThisNode(std::string&) const override;
+
   /// @brief return the type of the node
   NodeType getType() const override final { return FILTER; }
 
@@ -1191,7 +1193,7 @@ class ReturnNode : public ExecutionNode {
 
   ReturnNode(ExecutionPlan*, arangodb::velocypack::Slice const& base);
 
-  bool fakeQueryStringThisNode(std::string& outString) const override;
+  bool  fakeQueryStringThisNode(std::string& outString) const override;
 
   /// @brief return the type of the node
   NodeType getType() const override final { return RETURN; }

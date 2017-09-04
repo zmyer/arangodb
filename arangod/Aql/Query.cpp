@@ -33,6 +33,7 @@
 #include "Aql/Parser.h"
 #include "Aql/PlanCache.h"
 #include "Aql/QueryCache.h"
+
 #include "Aql/QueryList.h"
 #include "Aql/QueryProfile.h"
 #include "Basics/Exceptions.h"
@@ -82,8 +83,7 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
       _vocbase(vocbase),
       _context(nullptr),
       _queryString(queryString),
-      _fakeQueryString(),
-      _queryHashId(nullptr),
+      _queryCacheId(0),
       _queryBuilder(),
       _bindParameters(bindParameters),
       _options(options),
@@ -158,15 +158,14 @@ Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
 Query::Query(bool contextOwnedByExterior, TRI_vocbase_t* vocbase,
              std::shared_ptr<VPackBuilder> const& queryStruct,
              std::shared_ptr<VPackBuilder> const& options, QueryPart part,
-             std::string const& queryString)
+             uint64_t cacheId)
     : _id(0),
       _resourceMonitor(),
       _resources(&_resourceMonitor),
       _vocbase(vocbase),
       _context(nullptr),
       _queryString(),
-      _fakeQueryString(QueryString(queryString)),
-      _queryHashId(nullptr),
+      _queryCacheId(cacheId),
       _queryBuilder(queryStruct),
       _options(options),
       _collections(vocbase),
@@ -258,9 +257,9 @@ Result Query::cacheAdd(AqlItemBlock const& value){
 Result Query::cacheAdd(AqlItemBlock const& value
                       ,v8::Isolate* isolate
                       ,QueryResultV8& result
+                      ,uint32_t& j //position
                       ,bool canCache){
   Result rv;
-  uint32_t j = 0;
   auto const resultRegister = _engine->resultRegister();
   size_t const n = value.size();
   for (size_t i = 0; i < n; ++i) {
@@ -321,19 +320,54 @@ Result Query::cacheUse(uint64_t queryHash){
 
 Result Query::cacheGetSome(std::size_t atLeast, std::size_t atMost, VPackBuilder& builder, std::size_t& count){
   Result rv;
+  TRI_ASSERT(builder.isOpenObject());
 	if(! _cachedResultBuilder || ! _cachedResultIterator){
 		return rv.reset(TRI_ERROR_INTERNAL, "cached result not available");
 	}
+  bool exhausted = cacheExhausted();
+
+  if (exhausted) {
+    builder.add("error", VPackValue(false));
+    builder.add("exhausted", VPackValue(exhausted));
+    return rv;
+  }
 
   count = 0;
-  while(_cachedResultIterator->valid() && count <= atMost){
-    builder.add(_cachedResultIterator->value());
-    _cachedResultIterator->next();
+
+  // raw and data
+  // no ranges expected for data
+  {
+    VPackBuilder dataBuilder;
+    dataBuilder.openArray();
+    builder.add("raw", VPackValue(VPackValueType::Array));
+    builder.add(VPackSlice::nullSlice());
+    builder.add(VPackSlice::nullSlice());
+    while(_cachedResultIterator->valid() && count < atMost){
+      if(_cachedResultIterator->value().isNull()){
+        dataBuilder.add(VPackValue(0));
+      } else {
+        builder.add(_cachedResultIterator->value());
+        dataBuilder.add(VPackValue(1));
+      }
+      count++;
+      exhausted = false;
+      _cachedResultIterator->next();
+    }
+    builder.close(); // raw arrar
+    dataBuilder.close(); // data array
+    builder.add("data", dataBuilder.slice());
   }
 
-  if (count < atLeast) {
-    rv.reset(TRI_ERROR_BAD_PARAMETER, "you tried to get more items than there are in the iterator");
-  }
+  builder.add("nrItems",VPackValue(count));
+  builder.add("nrRegs",VPackValue(1)); //always one register
+  builder.add("error", VPackValue(false));
+  builder.add("exhausted", VPackValue(exhausted));
+  builder.add("cached", VPackValue(true));
+
+  //if (count < atLeast) {
+  //  LOG_DEVEL << "count is too low " << count;
+  //  rv.reset(TRI_ERROR_BAD_PARAMETER, "you tried to get more items than there are in the iterator");
+  //}
 
   return rv;
 }
@@ -348,6 +382,7 @@ Result Query::cacheSkipSome(std::size_t atLeast, std::size_t atMost, std::size_t
   count = 0;
   while(_cachedResultIterator->valid() && count <= atMost){
     _cachedResultIterator->next();
+    count++;
   }
 
   if (count < atLeast) {
@@ -357,10 +392,25 @@ Result Query::cacheSkipSome(std::size_t atLeast, std::size_t atMost, std::size_t
   return rv;
 }
 
+bool Query::cacheExhausted(){
+    LOG_DEVEL << std::boolalpha << "is exhausted -"
+              << " valid: " << _cachedResultIterator->valid()
+              << " islast: " << _cachedResultIterator->isLast();
+   return ! _cachedResultIterator->valid();
+}
+
+void Query::cacheCursorReset(){
+  if (this->cacheEntryAvailable()){
+    _cachedResultIterator.reset(new VPackArrayIterator(_cachedResultBuilder->slice()));
+  }
+}
+
+
 /// @brief clone a query
 /// note: as a side-effect, this will also create and start a transaction for
 /// the query
 Query* Query::clone(QueryPart part, bool withPlan) {
+  LOG_DEVEL_IF(_queryCacheId) << "cloning query with id: " << _queryCacheId;
   auto clone =
       std::make_unique<Query>(false, _vocbase, _queryString,
                               std::shared_ptr<VPackBuilder>(), _options, part);
@@ -656,7 +706,6 @@ ExecutionPlan* Query::prepare() {
 
   // return the V8 context if we are in one
   exitContext();
-  _queryHashId.reset(new std::uint64_t(hashString().hash()));
   return plan.release();
 }
 
@@ -718,19 +767,19 @@ QueryResult Query::execute(QueryRegistry* registry) {
     AqlItemBlock* value = nullptr; //must be ouside try so it can be deleted by catch
     try {
       Result rv = cacheStart();
-      THROW_ARANGO_EXCEPTION_RESULT(rv);
+      THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
       // iterate over result, return it and store it in query cache
       while (nullptr != (value = _engine->getSome(
                                1, ExecutionBlock::DefaultBatchSize()))) {
         rv = cacheAdd(*value);
         delete value;
         value = nullptr;
-        THROW_ARANGO_EXCEPTION_RESULT(rv);
+        THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
       }
 
       if (canWriteToQueryCache()) {
         cacheStore(queryHash);
-        THROW_ARANGO_EXCEPTION_RESULT(rv);
+        THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
       } else {
         _resultBuilder->close(); //close as is not done by store
       }
@@ -854,20 +903,21 @@ QueryResultV8 Query::executeV8(v8::Isolate* isolate, QueryRegistry* registry) {
     AqlItemBlock* value = nullptr;
     try {
       Result rv = cacheStart();
-      THROW_ARANGO_EXCEPTION_RESULT(rv);
+      THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
       bool canCache = canWriteToQueryCache();
       // iterate over result, return it and store it in query cache
+      uint32_t j = 0;
       while (nullptr != (value = _engine->getSome(
                                1, ExecutionBlock::DefaultBatchSize()))) {
-        rv = cacheAdd(*value,isolate, result, canCache);
+        rv = cacheAdd(*value,isolate, result, j, canCache);
         delete value;
         value = nullptr;
-        THROW_ARANGO_EXCEPTION_RESULT(rv);
+        THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
       }
 
       if (canCache) {
         cacheStore(queryHash);
-        THROW_ARANGO_EXCEPTION_RESULT(rv);
+        THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
         _resultBuilder.reset();
       }
     } catch (...) {
@@ -1202,7 +1252,7 @@ void Query::log() {
 
 /// @brief calculate a hash value for the query and bind parameters
 uint64_t Query::hash() {
-  QueryString& string = hashString();
+  QueryString& string = _queryString;
   if (string.empty()) {
     return DontCache;
   }
@@ -1239,7 +1289,7 @@ uint64_t Query::hash() {
 
 /// @brief whether or not the query cache can be used for the query
 bool Query::canReadFromQueryCache() {
-  if (hashString().size() < 8) {
+  if (_queryString.size() < 8) {
     return false;
   }
 

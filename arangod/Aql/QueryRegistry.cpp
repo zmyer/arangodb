@@ -67,8 +67,6 @@ QueryRegistry::~QueryRegistry() {
 
 /// @brief insert
 void QueryRegistry::insert(QueryId id, Query* query, double ttl) {
-  LOG_DEVEL << "QueryRegistry::insert with id: " << id << " hashid: " << query->hashId();
-
   TRI_ASSERT(query != nullptr);
   TRI_ASSERT(query->trx() != nullptr);
   auto vocbase = query->vocbase();
