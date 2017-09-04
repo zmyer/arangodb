@@ -224,7 +224,7 @@ class RocksDBKey {
   /// @brief Extracts the primary key (`_key`) from a key
   ///
   /// May be called only on the following key types: PrimaryIndexValue,
-  /// EdgeIndexValue, IndexValue, FulltextIndexValue. Other types will throw.
+  /// Other types will throw.
   //////////////////////////////////////////////////////////////////////////////
   static StringRef primaryKey(RocksDBKey const&);
   static StringRef primaryKey(rocksdb::Slice const&);

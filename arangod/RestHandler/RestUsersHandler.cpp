@@ -147,7 +147,7 @@ RestStatus RestUsersHandler::getRequest(AuthInfo* authInfo) {
     } else if (suffixes[1] == "config") {
       //_api/user/<user>//config
       VPackBuilder data = authInfo->getConfigData(user);
-      if (suffixes.size() == 3) {
+      if (suffixes.size() == 3) {        
         generateSuccess(ResponseCode::OK, data.slice().get(suffixes[2]));
       } else {
         generateSuccess(ResponseCode::OK, data.slice());

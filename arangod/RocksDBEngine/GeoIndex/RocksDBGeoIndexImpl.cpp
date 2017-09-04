@@ -28,7 +28,7 @@
 #include <cstddef>
 #include <limits>
 
-#include "RocksDBEngine/RocksDBGeoIndexImpl.h"
+#include "RocksDBEngine/GeoIndex/RocksDBGeoIndexImpl.h"
 #include "RocksDBEngine/RocksDBMethods.h"
 
 /* Radius of the earth used for distances  */
@@ -263,9 +263,9 @@ typedef struct {
 #include <RocksDBEngine/RocksDBCommon.h>
 #include <RocksDBEngine/RocksDBCounterManager.h>
 #include <RocksDBEngine/RocksDBEngine.h>
-#include <RocksDBEngine/RocksDBGeoIndexImpl.h>
 #include <RocksDBEngine/RocksDBKey.h>
 #include <StorageEngine/EngineSelectorFeature.h>
+#include "RocksDBEngine/GeoIndex/RocksDBGeoIndexImpl.h"
 
 namespace arangodb {
 namespace rocksdbengine {

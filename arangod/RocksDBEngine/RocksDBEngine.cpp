@@ -74,6 +74,8 @@
 #include "VocBase/replication-applier.h"
 #include "VocBase/ticks.h"
 
+#include "RocksDBEngine/GeoIndex/stones.h"
+
 #include <rocksdb/convenience.h>
 #include <rocksdb/db.h>
 #include <rocksdb/env.h>
@@ -1174,6 +1176,9 @@ int RocksDBEngine::shutdownDatabase(TRI_vocbase_t* vocbase) {
 /// @brief Add engine-specific AQL functions.
 void RocksDBEngine::addAqlFunctions() {
   RocksDBAqlFunctions::registerResources();
+  
+  /// FIXME: remove after benchmarking phase
+  RocksDBGeoV8Functions::registerResources();
 }
 
 /// @brief Add engine-specific optimizer rules

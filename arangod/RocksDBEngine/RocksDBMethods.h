@@ -97,7 +97,6 @@ class RocksDBMethods {
   arangodb::Result Get(rocksdb::ColumnFamilyHandle*, RocksDBKey const&,
                                std::string*);
 
-
 #ifdef ARANGODB_ENABLE_MAINTAINER_MODE
   std::size_t countInBounds(RocksDBKeyBounds const& bounds, bool isElementInRange = false);
 #endif
