@@ -347,6 +347,8 @@ void JS_StonesBenchmark(v8::FunctionCallbackInfo<v8::Value> const& args) {
   
   srand(time(NULL));
   
+  double startTime = TRI_microtime();
+
   // create c cursors at random points
   SITR* cursors[c];
   for (size_t i = 0; i < c; i++) {
@@ -363,15 +365,43 @@ void JS_StonesBenchmark(v8::FunctionCallbackInfo<v8::Value> const& args) {
   do {
     // read one document from each cursor
     for (size_t i = 0; i < c; i++) {
-      uint8_t keyVal[st->totlength * 2];// should be able to hold more than one
-      size_t c = StonRead(st, cursors[i], 2, (uint8_t*)maxKey, keyVal);
+      uint8_t keyVal[st->totlength];// should be able to hold more than one
+      size_t c = StonRead(st, cursors[i], 1, (uint8_t*)maxKey, keyVal);
       if (c != 1) {
-        LOG_TOPIC(INFO, Logger::DEVEL) << "Error reading value from rocksdb";
-        TRI_V8_RETURN_UNDEFINED();;
+        LOG_TOPIC(ERR, Logger::DEVEL) << "Error reading value from rocksdb";
+        goto raus;
       }
     }
   } while(--numRead > 0);
   
+raus:
+
+  // Free the cursors again:
+  for (size_t i = 0; i < c; ++i) {
+    StonDestSitr(cursors[i]);
+  }
+
+  double duration = TRI_microtime() - startTime;
+
+  // Now delete the data again:
+  for (uint32_t i = 0; i < t; i += 5) {
+    ttl=0;
+    for (uint32_t j = i; j < i + 5; j++) {
+      memset(keyBuf, '-', st->keylength);
+      memset(valBuf, '-', st->vallength);
+      std::sprintf(keyBuf,"%x",j);
+      std::sprintf(valBuf,"%x",j);
+      addlist(st, keyBuf, valBuf);
+    }
+    StonDel(st,trans,tt,ttl);
+  }
+
+  StonDisc(st);
+  StonDrop(&gs);
+
+  v8::Handle<v8::Value> r = v8::Number::New(isolate, duration);
+  TRI_V8_RETURN(r);
+
   TRI_V8_TRY_CATCH_END
 }
 
