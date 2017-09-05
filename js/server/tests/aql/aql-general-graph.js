@@ -82,13 +82,13 @@ function ahuacatlQueryGeneralEdgesTestSuite() {
       db._drop(e2);
       db._drop(or);
 
-      var vertex1 = db._create(v1);
-      var vertex2 = db._create(v2);
-      var vertex3 = db._create(v3);
-      var vertex4 = db._create(v4);
-      var edge1 = db._createEdgeCollection(e1);
-      var edge2 = db._createEdgeCollection(e2);
-      var orphan = db._create(or);
+      var vertex1 = db._create(v1, {numberOfShards: 1, distributeShardsLike: '_graphs'});
+      var vertex2 = db._create(v2, {numberOfShards: 1, distributeShardsLike: '_graphs'});
+      var vertex3 = db._create(v3, {numberOfShards: 1, distributeShardsLike: '_graphs'});
+      var vertex4 = db._create(v4, {numberOfShards: 1, distributeShardsLike: '_graphs'});
+      var edge1 = db._createEdgeCollection(e1, {numberOfShards: 1, distributeShardsLike: '_graphs'});
+      var edge2 = db._createEdgeCollection(e2, {numberOfShards: 1, distributeShardsLike: '_graphs'});
+      var orphan = db._create(or, {numberOfShards: 1, distributeShardsLike: '_graphs'});
 
       vertex1.save({ _key: "v1", hugo: true});
       vertex1.save({ _key: "v2", hugo: true});
@@ -159,6 +159,7 @@ function ahuacatlQueryGeneralEdgesTestSuite() {
         name: gN,
         start: v1 + "/v1"
       };
+
       var actual = getRawQueryResults(query, bindVars);
       assertEqual(actual, [ "v1->v2", "v1->v5", "v2->v1" ]);
     },
@@ -257,6 +258,7 @@ function ahuacatlQueryGeneralEdgesTestSuite() {
         name: gN,
         start: v1 + "/v1"
       };
+      db._explain(query, bindVars);
       var actual = getRawQueryResults(query, bindVars);
       assertEqual(actual[0], "v1->v2");
       assertEqual(actual[1], "v1->v5");
@@ -662,7 +664,6 @@ function ahuacatlQueryGeneralEdgesTestSuite() {
       var actual = getRawQueryResults(query, bindVars);
       assertEqual(actual.length, 4);
     }
-
   };
 }
 
