@@ -142,6 +142,19 @@
       return global.WAL_WAITCOLLECTOR.apply(null, arguments);
     }
   };
+  
+  exports.stones = {
+    test: function () {
+      return global.STONES_TEST.apply(null, arguments);
+    },
+
+    benchmark: function () {
+      let t = exports.time();
+      let res = global.STONES_BENCHMARK.apply(null, arguments);
+      exports.print("Took " + (exports.time() - t) + "s");
+      return res;
+    }
+  };
 
   // //////////////////////////////////////////////////////////////////////////////
   // / @brief defines an action

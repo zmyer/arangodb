@@ -1176,9 +1176,6 @@ int RocksDBEngine::shutdownDatabase(TRI_vocbase_t* vocbase) {
 /// @brief Add engine-specific AQL functions.
 void RocksDBEngine::addAqlFunctions() {
   RocksDBAqlFunctions::registerResources();
-  
-  /// FIXME: remove after benchmarking phase
-  RocksDBGeoV8Functions::registerResources();
 }
 
 /// @brief Add engine-specific optimizer rules
@@ -1190,6 +1187,9 @@ void RocksDBEngine::addOptimizerRules() {
 void RocksDBEngine::addV8Functions() {
   // there are no specific V8 functions here
   RocksDBV8Functions::registerResources();
+  
+  /// FIXME: remove after benchmarking phase
+  RocksDBGeoV8Functions::registerResources();
 }
 
 /// @brief Add engine-specific REST handlers

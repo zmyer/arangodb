@@ -101,33 +101,47 @@ int StonDel(STON * st, void * trans, uint8_t * keys, long recs) {
   return TRI_ERROR_NO_ERROR;
 }
 
-SITR * StonSeek(STON * st, void * trans, uint8_t * key) {
+SITR * StonSeek(STON * st, void * trans, uint8_t * keybuf) {
   std::unique_ptr<rocksdb::Iterator> iter;
   if (trans != nullptr) {
     transaction::Methods* trx = reinterpret_cast<transaction::Methods*>(trans);
     RocksDBMethods *mthds = RocksDBTransactionState::toMethods(trx);
     iter = mthds->NewIterator(RocksDBColumnFamily::geo());
+    
+    RocksDBKeyLeaser key(trx);
+    key->constructPrimaryIndexValue(st->objectId,
+                                   StringRef(reinterpret_cast<char*>(keybuf),
+                                             st->keylength));
+    iter->Seek(key->string());
   } else {
     rocksdb::ReadOptions ro;
-    iter.reset(rocksutils::globalRocksDB()->NewIterator(ro));
+    rocksdb::TransactionDB* db = rocksutils::globalRocksDB();
+    iter.reset(db->NewIterator(ro, RocksDBColumnFamily::geo()));
+
+    RocksDBKey key;
+    key.constructPrimaryIndexValue(st->objectId,
+                                    StringRef(reinterpret_cast<char*>(keybuf),
+                                              st->keylength));
+    iter->Seek(key.string());
   }
-  iter->Seek(rocksdb::Slice(reinterpret_cast<char*>(key), st->keylength));
+  TRI_ASSERT(iter->Valid());
   return iter.release();// SITR is a typedef for rocksdb::Iterator
 }
 
 size_t StonRead(STON * st, SITR * si, size_t maxrec,
               uint8_t * maxkey, uint8_t * data) {
+  TRI_ASSERT(maxrec > 0);
   size_t numRecords = 0;
   rocksdb::Iterator* it = si;
   while (it->Valid() && numRecords < maxrec) {
-    StringRef key = RocksDBKey::vertexId(it->key());
+    StringRef key = RocksDBKey::primaryKey(it->key());
     TRI_ASSERT(key.length() == st->keylength);
     uint8_t* keyval = data + numRecords * st->totlength;
     memcpy(keyval, key.data(), key.length());
     TRI_ASSERT(it->value().size() == st->vallength);
     memcpy(keyval + st->keylength, it->value().data(), it->value().size());
     numRecords++;
-    // return at most one more key
+    // return at most one more key, if it is equal to maxkey
     if (memcmp(key.data(), maxkey, key.length()) > 0) {
       break;
     }
@@ -154,6 +168,8 @@ void hexput(char c)
 }
 
 void StonDump(STON * st) {
+  printf("\n----- %s ------\n", __FUNCTION__);
+
   RocksDBKeyBounds bound = RocksDBKeyBounds::PrimaryIndex(st->objectId);
   rocksdb::ReadOptions ro;
   rocksdb::Slice end = bound.end();
@@ -163,17 +179,18 @@ void StonDump(STON * st) {
   ro.fill_cache = false;
   ro.prefix_same_as_start = true;
   
-  std::unique_ptr<rocksdb::Iterator> it(rocksutils::globalRocksDB()->NewIterator(ro));
+  rocksdb::TransactionDB* db = rocksutils::globalRocksDB();
+  std::unique_ptr<rocksdb::Iterator> it(db->NewIterator(ro, RocksDBColumnFamily::geo()));
   for (it->Seek(bound.start()); it->Valid(); it->Next()) {
     
-    StringRef key = RocksDBKey::vertexId(it->key());
+    StringRef key = RocksDBKey::primaryKey(it->key());
     TRI_ASSERT(key.length() == st->keylength);
-    for(size_t j= 0; j < st->keylength; j++) {
+    for(size_t j = 0; j < st->keylength; j++) {
       hexput(key.at(j));
     }
     
     TRI_ASSERT(it->value().size() == st->vallength);
-    for(size_t j= 0; j < st->vallength; j++) {
+    for(size_t j = 0; j < st->vallength; j++) {
       hexput(*(it->value().data() + j));
     }
   }
@@ -183,16 +200,16 @@ void StonDump(STON * st) {
 
 void ResDump(STON * st,uint8_t * res, size_t recs)
 {
-    LOG_TOPIC(INFO, Logger::DEVEL) <<  "Dump of results " << recs << " records";
-    for(size_t i=0;i<recs;i++) {
-        for(size_t j=0;j<st->keylength;j++)
-            putchar(*(res+i*st->totlength+j));
-        printf(" ");
-        for(size_t j = 0; j < st->totlength;j++)
-            putchar(*(res+i*st->totlength+j));
-        printf("\n");
-    }
-    printf("\n");
+  printf("\n----- %s ------\n", __FUNCTION__);
+  for(size_t i=0;i<recs;i++) {
+      for(size_t j=0;j<st->keylength;j++)
+          putchar(*(res+i*st->totlength+j));
+      printf(" ");
+      for(size_t j = 0; j < st->vallength;j++)
+          putchar(*(res+i*st->totlength+st->keylength+j));// <== changed this to only print the value
+      printf("\n");
+  }
+  printf("\n");
 }
 
 uint8_t tt[1000];
@@ -296,8 +313,6 @@ void JS_StonesTest(v8::FunctionCallbackInfo<v8::Value> const& args) {
   TRI_V8_TRY_CATCH_END
 }
 
-#include <cstdlib>
-
 void JS_StonesBenchmark(v8::FunctionCallbackInfo<v8::Value> const& args) {
   TRI_V8_TRY_CATCH_BEGIN(isolate);
   
@@ -348,8 +363,8 @@ void JS_StonesBenchmark(v8::FunctionCallbackInfo<v8::Value> const& args) {
   do {
     // read one document from each cursor
     for (size_t i = 0; i < c; i++) {
-      uint8_t keyVal[st->totlength * 2];
-      size_t c = StonRead(st, cursors[i], 1, (uint8_t*)maxKey, keyVal);
+      uint8_t keyVal[st->totlength * 2];// should be able to hold more than one
+      size_t c = StonRead(st, cursors[i], 2, (uint8_t*)maxKey, keyVal);
       if (c != 1) {
         LOG_TOPIC(INFO, Logger::DEVEL) << "Error reading value from rocksdb";
         TRI_V8_RETURN_UNDEFINED();;
