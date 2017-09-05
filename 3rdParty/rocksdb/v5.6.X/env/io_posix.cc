@@ -39,6 +39,10 @@
 
 namespace rocksdb {
 
+#if 1
+#endif
+
+
 // A wrapper for fadvise, if the platform doesn't support fadvise,
 // it will simply return 0.
 int Fadvise(int fd, off_t offset, size_t len, int advice) {
@@ -470,6 +474,9 @@ Status PosixMmapReadableFile::InvalidateCache(size_t offset, size_t length) {
  * file before reading from it, or for log files, the reading code
  * knows enough to skip zero suffixes.
  */
+#if 1
+
+#else
 Status PosixMmapFile::UnmapCurrentRegion() {
   TEST_KILL_RANDOM("PosixMmapFile::UnmapCurrentRegion:0", rocksdb_kill_odds);
   if (base_ != nullptr) {
@@ -686,7 +693,7 @@ Status PosixMmapFile::Allocate(uint64_t offset, uint64_t len) {
   }
 }
 #endif
-
+#endif
 /*
  * PosixWritableFile
  *
@@ -1002,5 +1009,131 @@ Status PosixDirectory::Fsync() {
 #endif
   return Status::OK();
 }
+
+#if 1
+// Called by BGFileUnmapper which manages retries
+//    this was a new file:  unmap, hold in page cache
+int
+BGFileUnmapper(void * arg)
+{
+    BGCloseInfo * file_ptr;
+    bool err_flag;
+    int ret_val;
+
+    //
+    // Reminder:  this could get called multiple times for
+    //            same "arg" due to error retry
+    //
+
+    err_flag=false;
+    file_ptr=(BGCloseInfo *)arg;
+
+    // non-null implies this is a background job,
+    //  i.e. not on direct thread of compaction.
+//    if (NULL!=file_ptr->ref_count_)
+//        gPerfCounters->Inc(ePerfBGCloseUnmap);
+
+    if (NULL!=file_ptr->base_)
+    {
+        ret_val=munmap(file_ptr->base_, file_ptr->length_);
+        if (0==ret_val)
+        {
+            file_ptr->base_=NULL;
+        }   // if
+        else
+        {
+            syslog(LOG_ERR,"BGFileUnmapper2 munmap failed [%d, %m]", errno);
+            err_flag=true;
+        }  // else
+    }   // if
+
+#if defined(HAVE_FADVISE)
+    if (0==file_ptr->metadata_
+        || (file_ptr->offset_ + file_ptr->length_ < file_ptr->metadata_))
+    {
+        // must fdatasync for DONTNEED to work
+        ret_val=fdatasync(file_ptr->fd_);
+        if (0!=ret_val)
+        {
+            syslog(LOG_ERR,"BGFileUnmapper2 fdatasync failed on %d [%d, %m]", file_ptr->fd_, errno);
+            err_flag=true;
+        }  // if
+
+        ret_val=posix_fadvise(file_ptr->fd_, file_ptr->offset_, file_ptr->length_, POSIX_FADV_DONTNEED);
+        if (0!=ret_val)
+        {
+            syslog(LOG_ERR,"BGFileUnmapper2 posix_fadvise DONTNEED failed on %d [%d]", file_ptr->fd_, ret_val);
+            err_flag=true;
+        }  // if
+    }   // if
+    else
+    {
+        ret_val=posix_fadvise(file_ptr->fd_, file_ptr->offset_, file_ptr->length_, POSIX_FADV_WILLNEED);
+        if (0!=ret_val)
+        {
+            syslog(LOG_ERR,"BGFileUnmapper2 posix_fadvise WILLNEED failed on %d [%d]", file_ptr->fd_, ret_val);
+            err_flag=true;
+        }  // if
+    }   // else
+#endif
+
+    // release access to file, maybe close it
+    if (!err_flag)
+    {
+        ret_val=PosixMmapFile::ReleaseRef(file_ptr->ref_count_, file_ptr->fd_);
+        err_flag=(0!=ret_val);
+    }   // if
+
+//    if (err_flag)
+//        gPerfCounters->Inc(ePerfBGWriteError);
+
+    // routine called directly or via async thread, this
+    //  controls when to delete file_ptr object
+    if (!err_flag)
+    {
+//        gPerfCounters->Inc(ePerfRWFileUnmap);
+//        file_ptr->RefDec();
+    }   // if
+
+    return(err_flag ? -1 : 0);
+
+}   // BGFileUnmapper
+
+
+// Thread entry point, and retry loop
+void BGFileUnmapper2(void * arg)
+{
+    int retries, ret_val;
+
+    retries=0;
+    ret_val=0;
+
+    do
+    {
+        if (1<retries)
+            Env::Default()->SleepForMicroseconds(100000);
+
+        ret_val=BGFileUnmapper(arg);
+        ++retries;
+    } while(retries<3 && 0!=ret_val);
+
+    // release object's memory here
+    if (0!=ret_val)
+    {
+        BGCloseInfo * file_ptr;
+
+        file_ptr=(BGCloseInfo *)arg;
+//        file_ptr->RefDec();
+        delete file_ptr;
+    }   // if
+
+    return;
+
+}   // BGFileUnmapper2
+
+
+
+#endif
+
 }  // namespace rocksdb
 #endif
