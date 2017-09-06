@@ -148,9 +148,23 @@
       return global.STONES_TEST.apply(null, arguments);
     },
 
+    benchmarkSetup: function () {
+      let t = exports.time();
+      let res = global.STONES_BENCHMARK_SETUP.apply(null, arguments);
+      exports.print("Took " + (exports.time() - t) + "s");
+      return res;
+    },
+
     benchmark: function () {
       let t = exports.time();
       let res = global.STONES_BENCHMARK.apply(null, arguments);
+      exports.print("Took " + (exports.time() - t) + "s");
+      return res;
+    },
+
+    benchmarkShutdown: function () {
+      let t = exports.time();
+      let res = global.STONES_BENCHMARK_SHUTDOWN.apply(null, arguments);
       exports.print("Took " + (exports.time() - t) + "s");
       return res;
     }

@@ -313,6 +313,119 @@ void JS_StonesTest(v8::FunctionCallbackInfo<v8::Value> const& args) {
   TRI_V8_TRY_CATCH_END
 }
 
+static GeoParm* gsMerk = nullptr;
+static GeoLengths* glMerk = nullptr;
+static STON* stMerk = nullptr;
+
+void JS_StonesBenchmarkSetup(v8::FunctionCallbackInfo<v8::Value> const& args) {
+  TRI_V8_TRY_CATCH_BEGIN(isolate);
+  
+  if (args.Length() < 2 || !args[0]->IsNumber() ||
+      !args[1]->IsNumber()) {
+    TRI_V8_THROW_EXCEPTION_USAGE("STONES_BENCHMARK_SETUP(t, m)");
+  }
+  uint32_t t = (uint32_t) TRI_ObjectToUInt64(args[0], true);
+  uint32_t m = (uint32_t) TRI_ObjectToUInt64(args[1], true);
+  
+  double startTime = TRI_microtime();
+
+  GeoParm* gs = new GeoParm();
+  gs->objectId = 1;
+  GeoLengths* gl = new GeoLengths();
+  gl->keylength = 9;
+  gl->vallength = 11;
+  STON * st = StonCons(gs, gl);
+  if (gsMerk != nullptr) {
+    StonDisc(stMerk);
+    delete glMerk;
+    delete gsMerk;
+  }
+  gsMerk = gs;
+  glMerk = gl;
+  stMerk = st;
+
+  void * trans = nullptr;
+
+  char keyBuf[st->keylength];
+  char valBuf[st->vallength];
+  uint32_t pos = 0;
+  for (uint32_t i = 0; i < t; i += 5) {
+    ttl=0;
+    for (uint32_t j = i; j < i + 5; j++) {
+      memset(keyBuf, '-', st->keylength);
+      memset(valBuf, '-', st->vallength);
+      std::sprintf(keyBuf,"%x",pos);
+      std::sprintf(valBuf,"%x",pos);
+      addlist(st, keyBuf, valBuf);
+      pos += m;
+      if (pos >= t) {
+        pos -= t;
+      }
+    }
+    StonIns(st,trans,tt,ttl);
+  }
+  
+  double duration = TRI_microtime() - startTime;
+
+  v8::Handle<v8::Value> r = v8::Number::New(isolate, duration);
+  TRI_V8_RETURN(r);
+
+  TRI_V8_TRY_CATCH_END
+}
+
+void JS_StonesBenchmarkShutdown(v8::FunctionCallbackInfo<v8::Value> const& args) {
+  TRI_V8_TRY_CATCH_BEGIN(isolate);
+  
+  if (args.Length() < 2 || !args[0]->IsNumber() ||
+      !args[1]->IsNumber()) {
+    TRI_V8_THROW_EXCEPTION_USAGE("STONES_BENCHMARK_SHUTDOWN(t, m)");
+  }
+  uint32_t t = (uint32_t) TRI_ObjectToUInt64(args[0], true);
+  uint32_t m = (uint32_t) TRI_ObjectToUInt64(args[1], true);
+  if (gsMerk == nullptr) {
+    TRI_V8_THROW_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "not initialized");
+  }
+  
+  double startTime = TRI_microtime();
+
+  STON * st = stMerk;
+
+  void * trans = nullptr;
+
+  char keyBuf[st->keylength];
+  char valBuf[st->vallength];
+  uint32_t pos = 0;
+  for (uint32_t i = 0; i < t; i += 5) {
+    ttl=0;
+    for (uint32_t j = i; j < i + 5; j++) {
+      memset(keyBuf, '-', st->keylength);
+      memset(valBuf, '-', st->vallength);
+      std::sprintf(keyBuf,"%x",pos);
+      std::sprintf(valBuf,"%x",pos);
+      addlist(st, keyBuf, valBuf);
+      pos += m;
+      if (pos >= t) {
+        pos -= t;
+      }
+    }
+    StonDel(st,trans,tt,ttl);
+  }
+  
+  double duration = TRI_microtime() - startTime;
+
+  StonDisc(stMerk);
+  delete glMerk;
+  delete gsMerk;
+  stMerk = nullptr;
+  glMerk = nullptr;
+  gsMerk = nullptr;
+
+  v8::Handle<v8::Value> r = v8::Number::New(isolate, duration);
+  TRI_V8_RETURN(r);
+
+  TRI_V8_TRY_CATCH_END
+}
+
 void JS_StonesBenchmark(v8::FunctionCallbackInfo<v8::Value> const& args) {
   TRI_V8_TRY_CATCH_BEGIN(isolate);
   
@@ -320,34 +433,21 @@ void JS_StonesBenchmark(v8::FunctionCallbackInfo<v8::Value> const& args) {
       !args[1]->IsNumber() || !args[2]->IsNumber()) {
     TRI_V8_THROW_EXCEPTION_USAGE("STONES_BENCHMARK(t, q, c)");
   }
+  if (gsMerk == nullptr) {
+    TRI_V8_THROW_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "not initialized");
+  }
   uint32_t t = (uint32_t) TRI_ObjectToUInt64(args[0], true);
   uint32_t q = (uint32_t) TRI_ObjectToUInt64(args[1], true);
   uint32_t c = (uint32_t) TRI_ObjectToUInt64(args[2], true);
   
-  GeoParm gs = {.objectId = 1};
-  GeoLengths gl;
-  gl.keylength = 9;
-  gl.vallength = 11;
-  STON * st = StonCons(&gs, &gl);
+  STON* st = stMerk;
   void * trans = nullptr;
 
-  char keyBuf[st->keylength];
-  char valBuf[st->vallength];
-  for (uint32_t i = 0; i < t; i += 5) {
-    ttl=0;
-    for (uint32_t j = i; j < i + 5; j++) {
-      memset(keyBuf, '-', st->keylength);
-      memset(valBuf, '-', st->vallength);
-      std::sprintf(keyBuf,"%x",j);
-      std::sprintf(valBuf,"%x",j);
-      addlist(st, keyBuf, valBuf);
-    }
-    StonIns(st,trans,tt,ttl);
-  }
-  
   srand(time(NULL));
   
   double startTime = TRI_microtime();
+
+  char keyBuf[st->keylength];
 
   // create c cursors at random points
   SITR* cursors[c];
@@ -383,22 +483,6 @@ raus:
 
   double duration = TRI_microtime() - startTime;
 
-  // Now delete the data again:
-  for (uint32_t i = 0; i < t; i += 5) {
-    ttl=0;
-    for (uint32_t j = i; j < i + 5; j++) {
-      memset(keyBuf, '-', st->keylength);
-      memset(valBuf, '-', st->vallength);
-      std::sprintf(keyBuf,"%x",j);
-      std::sprintf(valBuf,"%x",j);
-      addlist(st, keyBuf, valBuf);
-    }
-    StonDel(st,trans,tt,ttl);
-  }
-
-  StonDisc(st);
-  StonDrop(&gs);
-
   v8::Handle<v8::Value> r = v8::Number::New(isolate, duration);
   TRI_V8_RETURN(r);
 
@@ -413,8 +497,14 @@ void RocksDBGeoV8Functions::registerResources() {
   TRI_AddGlobalFunctionVocbase(isolate, TRI_V8_ASCII_STRING("STONES_TEST"),
                                JS_StonesTest, true);
 
+  TRI_AddGlobalFunctionVocbase(isolate, TRI_V8_ASCII_STRING("STONES_BENCHMARK_SETUP"),
+                               JS_StonesBenchmarkSetup, true);
+
   TRI_AddGlobalFunctionVocbase(isolate, TRI_V8_ASCII_STRING("STONES_BENCHMARK"),
                                JS_StonesBenchmark, true);
+
+  TRI_AddGlobalFunctionVocbase(isolate, TRI_V8_ASCII_STRING("STONES_BENCHMARK_SHUTDOWN"),
+                               JS_StonesBenchmarkShutdown, true);
 }
 
 #endif
