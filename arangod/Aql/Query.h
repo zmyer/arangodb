@@ -104,19 +104,20 @@ class Query {
 
   //// Cache Operations
   /// Create and Finalize Cache
-  Result cacheStart();
+  Result resultStart();
   Result cacheStore(uint64_t queryHash);
 
   /// Add Items to Cache
   //Result cacheAdd(VPackSlice const&); //single doc
-  Result cacheAdd(AqlItemBlock const&);
+  Result resultAdd(AqlItemBlock const&);
+  void   resultCancel(){ _resultBuilder.reset();}
 
 private:
   // this function is just there to have the same interface in all functions
   // it is possible that the cache is not used at all
   // because the QueryResultV8 expects to be filled in one go this can not be
   // used with getSome!
-  Result cacheAdd(AqlItemBlock const&, v8::Isolate* isolate, QueryResultV8&, uint32_t& position, bool canCache = true);
+  Result resultAdd(AqlItemBlock const&, v8::Isolate* isolate, QueryResultV8&, uint32_t& position, bool canCache = true);
 public:
   /// Work on Cache Entry
   // try to use cache -- will set _cacgedResultBuilder if possible

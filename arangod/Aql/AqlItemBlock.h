@@ -98,6 +98,11 @@ class AqlItemBlock {
 
   /// @brief setValue, set the current value of a register
   void setValue(size_t index, RegisterId varNr, AqlValue const& value) {
+    LOG_DEVEL_IF(!(_data.capacity() > index * _nrRegs + varNr))
+      << "_data.capacity()(" << _data.capacity()
+      << ") > index(" << index
+      << ") * _nrRegs(" << _nrRegs
+      << ") + varNr(" << varNr << ")";
     TRI_ASSERT(_data.capacity() > index * _nrRegs + varNr);
     TRI_ASSERT(_data[index * _nrRegs + varNr].isEmpty());
 

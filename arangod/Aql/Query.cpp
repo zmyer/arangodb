@@ -226,7 +226,8 @@ Query::~Query() {
   AqlFeature::unlease();
 }
 
-Result Query::cacheStart(){
+Result Query::resultStart(){
+  //LOG_DEVEL << "startResult";
   Result rv;
   if(! _resultBuilder){
     VPackOptions options = VPackOptions::Defaults;
@@ -241,7 +242,8 @@ Result Query::cacheStart(){
   return rv;
 }
 
-Result Query::cacheAdd(AqlItemBlock const& value){
+Result Query::resultAdd(AqlItemBlock const& value){
+  LOG_DEVEL << "resultAdd";
   Result rv;
   auto const resultRegister = _engine->resultRegister();
   size_t const n = value.size();
@@ -249,12 +251,14 @@ Result Query::cacheAdd(AqlItemBlock const& value){
     AqlValue const& val = value.getValueReference(i, resultRegister);
     if (!val.isEmpty()) {
       val.toVelocyPack(_trx, *_resultBuilder, true);
+    } else {
+      _resultBuilder->add(VPackSlice::nullSlice());
     }
   }
   return rv;
 }
 
-Result Query::cacheAdd(AqlItemBlock const& value
+Result Query::resultAdd(AqlItemBlock const& value
                       ,v8::Isolate* isolate
                       ,QueryResultV8& result
                       ,uint32_t& j //position
@@ -281,9 +285,14 @@ Result Query::cacheAdd(AqlItemBlock const& value
 
 Result Query::cacheStore(uint64_t queryHash){
   Result rv;
+  TRI_ASSERT(_resultBuilder != nullptr);
+  TRI_ASSERT(_resultBuilder->isOpenArray());
   _resultBuilder->close();
   if (_warnings.empty()) {
+    LOG_DEVEL_IF(_queryCacheId && !_queryString.empty()) << _queryString;
     // finally store the generated result in the query cache
+    LOG_DEVEL << "store query: " << queryHash << " " << _queryString;
+    LOG_DEVEL << "store query: " << _resultBuilder->slice().toJson();
     auto result = QueryCache::instance()->store(
         _vocbase, queryHash, _queryString,
         _resultBuilder, _trx->state()->collectionNames());
@@ -297,10 +306,12 @@ Result Query::cacheStore(uint64_t queryHash){
 
 Result Query::cacheUse(uint64_t queryHash){
   Result rv;
+  LOG_DEVEL_IF(_queryCacheId) << "try to use query: " << _queryCacheId << _queryString;
   auto cacheEntry = arangodb::aql::QueryCache::instance()->lookup( _vocbase, queryHash, _queryString);
   arangodb::aql::QueryCacheResultEntryGuard guard(cacheEntry);
 
   if (cacheEntry != nullptr) {
+    LOG_DEVEL_IF(_queryCacheId) << "found query: " << _queryCacheId << _queryString;
     // got a result from the query cache
     if(ExecContext::CURRENT != nullptr) {
       AuthInfo* info = AuthenticationFeature::INSTANCE->authInfo();
@@ -314,6 +325,8 @@ Result Query::cacheUse(uint64_t queryHash){
     }
     _cachedResultBuilder = cacheEntry->_queryResult;
     _cachedResultIterator = std::unique_ptr<VPackArrayIterator>( new VPackArrayIterator(_cachedResultBuilder->slice()));
+  } else {
+    LOG_DEVEL_IF(_queryCacheId) << "no query found in cache: " << _queryCacheId << _queryString;
   }
   return rv;
 }
@@ -336,6 +349,8 @@ Result Query::cacheGetSome(std::size_t atLeast, std::size_t atMost, VPackBuilder
 
   // raw and data
   // no ranges expected for data
+
+  LOG_DEVEL << "cached Result: " << _cachedResultBuilder->slice().toJson();
   {
     VPackBuilder dataBuilder;
     dataBuilder.openArray();
@@ -393,10 +408,7 @@ Result Query::cacheSkipSome(std::size_t atLeast, std::size_t atMost, std::size_t
 }
 
 bool Query::cacheExhausted(){
-    LOG_DEVEL << std::boolalpha << "is exhausted -"
-              << " valid: " << _cachedResultIterator->valid()
-              << " islast: " << _cachedResultIterator->isLast();
-   return ! _cachedResultIterator->valid();
+ return ! _cachedResultIterator->valid();
 }
 
 void Query::cacheCursorReset(){
@@ -766,12 +778,12 @@ QueryResult Query::execute(QueryRegistry* registry) {
 
     AqlItemBlock* value = nullptr; //must be ouside try so it can be deleted by catch
     try {
-      Result rv = cacheStart();
+      Result rv = resultStart();
       THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
       // iterate over result, return it and store it in query cache
       while (nullptr != (value = _engine->getSome(
                                1, ExecutionBlock::DefaultBatchSize()))) {
-        rv = cacheAdd(*value);
+        rv = resultAdd(*value);
         delete value;
         value = nullptr;
         THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
@@ -902,14 +914,14 @@ QueryResultV8 Query::executeV8(v8::Isolate* isolate, QueryRegistry* registry) {
     // this is the RegisterId our results can be found in
     AqlItemBlock* value = nullptr;
     try {
-      Result rv = cacheStart();
+      Result rv = resultStart();
       THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
       bool canCache = canWriteToQueryCache();
       // iterate over result, return it and store it in query cache
       uint32_t j = 0;
       while (nullptr != (value = _engine->getSome(
                                1, ExecutionBlock::DefaultBatchSize()))) {
-        rv = cacheAdd(*value,isolate, result, j, canCache);
+        rv = resultAdd(*value,isolate, result, j, canCache);
         delete value;
         value = nullptr;
         THROW_ARANGO_EXCEPTION_IF_FAIL(rv);

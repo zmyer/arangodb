@@ -1946,7 +1946,7 @@ AstNode* AstNode::clone(Ast* ast) const { return ast->clone(this); }
 /// (only for objects that do not contain dynamic attributes)
 /// note that this may throw and that the caller is responsible for
 /// catching the error
-void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
+void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool quoteStrings,
                         bool failIfLong) const {
   // any arrays/objects with more values than this will not be stringified if
   // failIfLonf is set to true!
@@ -1976,7 +1976,7 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
 
       AstNode* member = getMember(i);
       if (member != nullptr) {
-        member->stringify(buffer, verbose, failIfLong);
+        member->stringify(buffer, quoteStrings, failIfLong);
       }
     }
     buffer->appendChar(']');
@@ -2008,14 +2008,14 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
                                   member->getStringLength());
         buffer->appendChar(':');
 
-        member->getMember(0)->stringify(buffer, verbose, failIfLong);
+        member->getMember(0)->stringify(buffer, quoteStrings, failIfLong);
       } else if (member->type == NODE_TYPE_CALCULATED_OBJECT_ELEMENT) {
         TRI_ASSERT(member->numMembers() == 2);
 
         buffer->appendText(TRI_CHAR_LENGTH_PAIR("$["));
-        member->getMember(0)->stringify(buffer, verbose, failIfLong);
+        member->getMember(0)->stringify(buffer, quoteStrings, failIfLong);
         buffer->appendText(TRI_CHAR_LENGTH_PAIR("]:"));
-        member->getMember(1)->stringify(buffer, verbose, failIfLong);
+        member->getMember(1)->stringify(buffer, quoteStrings, failIfLong);
       } else {
         TRI_ASSERT(false);
       }
@@ -2039,9 +2039,9 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
     // not used by V8
     auto member = getMember(0);
     auto index = getMember(1);
-    member->stringify(buffer, verbose, failIfLong);
+    member->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar('[');
-    index->stringify(buffer, verbose, failIfLong);
+    index->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar(']');
     return;
   }
@@ -2049,17 +2049,29 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
   if (type == NODE_TYPE_ATTRIBUTE_ACCESS) {
     // not used by V8
     auto member = getMember(0);
-    member->stringify(buffer, verbose, failIfLong);
+    member->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar('.');
-    buffer->appendText(getStringValue(), getStringLength());
+    if(quoteStrings) {
+      std::string attr(getStringValue(), getStringLength());
+      auto foundDotOrSpacePos = attr.find_first_of(" .");
+      if(foundDotOrSpacePos == std::string::npos){
+        buffer->appendText(attr);
+      } else {
+        buffer->appendChar('`');
+        buffer->appendText(attr);
+        buffer->appendChar('`');
+      }
+    } else {
+      buffer->appendText(getStringValue(), getStringLength());
+    }
     return;
   }
 
   if (type == NODE_TYPE_BOUND_ATTRIBUTE_ACCESS) {
     // not used by V8
-    getMember(0)->stringify(buffer, verbose, failIfLong);
+    getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar('.');
-    getMember(1)->stringify(buffer, verbose, failIfLong);
+    getMember(1)->stringify(buffer, quoteStrings, failIfLong);
     return;
   }
 
@@ -2075,7 +2087,7 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
     auto func = static_cast<Function*>(getData());
     buffer->appendText(func->externalName);
     buffer->appendChar('(');
-    getMember(0)->stringify(buffer, verbose, failIfLong);
+    getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar(')');
     return;
   }
@@ -2083,9 +2095,9 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
   if (type == NODE_TYPE_ARRAY_LIMIT) {
     // not used by V8
     buffer->appendText(TRI_CHAR_LENGTH_PAIR("_LIMIT("));
-    getMember(0)->stringify(buffer, verbose, failIfLong);
+    getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar(',');
-    getMember(1)->stringify(buffer, verbose, failIfLong);
+    getMember(1)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar(')');
     return;
   }
@@ -2093,28 +2105,28 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
   if (type == NODE_TYPE_EXPANSION) {
     // not used by V8
     buffer->appendText(TRI_CHAR_LENGTH_PAIR("_EXPANSION("));
-    getMember(0)->stringify(buffer, verbose, failIfLong);
+    getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar(',');
-    getMember(1)->stringify(buffer, verbose, failIfLong);
+    getMember(1)->stringify(buffer, quoteStrings, failIfLong);
     // filter
     buffer->appendChar(',');
 
     auto filterNode = getMember(2);
     if (filterNode != nullptr && filterNode != Ast::getNodeNop()) {
       buffer->appendText(TRI_CHAR_LENGTH_PAIR(" FILTER "));
-      filterNode->getMember(0)->stringify(buffer, verbose, failIfLong);
+      filterNode->getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     }
     auto limitNode = getMember(3);
     if (limitNode != nullptr && limitNode != Ast::getNodeNop()) {
       buffer->appendText(TRI_CHAR_LENGTH_PAIR(" LIMIT "));
-      limitNode->getMember(0)->stringify(buffer, verbose, failIfLong);
+      limitNode->getMember(0)->stringify(buffer, quoteStrings, failIfLong);
       buffer->appendChar(',');
-      limitNode->getMember(1)->stringify(buffer, verbose, failIfLong);
+      limitNode->getMember(1)->stringify(buffer, quoteStrings, failIfLong);
     }
     auto returnNode = getMember(4);
     if (returnNode != nullptr && returnNode != Ast::getNodeNop()) {
       buffer->appendText(TRI_CHAR_LENGTH_PAIR(" RETURN "));
-      returnNode->stringify(buffer, verbose, failIfLong);
+      returnNode->stringify(buffer, quoteStrings, failIfLong);
     }
 
     buffer->appendChar(')');
@@ -2124,9 +2136,9 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
   if (type == NODE_TYPE_ITERATOR) {
     // not used by V8
     buffer->appendText(TRI_CHAR_LENGTH_PAIR("_ITERATOR("));
-    getMember(1)->stringify(buffer, verbose, failIfLong);
+    getMember(1)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar(',');
-    getMember(0)->stringify(buffer, verbose, failIfLong);
+    getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar(')');
     return;
   }
@@ -2141,7 +2153,7 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
     buffer->appendChar(' ');
     buffer->appendText((*it).second);
 
-    getMember(0)->stringify(buffer, verbose, failIfLong);
+    getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     return;
   }
 
@@ -2165,11 +2177,11 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
     auto it = Operators.find(type);
     TRI_ASSERT(it != Operators.end());
 
-    getMember(0)->stringify(buffer, verbose, failIfLong);
+    getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar(' ');
     buffer->appendText((*it).second);
     buffer->appendChar(' ');
-    getMember(1)->stringify(buffer, verbose, failIfLong);
+    getMember(1)->stringify(buffer, quoteStrings, failIfLong);
     return;
   }
 
@@ -2186,31 +2198,31 @@ void AstNode::stringify(arangodb::basics::StringBuffer* buffer, bool verbose,
     auto it = Operators.find(type);
     TRI_ASSERT(it != Operators.end());
 
-    getMember(0)->stringify(buffer, verbose, failIfLong);
+    getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar(' ');
     buffer->appendText(Quantifier::Stringify(getMember(2)->getIntValue(true)));
     buffer->appendChar(' ');
     buffer->appendText((*it).second);
     buffer->appendChar(' ');
-    getMember(1)->stringify(buffer, verbose, failIfLong);
+    getMember(1)->stringify(buffer, quoteStrings, failIfLong);
     return;
   }
 
   if (type == NODE_TYPE_OPERATOR_TERNARY) {
-    getMember(0)->stringify(buffer, verbose, failIfLong);
+    getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar('?');
-    getMember(1)->stringify(buffer, verbose, failIfLong);
+    getMember(1)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendChar(':');
-    getMember(2)->stringify(buffer, verbose, failIfLong);
+    getMember(2)->stringify(buffer, quoteStrings, failIfLong);
     return;
   }
 
   if (type == NODE_TYPE_RANGE) {
     // not used by V8
     TRI_ASSERT(numMembers() == 2);
-    getMember(0)->stringify(buffer, verbose, failIfLong);
+    getMember(0)->stringify(buffer, quoteStrings, failIfLong);
     buffer->appendText(TRI_CHAR_LENGTH_PAIR(".."));
-    getMember(1)->stringify(buffer, verbose, failIfLong);
+    getMember(1)->stringify(buffer, quoteStrings, failIfLong);
     return;
   }
 
@@ -2531,7 +2543,7 @@ AstNode const* AstNode::findReference(AstNode const* findme) const {
 /// @brief stringify the value of a node into a string buffer
 /// this creates an equivalent to what JSON.stringify() would do
 /// this method is used when generated JavaScript code for the node!
-void AstNode::appendValue(arangodb::basics::StringBuffer* buffer) const {
+void AstNode::appendValue(arangodb::basics::StringBuffer* buffer, bool quoteStrings) const {
   TRI_ASSERT(type == NODE_TYPE_VALUE);
 
   switch (value.type) {
@@ -2561,7 +2573,13 @@ void AstNode::appendValue(arangodb::basics::StringBuffer* buffer) const {
     }
 
     case VALUE_TYPE_STRING: {
-      buffer->appendJsonEncoded(value.value._string, value.length);
+      if(quoteStrings){
+        buffer->appendChar('"');
+        buffer->appendJsonEncoded(value.value._string, value.length);
+        buffer->appendChar('"');
+      } else {
+        buffer->appendJsonEncoded(value.value._string, value.length);
+      }
       break;
     }
 

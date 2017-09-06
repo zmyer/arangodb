@@ -115,11 +115,13 @@ QueryCacheResultEntry* QueryCacheDatabaseEntry::lookup(
 
   // found some result in cache
 
-  if (queryString.size() != (*it).second->_queryString.size() ||
-      memcmp(queryString.data(), (*it).second->_queryString.c_str(), queryString.size()) != 0) {
-    // found something, but obviously the result of a different query with the
-    // same hash
-    return nullptr;
+  if(!( queryString.empty() && (*it).second->_queryString.empty() )){ //avoids nullptr access
+    if (queryString.size() != (*it).second->_queryString.size() ||
+        memcmp(queryString.data(), (*it).second->_queryString.c_str(), queryString.size()) != 0) {
+      // found something, but obviously the result of a different query with the
+      // same hash
+      return nullptr;
+    }
   }
 
   // found an entry

@@ -565,15 +565,15 @@ bool Expression::isConstant() const { return _node->isConstant(); }
 
 /// @brief stringify an expression
 /// note that currently stringification is only supported for certain node types
-void Expression::stringify(arangodb::basics::StringBuffer* buffer) const {
-  _node->stringify(buffer, true, false);
+void Expression::stringify(arangodb::basics::StringBuffer* buffer, bool quoteStrings) const {
+  _node->stringify(buffer, quoteStrings, false);
 }
 
 /// @brief stringify an expression
 /// note that currently stringification is only supported for certain node types
 void Expression::stringifyIfNotTooLong(
-    arangodb::basics::StringBuffer* buffer) const {
-  _node->stringify(buffer, true, true);
+    arangodb::basics::StringBuffer* buffer, bool quoteStrings) const {
+  _node->stringify(buffer, quoteStrings, true);
 }
 
 /// @brief execute an expression of type SIMPLE with ATTRIBUTE ACCESS

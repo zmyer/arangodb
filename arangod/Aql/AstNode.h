@@ -646,7 +646,7 @@ struct AstNode {
   /// (only for objects that do not contain dynamic attributes)
   /// note that this may throw and that the caller is responsible for
   /// catching the error
-  void stringify(arangodb::basics::StringBuffer*, bool, bool) const;
+  void stringify(arangodb::basics::StringBuffer*, bool quoteStrings, bool failIfLong) const;
 
   /// note that this may throw and that the caller is responsible for
   /// catching the error
@@ -655,7 +655,7 @@ struct AstNode {
   /// @brief stringify the value of a node into a string buffer
   /// this method is used when generated JavaScript code for the node!
   /// this creates an equivalent to what JSON.stringify() would do
-  void appendValue(arangodb::basics::StringBuffer*) const;
+  void appendValue(arangodb::basics::StringBuffer*, bool quoteStrings = false) const;
 
   /// @brief Steals the computed value and frees it.
   void stealComputedValue();

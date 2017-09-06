@@ -182,13 +182,13 @@ class Expression {
   /// @brief stringify an expression
   /// note that currently stringification is only supported for certain node
   /// types
-  void stringify(arangodb::basics::StringBuffer*) const;
+  void stringify(arangodb::basics::StringBuffer*, bool quoteStrings = false) const;
 
   /// @brief stringify an expression, if it is not too long
   /// if the stringified version becomes too long, this method will throw
   /// note that currently stringification is only supported for certain node
   /// types
-  void stringifyIfNotTooLong(arangodb::basics::StringBuffer*) const;
+  void stringifyIfNotTooLong(arangodb::basics::StringBuffer*, bool quoteStrings = false) const;
 
   /// @brief replace variables in the expression with other variables
   void replaceVariables(std::unordered_map<VariableId, Variable const*> const&);
@@ -197,7 +197,7 @@ class Expression {
   /// expression (e.g. inserting c = `a + b` into expression `c + 1` so the
   /// latter becomes `a + b + 1`
   void replaceVariableReference(Variable const*, AstNode const*);
-  
+
   void replaceAttributeAccess(Variable const*, std::vector<std::string> const& attribute);
 
   /// @brief invalidates an expression

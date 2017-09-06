@@ -107,7 +107,7 @@ void RestAqlHandler::createQueryFromVelocyPack() {
   VPackSlice fakeQuerySlice = querySlice.get("fakeQueryString");
   if (!fakeQuerySlice.isNone() && fakeQuerySlice.isString()) {
     cacheId = QueryString(fakeQuerySlice.copyString()).hash();
-    LOG_DEVEL << "RestAqlHandler::createQueryFromVelocyPack: '" << fakeQuerySlice.copyString() << "'";
+    LOG_DEVEL << "query " << fakeQuerySlice.copyString() << " " << cacheId;
   }
 
 
@@ -126,11 +126,11 @@ void RestAqlHandler::createQueryFromVelocyPack() {
 
   bool cacheEntryFound = false;
   auto queryCache = arangodb::aql::QueryCache::instance();
-  bool doCache = queryCache->mode() != QueryCacheMode::CACHE_ALWAYS_OFF; //TODO add correct behaviour for on demand
+  bool doCache = true; //= queryCache->mode() != QueryCacheMode::CACHE_ALWAYS_OFF; //TODO add correct behaviour for on demand
 
   if (doCache && isDBServerInCluster() && cacheId){ // enable caching only for DbServers in Cluster
     Result rv;
-    LOG_DEVEL_IF(cacheId) << "trying to use cache with id: " << cacheId;
+    //LOG_DEVEL_IF(cacheId) << "trying to use cache with id: " << cacheId;
     rv = query->cacheUse(cacheId);
     THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
     cacheEntryFound = query->cacheEntryAvailable();
@@ -139,9 +139,8 @@ void RestAqlHandler::createQueryFromVelocyPack() {
   if(true || !cacheEntryFound){
     try {
       query->prepare(_queryRegistry, 0);
-      LOG_DEVEL_IF(query->cacheId()) << "RestAqlHandler::createQueryFromVelocyPack - prepared Query with id: " << query->cacheId();
     } catch (std::exception const& ex) {
-      LOG_DEVEL << "failed to instantiate the query (prepare): " << ex.what();
+      LOG_TOPIC(ERR, arangodb::Logger::FIXME) << "failed to instantiate the query (prepare): " << ex.what();
       generateError(rest::ResponseCode::BAD, TRI_ERROR_QUERY_BAD_JSON_PLAN, ex.what());
       return;
     } catch (...) {
@@ -167,8 +166,9 @@ void RestAqlHandler::createQueryFromVelocyPack() {
   try {
     _queryRegistry->insert(_qId, query.get(), ttl);
     if (doCache && !cacheEntryFound && isDBServerInCluster() && query->cacheId()){ // enable caching only for DbServers in Cluster
-      LOG_DEVEL << "starting new cache";
-      query->cacheStart(); //open cache entry
+      TRI_ASSERT(cacheId == query->cacheId());
+      LOG_DEVEL << "starting new cache - isDBServer: " << isDBServerInCluster << "chace id: " << cacheId;
+      query->resultStart(); //open cache entry
     }
     query.release();
   } catch (...) {
@@ -771,6 +771,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         answerBuilder.add("code", VPackValue(res));
 
       } else if (operation == "getSome") {
+        LOG_DEVEL << "get some " << query->cacheId();
         auto atLeast = VelocyPackHelper::getNumericValue<size_t>(querySlice, "atLeast", 1);
         auto atMost = VelocyPackHelper::getNumericValue<size_t>(querySlice, "atMost", ExecutionBlock::DefaultBatchSize());
 
@@ -782,15 +783,14 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
               generateError(rv);
               return;
           }
-          LOG_DEVEL << "QUERY DELIVERED FORM CACHE";
+          LOG_DEVEL << "QUERY DELIVERED FORM CACHE " << query->cacheId();
         } else {
           // no cache available
           std::unique_ptr<AqlItemBlock> items;
           if (shardId.empty()) {
-            // single server
             items.reset(query->engine()->getSome(atLeast, atMost));
           } else {
-            // dbserver in cluster
+            LOG_DEVEL << "aql handler - getsome / coordinator allowed" << query->cacheId();
             auto block = static_cast<BlockWithClients*>(query->engine()->root());
             if (block->getPlanNode()->getType() != ExecutionNode::SCATTER &&
                 block->getPlanNode()->getType() != ExecutionNode::DISTRIBUTE) {
@@ -799,16 +799,31 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
             items.reset(block->getSomeForShard(atLeast, atMost, shardId));
           }
 
+          LOG_DEVEL << "aql hander getsome got items" << query->cacheId() << " itempsptr: " << items.get();
+
           if (items.get() == nullptr) {
             answerBuilder.add("exhausted", VPackValue(true));
             answerBuilder.add("error", VPackValue(false));
           } else {
             try {
+              LOG_DEVEL<< "aql hander getsome - calling to velocypack " << query->cacheId();
               items->toVelocyPack(query->trx(), answerBuilder);
               if(query->cacheBuildingResult()){
-                query->cacheAdd(*items);
+                LOG_DEVEL << "adding items to cache";
+                Result rv = query->resultAdd(*items);
+                if(rv.fail()){
+                  query->resultCancel();
+                }
               }
+            } catch (std::exception const& e) {
+              query->resultCancel();
+              LOG_DEVEL << e.what();
+              generateError(rest::ResponseCode::SERVER_ERROR,
+                            TRI_ERROR_HTTP_SERVER_ERROR,
+                            std::string("cannot transform AqlItemBlock to VelocyPack") + e.what());
+              return;
             } catch (...) {
+              query->resultCancel();
               generateError(rest::ResponseCode::SERVER_ERROR,
                             TRI_ERROR_HTTP_SERVER_ERROR,
                             "cannot transform AqlItemBlock to VelocyPack");
@@ -843,7 +858,9 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
                 items.reset(block->getSomeForShard(atLeast, atMost, shardId));
                 if (items.get()){
                   skipped = items->size();
-                  query->cacheAdd(*items);
+                  Result rv = query->resultAdd(*items);
+                  LOG_DEVEL_IF(rv.fail()) << rv.errorMessage();
+                  THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
                 }
               } else {
                 skipped = block->skipSomeForShard(atLeast, atMost, shardId);
@@ -951,7 +968,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         try {
 
           if(query->cacheBuildingResult()){
-            LOG_DEVEL << "storing cache with id: " << query->cacheId();
+            LOG_DEVEL << "STORING QUERY WITH ID: " << query->cacheId();
             query->cacheStore(query->cacheId());
           }
 
@@ -988,7 +1005,9 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         return;
       }
     } // answerBuilder guard scope
-    LOG_DEVEL_IF(query->cacheId()) << "answer: " <<  answerBuilder.slice().toJson();
+    //LOG_DEVEL_IF( operation == "getSome") << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+    //LOG_DEVEL_IF( operation == "getSome") << "get some result: " << answerBuilder.slice().toJson();
+    //LOG_DEVEL_IF( operation == "getSome") << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
     sendResponse(rest::ResponseCode::OK, answerBuilder.slice(),
                  transactionContext.get());
   } catch (arangodb::basics::Exception const& e) {

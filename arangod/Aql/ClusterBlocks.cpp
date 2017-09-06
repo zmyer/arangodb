@@ -1458,13 +1458,12 @@ AqlItemBlock* RemoteBlock::getSome(size_t atLeast, size_t atMost) {
       res->result->getBodyVelocyPack();
   VPackSlice responseBody = responseBodyBuilder->slice();
 
-  LOG_DEVEL << responseBody.toJson();
-
   if (VelocyPackHelper::getBooleanValue(responseBody, "exhausted", true)) {
     traceGetSomeEnd(nullptr);
     return nullptr;
   }
 
+  LOG_DEVEL << "cluster blocks: " << responseBody.toJson();
   auto r = std::make_unique<AqlItemBlock>(_engine->getQuery()->resourceMonitor(), responseBody);
   traceGetSomeEnd(r.get());
   return r.release();
