@@ -69,6 +69,7 @@ router.get('/config.js', function (req, res) {
     `var frontendConfig = ${JSON.stringify({
       basePath: basePath,
       db: req.database,
+      isSingleShard: db._isSingleShard(),
       isEnterprise: isEnterprise,
       authenticationEnabled: internal.authenticationEnabled(),
       isCluster: cluster.isCluster(),

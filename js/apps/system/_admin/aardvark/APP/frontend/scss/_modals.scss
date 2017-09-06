@@ -154,6 +154,20 @@
     margin-bottom: 10px;
   }
 
+  form {
+    margin: 10px 0 10px;
+
+    span {
+      margin-right: 10px;
+    }
+  }
+
+  input[type='radio'] {
+    margin-right: 2px;
+    margin-top: 0;
+    width: 20px;
+  }
+
   input[type='text'].invalid-input {
     border-color: $c-invalid-red;
 

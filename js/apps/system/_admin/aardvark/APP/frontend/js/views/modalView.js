@@ -84,7 +84,8 @@
       PASSWORD: 'password',
       SELECT: 'select',
       SELECT2: 'select2',
-      CHECKBOX: 'checkbox'
+      CHECKBOX: 'checkbox',
+      RADIO: 'radio'
     },
 
     initialize: function () {
@@ -210,6 +211,19 @@
 
     createCheckboxEntry: function (id, label, value, info, checked) {
       var obj = createTextStub(this.tables.CHECKBOX, label, value, info);
+      obj.id = id;
+      if (checked) {
+        obj.checked = checked;
+      }
+      if (value) {
+        obj.checked = value;
+      }
+
+      return obj;
+    },
+
+    createRadioEntry: function (id, label, value, info, checked) {
+      var obj = createTextStub(this.tables.RADIO, label, value, info);
       obj.id = id;
       if (checked) {
         obj.checked = checked;

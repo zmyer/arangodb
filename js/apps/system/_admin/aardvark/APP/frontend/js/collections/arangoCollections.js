@@ -162,9 +162,14 @@
       }
       data.isSystem = object.isSystem;
       data.type = parseInt(object.collType, 10);
-      if (object.shards) {
+      if (object.distributeShardsLike) {
         data.numberOfShards = object.shards;
-        data.shardKeys = object.shardBy;
+        data.distributeShardsLike = object.distributeShardsLike[0];
+      } else {
+        if (object.shards) {
+          data.numberOfShards = object.shards;
+          data.shardKeys = object.shardBy;
+        }
       }
 
       if (object.replicationFactor) {

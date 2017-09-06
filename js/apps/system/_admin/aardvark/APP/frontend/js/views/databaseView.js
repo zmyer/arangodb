@@ -1,6 +1,6 @@
 /* jshint browser: true */
 /* jshint unused: false */
-/* global window, document, Backbone, $, arangoHelper, templateEngine, Joi */
+/* global frontendConfig, window, document, Backbone, $, arangoHelper, templateEngine, Joi */
 (function () {
   'use strict';
 
@@ -167,6 +167,14 @@
       var options = {
         name: dbname
       };
+
+      if (frontendConfig.isCluster && frontendConfig.isEnterprise) {
+        if ($('#isSingleShard').is(':checked')) {
+          options.options = {
+            singleShard: true
+          };
+        }
+      }
 
       this.collection.create(options, {
         error: function (data, err) {
@@ -369,6 +377,19 @@
           users
         )
       );
+
+      if (frontendConfig.isCluster && frontendConfig.isEnterprise) {
+        tableContent.push(
+          window.modalView.createCheckboxEntry(
+            'isSingleShard',
+            'Single Shard',
+            null,
+            'Should the database be created with a single shard only?',
+            false
+          )
+        );
+      }
+
       buttons.push(
         window.modalView.createSuccessButton(
           'Create',

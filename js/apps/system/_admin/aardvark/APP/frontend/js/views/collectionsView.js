@@ -353,6 +353,7 @@
           var collSync = $('#new-collection-sync').val();
           var shards = 1;
           var shardBy = [];
+          var distributeShardsLike = [];
 
           if (replicationFactor === '') {
             replicationFactor = 1;
@@ -374,7 +375,15 @@
               );
               return 0;
             }
-            shardBy = _.pluck($('#new-collection-shardBy').select2('data'), 'text');
+            if (!frontendConfig.isSingleShard) {
+              if ($("#is-single-chart-form input[type='radio']:checked").val() === 'Collection') {
+                distributeShardsLike = _.pluck($('#new-collection-shardBy').select2('data'), 'text');
+              } else {
+                shardBy = _.pluck($('#new-collection-shardBy').select2('data'), 'text');
+              }
+            } else {
+              shardBy = _.pluck($('#new-collection-shardBy').select2('data'), 'text');
+            }
             if (shardBy.length === 0) {
               shardBy.push('_key');
             }
@@ -417,9 +426,19 @@
             isSystem: isSystem,
             replicationFactor: replicationFactor,
             collType: collType,
-            shards: shards,
-            shardBy: shardBy
+            shards: shards
           };
+
+          if (!frontendConfig.isSingleShard) {
+            if ($("#is-single-chart-form input[type='radio']:checked").val() === 'Collection') {
+              tmpObj.distributeShardsLike = distributeShardsLike;
+            } else {
+              tmpObj.shardBy = shardBy;
+            }
+          } else {
+            tmpObj.shardBy = shardBy;
+          }
+
           if (self.engine.name !== 'rocksdb') {
             tmpObj.journalSize = collSize;
           }
@@ -487,17 +506,38 @@
                 true
               )
             );
-            tableContent.push(
-              window.modalView.createSelect2Entry(
-                'new-collection-shardBy',
-                'shardBy',
-                '',
-                'The keys used to distribute documents on shards. ' +
-                'Type the key and press return to add it.',
-                '_key',
-                false
-              )
-            );
+            if (!frontendConfig.isSingleShard) {
+              tableContent.push(
+                window.modalView.createRadioEntry(
+                  'is-single-chart-form',
+                  'Shard by',
+                  ['Attribute Key', 'Collection'],
+                  'Shard by document or shard same as collection.'
+                )
+              );
+              tableContent.push(
+                window.modalView.createSelect2Entry(
+                  'new-collection-shardBy',
+                  '',
+                  '',
+                  '',
+                  '',
+                  false
+                )
+              );
+            } else {
+              tableContent.push(
+                window.modalView.createSelect2Entry(
+                  'new-collection-shardBy',
+                  'shardBy',
+                  '',
+                  'The keys used to distribute documents on shards. ' +
+                  'Type the key and press return to add it.',
+                  '_key',
+                  false
+                )
+              );
+            }
           }
 
           buttons.push(
@@ -583,7 +623,7 @@
             }
           });
 
-          if (window.App.isCluster && frontendConfig.isEnterprise) {
+          if (frontendConfig.isCluster && frontendConfig.isEnterprise) {
             $('#is-satellite-collection').on('change', function (element) {
               if ($('#is-satellite-collection').val() === 'true') {
                 $('#new-replication-factor').prop('disabled', true);
@@ -592,6 +632,14 @@
               }
               $('#new-replication-factor').val('').focus().focusout();
             });
+
+            if (frontendConfig.isSingleShard) {
+              $('#new-collection-shards').val(1);
+              $('#new-collection-shards').prop('disabled', true);
+
+              $('#new-replication-factor').val(1);
+              $('#new-replication-factor').prop('disabled', true);
+            }
           }
         }
       }.bind(this);

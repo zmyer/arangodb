@@ -7,7 +7,17 @@
     }
     %>
     <tr class="tableRow" id="<%='row_' + row.id%>">
-      <th class="collectionTh"><%=row.label%><%=mandatory%>:</th>
+      <% 
+        if (row.label) {
+      %>
+        <th class="collectionTh"><%=row.label%><%=mandatory%>:</th>
+      <% 
+        } else {
+      %>
+        <th class="collectionTh"></th>
+      <% 
+        }
+      %>
       <th class="collectionTh"<%=row.info?'':' colspan="2"'%>>
         <%
         switch(row.type) {
@@ -42,6 +52,35 @@
           }
           %>
           <input type="checkbox" id="<%=row.id%>" value="<%=row.value%>" <%=checked%> <%=disabled%>></input>
+          <%
+          break;
+        case "radio":
+          var checked = '',
+            disabled = '';
+          if (row.checked) {
+            checked = 'checked';
+          }
+          if (row.disabled) {
+            disabled = 'disabled';
+          }
+          %>
+          <form id="<%=row.id%>">
+          <%
+            var pos = 0;
+            _.each(row.value, function (val) {
+              if (pos === 0) {
+          %>
+                <input type="radio" name="<%=row.id%>" value="<%=val%>" checked><span><%=val%></span></input>
+          <%
+              } else {
+          %>
+              <input type="radio" name="<%=row.id%>" value="<%=val%>"><span><%=val%></span></input>
+          <%
+              }
+              pos++;
+            });
+          %>
+          </form>
           <%
           break;
         case "select":
