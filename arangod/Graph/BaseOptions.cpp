@@ -30,8 +30,6 @@
 #include "Aql/Query.h"
 #include "Graph/ShortestPathOptions.h"
 #include "Graph/SingleServerEdgeCursor.h"
-#include "Graph/TraverserCache.h"
-#include "Graph/TraverserCacheFactory.h"
 #include "Indexes/Index.h"
 #include "VocBase/TraverserOptions.h"
 
@@ -306,18 +304,6 @@ void BaseOptions::injectLookupInfoInList(std::vector<LookupInfo>& list,
   list.emplace_back(std::move(info));
 }
 
-void BaseOptions::clearVariableValues() { _ctx->clearVariableValues(); }
-
-void BaseOptions::setVariableValue(aql::Variable const* var,
-                                   aql::AqlValue const value) {
-  _ctx->setVariableValue(var, value);
-}
-
-void BaseOptions::serializeVariables(VPackBuilder& builder) const {
-  TRI_ASSERT(builder.isOpenArray());
-  _ctx->serializeAllVariables(_trx, builder);
-}
-
 arangodb::transaction::Methods* BaseOptions::trx() const { return _trx; }
 
 arangodb::graph::TraverserCache* BaseOptions::cache() const {
@@ -424,26 +410,4 @@ EdgeCursor* BaseOptions::nextCursorLocal(ManagedDocumentResult* mmdr,
     opCursors.emplace_back(std::move(csrs));
   }
   return allCursor.release();
-}
-
-TraverserCache* BaseOptions::cache() {
-  if (_cache == nullptr) {
-    // If the Coordinator does NOT activate the Cache
-    // the datalake is not created and cluster data cannot
-    // be persisted anywhere.
-    TRI_ASSERT(!arangodb::ServerState::instance()->isCoordinator());
-    // In production just gracefully initialize
-    // the cache without document cache, s.t. system does not crash
-    activateCache(false, nullptr);
-  }
-  TRI_ASSERT(_cache != nullptr);
-  return _cache.get();
-}
-
-void BaseOptions::activateCache(
-    bool enableDocumentCache,
-    std::unordered_map<ServerID, traverser::TraverserEngineID> const* engines) {
-  // Do not call this twice.
-  TRI_ASSERT(_cache == nullptr);
-  _cache.reset(cacheFactory::CreateCache(_trx, enableDocumentCache, engines));
 }

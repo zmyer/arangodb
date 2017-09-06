@@ -229,6 +229,7 @@ SET(ARANGOD_SOURCES
   Graph/ConstantWeightShortestPathFinder.cpp
   Graph/ClusterTraverserCache.cpp
   Graph/EdgeDocumentToken.cpp
+  Graph/GraphMethods.cpp
   Graph/NeighborsEnumerator.cpp
   Graph/ShortestPathOptions.cpp
   Graph/ShortestPathResult.cpp

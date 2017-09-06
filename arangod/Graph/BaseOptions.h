@@ -24,7 +24,6 @@
 #ifndef ARANGOD_GRAPH_BASE_OPTIONS_H
 #define ARANGOD_GRAPH_BASE_OPTIONS_H 1
 
-#include "Aql/FixedVarExpressionContext.h"
 #include "Basics/Common.h"
 #include "Cluster/ClusterInfo.h"
 #include "Cluster/ServerState.h"
@@ -48,7 +47,15 @@ class Slice;
 namespace graph {
 
 class EdgeCursor;
-class TraverserCache;
+
+////////////////////////////////////////////////////////////////////////////////
+///  Description
+///
+///  This class is supposed to be a container of options
+///  in the various graph cases (during query planning).
+///  It may be specialized for certain use-cases to deliver even more flags.
+///  This struct is agnostic of running in a cluster or single server.
+////////////////////////////////////////////////////////////////////////////////
 
 struct BaseOptions {
  protected:
@@ -102,15 +109,7 @@ struct BaseOptions {
   void addLookupInfo(aql::ExecutionPlan* plan, std::string const& collectionName,
                      std::string const& attributeName, aql::AstNode* condition);
 
-  void clearVariableValues();
-
-  void setVariableValue(aql::Variable const*, aql::AqlValue const);
-
-  void serializeVariables(arangodb::velocypack::Builder&) const;
-
   transaction::Methods* trx() const;
-
-  TraverserCache* cache() const;
 
   /// @brief Build a velocypack for cloning in the plan.
   virtual void toVelocyPack(arangodb::velocypack::Builder&) const = 0;
@@ -121,13 +120,6 @@ struct BaseOptions {
 
   /// @brief Estimate the total cost for this operation
   virtual double estimateCost(size_t& nrItems) const = 0;
-
-  TraverserCache* cache();
-
-  void activateCache(
-      bool enableDocumentCache,
-      std::unordered_map<ServerID, traverser::TraverserEngineID> const*
-          engines);
 
  protected:
   double costForLookupInfoList(std::vector<LookupInfo> const& list,
@@ -153,8 +145,6 @@ struct BaseOptions {
                               std::string const& attributeName,
                               aql::AstNode* condition);
 
- private:
-  aql::FixedVarExpressionContext* _ctx;
 
  protected:
   EdgeCursor* nextCursorLocal(ManagedDocumentResult*, StringRef vid,
@@ -169,8 +159,6 @@ struct BaseOptions {
   aql::Variable const* _tmpVar;
   bool const _isCoordinator;
 
-  /// @brief the traverser cache
-  std::unique_ptr<TraverserCache> _cache;
 };
 
 }  // namespace graph
