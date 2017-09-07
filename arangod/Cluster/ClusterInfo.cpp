@@ -1321,14 +1321,15 @@ int ClusterInfo::createCollectionCoordinator(std::string const& databaseName,
     MUTEX_LOCKER(locker, *cacheMutex);
 
     auto res = ac.sendTransactionWithFailover(transaction);
-    auto result = res.slice();
 
     // Only if not precondition failed
     if (!res.successful()) {
+
       if (res.httpCode() ==
           (int)arangodb::rest::ResponseCode::PRECONDITION_FAILED) {
         AgencyCommResult ag = ac.getValues("/");
 
+        auto result = res.slice();
         if (result.isArray() && result.length() > 0) {
           if (result[0].isObject()) {
             auto tres = result[0];

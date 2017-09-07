@@ -1115,8 +1115,27 @@ Result abortTransactionOnCoordinator(
   }
   
   size_t nrDone = 0;
-  cc->performRequests(
+  size_t nrGood = cc->performRequests( // Try to abort within timeout
     requests, CL_DEFAULT_TIMEOUT, nrDone, Logger::COMMUNICATION, true);
+  
+  if (nrGood == requests.size()) { // All good
+    return Result(TRI_ERROR_NO_ERROR);
+  }
+
+  std::string errMsg("Aborting failed partially: ");
+  
+  for (auto const& request : requests) {
+    auto res = request.result;
+    if(res.status == CL_COMM_RECEIVED) {
+      if (!res.answer_code == rest::ResponseCode::OK &&
+          !res.answer_code == rest::ResponseCode::CREATED &&
+          !res.answer_code == rest::ResponseCode::ACCEPTED) {
+        errMsg += "(" + request.destination + ": " + res.answer_code + ")";
+      }
+    } else {
+      
+    }
+  }
 
   return Result(TRI_ERROR_NO_ERROR);
 
