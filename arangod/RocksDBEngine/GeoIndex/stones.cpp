@@ -265,6 +265,7 @@ void JS_StonesTest(v8::FunctionCallbackInfo<v8::Value> const& args) {
     long r;
     uint8_t dd[200];
     GeoParm gs;
+    gs.objectId = 1;
     GeoLengths gl;
     gl.keylength=9;
     gl.vallength=11;
