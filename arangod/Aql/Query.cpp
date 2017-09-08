@@ -25,6 +25,7 @@
 
 #include "Aql/AqlItemBlock.h"
 #include "Aql/AqlTransaction.h"
+#include "Aql/AqlQueryResultCache.h"
 #include "Aql/ExecutionBlock.h"
 #include "Aql/ExecutionEngine.h"
 #include "Aql/ExecutionPlan.h"
@@ -227,7 +228,6 @@ Query::~Query() {
 }
 
 Result Query::resultStart(){
-  //LOG_DEVEL << "startResult";
   Result rv;
   if(! _resultBuilder){
     VPackOptions options = VPackOptions::Defaults;
@@ -242,8 +242,8 @@ Result Query::resultStart(){
   return rv;
 }
 
-Result Query::resultAdd(AqlItemBlock const& value){
-  LOG_DEVEL << "resultAdd";
+Result Query::resultAddComplete(AqlItemBlock const& value){
+  LOG_DEVEL_IF(_queryCacheId) << _queryCacheId << " query - resultAdd";
   Result rv;
   auto const resultRegister = _engine->resultRegister();
   size_t const n = value.size();
@@ -258,7 +258,11 @@ Result Query::resultAdd(AqlItemBlock const& value){
   return rv;
 }
 
-Result Query::resultAdd(AqlItemBlock const& value
+Result Query::resultAddPart(AqlItemBlock const& value, std::size_t regs){
+  return arangodb::aql::cache::blockToVPack(value, *_resultBuilder, regs);
+}
+
+Result Query::resultAddComplete(AqlItemBlock const& value
                       ,v8::Isolate* isolate
                       ,QueryResultV8& result
                       ,uint32_t& j //position
@@ -289,10 +293,8 @@ Result Query::cacheStore(uint64_t queryHash){
   TRI_ASSERT(_resultBuilder->isOpenArray());
   _resultBuilder->close();
   if (_warnings.empty()) {
-    LOG_DEVEL_IF(_queryCacheId && !_queryString.empty()) << _queryString;
     // finally store the generated result in the query cache
-    LOG_DEVEL << "store query: " << queryHash << " " << _queryString;
-    LOG_DEVEL << "store query: " << _resultBuilder->slice().toJson();
+    LOG_DEVEL << queryHash << " query - store: '" <<  _queryString; // << "' contents: @@@" << _resultBuilder->slice().toJson() << "@@@";
     auto result = QueryCache::instance()->store(
         _vocbase, queryHash, _queryString,
         _resultBuilder, _trx->state()->collectionNames());
@@ -306,12 +308,13 @@ Result Query::cacheStore(uint64_t queryHash){
 
 Result Query::cacheUse(uint64_t queryHash){
   Result rv;
-  LOG_DEVEL_IF(_queryCacheId) << "try to use query: " << _queryCacheId << _queryString;
+  LOG_DEVEL_IF(_queryCacheId) << queryHash << " query - cacheUse - try to find query: " << _queryString;
   auto cacheEntry = arangodb::aql::QueryCache::instance()->lookup( _vocbase, queryHash, _queryString);
   arangodb::aql::QueryCacheResultEntryGuard guard(cacheEntry);
 
   if (cacheEntry != nullptr) {
-    LOG_DEVEL_IF(_queryCacheId) << "found query: " << _queryCacheId << _queryString;
+    LOG_DEVEL_IF(_queryCacheId) << queryHash << " found query - string: " <<  _queryString;
+    TRI_ASSERT(queryHash == _queryCacheId || ! _queryCacheId);
     // got a result from the query cache
     if(ExecContext::CURRENT != nullptr) {
       AuthInfo* info = AuthenticationFeature::INSTANCE->authInfo();
@@ -326,17 +329,19 @@ Result Query::cacheUse(uint64_t queryHash){
     _cachedResultBuilder = cacheEntry->_queryResult;
     _cachedResultIterator = std::unique_ptr<VPackArrayIterator>( new VPackArrayIterator(_cachedResultBuilder->slice()));
   } else {
-    LOG_DEVEL_IF(_queryCacheId) << "no query found in cache: " << _queryCacheId << _queryString;
+    LOG_DEVEL_IF(_queryCacheId) << _queryCacheId << " query - useCache - no query found in cache: " << _queryString;
   }
   return rv;
 }
 
-Result Query::cacheGetSome(std::size_t atLeast, std::size_t atMost, VPackBuilder& builder, std::size_t& count){
+Result Query::cacheGetOrSkipSomePart(VPackBuilder& builder, bool skip, std::size_t atLeast, std::size_t atMost ){
   Result rv;
   TRI_ASSERT(builder.isOpenObject());
+
 	if(! _cachedResultBuilder || ! _cachedResultIterator){
 		return rv.reset(TRI_ERROR_INTERNAL, "cached result not available");
 	}
+
   bool exhausted = cacheExhausted();
 
   if (exhausted) {
@@ -345,64 +350,27 @@ Result Query::cacheGetSome(std::size_t atLeast, std::size_t atMost, VPackBuilder
     return rv;
   }
 
-  count = 0;
-
   // raw and data
   // no ranges expected for data
 
-  LOG_DEVEL << "cached Result: " << _cachedResultBuilder->slice().toJson();
-  {
-    VPackBuilder dataBuilder;
-    dataBuilder.openArray();
-    builder.add("raw", VPackValue(VPackValueType::Array));
-    builder.add(VPackSlice::nullSlice());
-    builder.add(VPackSlice::nullSlice());
-    while(_cachedResultIterator->valid() && count < atMost){
-      if(_cachedResultIterator->value().isNull()){
-        dataBuilder.add(VPackValue(0));
-      } else {
-        builder.add(_cachedResultIterator->value());
-        dataBuilder.add(VPackValue(1));
-      }
-      count++;
-      exhausted = false;
-      _cachedResultIterator->next();
-    }
-    builder.close(); // raw arrar
-    dataBuilder.close(); // data array
-    builder.add("data", dataBuilder.slice());
+  std::unique_ptr<ResourceMonitor> monitor(nullptr);
+  if(!skip){
+    monitor.reset(new ResourceMonitor{});
+  }
+  //LOG_DEVEL_IF(_queryCacheId) << _queryCacheId << " query - cached Result: " << _cachedResultBuilder->slice().toJson();
+  auto result = arangodb::aql::cache::vPackToBlock(*_cachedResultIterator, monitor, atLeast, atMost);
+  THROW_ARANGO_EXCEPTION_IF_FAIL(std::get<0>(result));
+  auto& block = std::get<1>(result);
+
+
+  if(block){
+    block->toVelocyPack(nullptr /*trx*/, builder);
+  } else {
+    builder.add("error", VPackValue(false));
+    builder.add("exhausted", VPackValue(exhausted));
   }
 
-  builder.add("nrItems",VPackValue(count));
-  builder.add("nrRegs",VPackValue(1)); //always one register
-  builder.add("error", VPackValue(false));
-  builder.add("exhausted", VPackValue(exhausted));
   builder.add("cached", VPackValue(true));
-
-  //if (count < atLeast) {
-  //  LOG_DEVEL << "count is too low " << count;
-  //  rv.reset(TRI_ERROR_BAD_PARAMETER, "you tried to get more items than there are in the iterator");
-  //}
-
-  return rv;
-}
-
-Result Query::cacheSkipSome(std::size_t atLeast, std::size_t atMost, std::size_t& count, bool& exhausted){
-  Result rv;
-  exhausted = false;
-	if(! _cachedResultBuilder || ! _cachedResultIterator){
-		return rv.reset(TRI_ERROR_INTERNAL, "cached result not available");
-	}
-
-  count = 0;
-  while(_cachedResultIterator->valid() && count <= atMost){
-    _cachedResultIterator->next();
-    count++;
-  }
-
-  if (count < atLeast) {
-    exhausted = true;
-  }
 
   return rv;
 }
@@ -608,6 +576,12 @@ void Query::prepare(QueryRegistry* registry, uint64_t queryHash) {
     engine.release();
   }
 
+  // try {
+  // auto fake = arangodb::aql::cache::fakeQueryString(plan.get());
+  // LOG_DEVEL_IF(!_queryString.empty() && !fake.empty()) << "AQL PREPARE: " << _queryString << "  " << fake;
+  // } catch (std::exception const& e) {
+  //   LOG_DEVEL << e.what();
+  // } catch (...) {}
   _plan = std::move(plan);
 }
 
@@ -751,7 +725,7 @@ QueryResult Query::execute(QueryRegistry* registry) {
         res.context = std::make_shared<transaction::StandaloneContext>(_vocbase);
 
         res.warnings = warningsToVelocyPack();
-        res.result = std::move(_cachedResultBuilder);
+        res.result = _cachedResultBuilder;
         res.cached = true;
         return res;
       }
@@ -783,7 +757,7 @@ QueryResult Query::execute(QueryRegistry* registry) {
       // iterate over result, return it and store it in query cache
       while (nullptr != (value = _engine->getSome(
                                1, ExecutionBlock::DefaultBatchSize()))) {
-        rv = resultAdd(*value);
+        rv = resultAddComplete(*value);
         delete value;
         value = nullptr;
         THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
@@ -921,7 +895,7 @@ QueryResultV8 Query::executeV8(v8::Isolate* isolate, QueryRegistry* registry) {
       uint32_t j = 0;
       while (nullptr != (value = _engine->getSome(
                                1, ExecutionBlock::DefaultBatchSize()))) {
-        rv = resultAdd(*value,isolate, result, j, canCache);
+        rv = resultAddComplete(*value,isolate, result, j, canCache);
         delete value;
         value = nullptr;
         THROW_ARANGO_EXCEPTION_IF_FAIL(rv);

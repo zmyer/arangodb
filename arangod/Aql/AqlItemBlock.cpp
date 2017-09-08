@@ -133,11 +133,10 @@ AqlItemBlock::AqlItemBlock(ResourceMonitor* resourceMonitor, VPackSlice const sl
             dataIterator.next();
             VPackSlice highBound = dataIterator.value();
             dataIterator.next();
-             
-            int64_t low =
-                VelocyPackHelper::getNumericValue<int64_t>(lowBound, 0);
-            int64_t high =
-                VelocyPackHelper::getNumericValue<int64_t>(highBound, 0);
+
+            int64_t low = VelocyPackHelper::getNumericValue<int64_t>(lowBound, 0);
+            int64_t high = VelocyPackHelper::getNumericValue<int64_t>(highBound, 0);
+
             AqlValue a(low, high);
             try {
               setValue(i, column, a);

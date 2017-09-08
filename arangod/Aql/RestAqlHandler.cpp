@@ -107,7 +107,7 @@ void RestAqlHandler::createQueryFromVelocyPack() {
   VPackSlice fakeQuerySlice = querySlice.get("fakeQueryString");
   if (!fakeQuerySlice.isNone() && fakeQuerySlice.isString()) {
     cacheId = QueryString(fakeQuerySlice.copyString()).hash();
-    LOG_DEVEL << "query " << fakeQuerySlice.copyString() << " " << cacheId;
+    LOG_DEVEL << cacheId << " handler - instantiate FAKEQUERYSTRING: '" << fakeQuerySlice.copyString() << "'";
   }
 
 
@@ -125,12 +125,11 @@ void RestAqlHandler::createQueryFromVelocyPack() {
 
 
   bool cacheEntryFound = false;
-  auto queryCache = arangodb::aql::QueryCache::instance();
   bool doCache = true; //= queryCache->mode() != QueryCacheMode::CACHE_ALWAYS_OFF; //TODO add correct behaviour for on demand
 
   if (doCache && isDBServerInCluster() && cacheId){ // enable caching only for DbServers in Cluster
     Result rv;
-    //LOG_DEVEL_IF(cacheId) << "trying to use cache with id: " << cacheId;
+    LOG_DEVEL_IF(cacheId) << cacheId << " handler instantiate - find query in cache";
     rv = query->cacheUse(cacheId);
     THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
     cacheEntryFound = query->cacheEntryAvailable();
@@ -167,7 +166,7 @@ void RestAqlHandler::createQueryFromVelocyPack() {
     _queryRegistry->insert(_qId, query.get(), ttl);
     if (doCache && !cacheEntryFound && isDBServerInCluster() && query->cacheId()){ // enable caching only for DbServers in Cluster
       TRI_ASSERT(cacheId == query->cacheId());
-      LOG_DEVEL << "starting new cache - isDBServer: " << isDBServerInCluster << "chace id: " << cacheId;
+      LOG_DEVEL << cacheId << " starting new cache - isDBServer: " << isDBServerInCluster;
       query->resultStart(); //open cache entry
     }
     query.release();
@@ -357,7 +356,7 @@ void RestAqlHandler::createQueryFromString() {
   auto query = std::make_unique<Query>(false, _vocbase, QueryString(queryString),
                          bindVars, options,
                          (part == "main" ? PART_MAIN : PART_DEPENDENT));
-  
+
   try {
     query->prepare(_queryRegistry, 0);
   } catch (std::exception const& ex) {
@@ -731,11 +730,6 @@ bool RestAqlHandler::findQuery(std::string const& idString, Query*& query) {
 void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
                                     VPackSlice const querySlice) {
 
-  //LOG_DEVEL << "RestAqlHandler::handleUseQuery: " << operation
-  //          << " ID: " << query->cacheId()
-  //          << " slice: " << querySlice.toJson()
-  //          ;
-
   bool found;
   std::string shardId;
   std::string const& shardIdCharP = _request->header("shard-id", found);
@@ -771,26 +765,25 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         answerBuilder.add("code", VPackValue(res));
 
       } else if (operation == "getSome") {
-        LOG_DEVEL << "get some " << query->cacheId();
+        LOG_DEVEL << query->cacheId() << " handler - getsome";
         auto atLeast = VelocyPackHelper::getNumericValue<size_t>(querySlice, "atLeast", 1);
         auto atMost = VelocyPackHelper::getNumericValue<size_t>(querySlice, "atMost", ExecutionBlock::DefaultBatchSize());
 
         if(query->cacheEntryAvailable()){
           // cache available
-          std::size_t count = 0;
-          Result rv = query->cacheGetSome(atLeast, atMost, answerBuilder,count);
+          Result rv = query->cacheGetOrSkipSomePart(answerBuilder, false /*skip*/, atLeast, atMost);
           if(rv.fail()){
               generateError(rv);
               return;
           }
-          LOG_DEVEL << "QUERY DELIVERED FORM CACHE " << query->cacheId();
+          LOG_DEVEL << query->cacheId() << " handler - get some - QUERY DELIVERED FORM CACHE" ;
         } else {
           // no cache available
           std::unique_ptr<AqlItemBlock> items;
           if (shardId.empty()) {
             items.reset(query->engine()->getSome(atLeast, atMost));
           } else {
-            LOG_DEVEL << "aql handler - getsome / coordinator allowed" << query->cacheId();
+            LOG_DEVEL << query->cacheId() << " handler - getsome - fill (allowed on coord)" ;
             auto block = static_cast<BlockWithClients*>(query->engine()->root());
             if (block->getPlanNode()->getType() != ExecutionNode::SCATTER &&
                 block->getPlanNode()->getType() != ExecutionNode::DISTRIBUTE) {
@@ -799,20 +792,20 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
             items.reset(block->getSomeForShard(atLeast, atMost, shardId));
           }
 
-          LOG_DEVEL << "aql hander getsome got items" << query->cacheId() << " itempsptr: " << items.get();
+          LOG_DEVEL << query->cacheId()  << " handler - getsome - fill - got items itempsptr: " << items.get();
 
           if (items.get() == nullptr) {
             answerBuilder.add("exhausted", VPackValue(true));
             answerBuilder.add("error", VPackValue(false));
           } else {
             try {
-              LOG_DEVEL<< "aql hander getsome - calling to velocypack " << query->cacheId();
               items->toVelocyPack(query->trx(), answerBuilder);
               if(query->cacheBuildingResult()){
-                LOG_DEVEL << "adding items to cache";
-                Result rv = query->resultAdd(*items);
+                LOG_DEVEL << query->cacheId() << " adding items to cache";
+                Result rv = query->resultAddPart(*items);
                 if(rv.fail()){
                   query->resultCancel();
+                  LOG_DEVEL << "FAILED TO ADD RESULT TO CACHE " << rv.errorMessage();
                 }
               }
             } catch (std::exception const& e) {
@@ -839,8 +832,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         size_t skipped = 0;
         if(query->cacheEntryAvailable()){
           // cache available
-          bool exhausted;
-          Result rv = query->cacheSkipSome(atLeast, atMost, skipped, exhausted);
+          Result rv = query->cacheGetOrSkipSomePart(answerBuilder, true /*skip*/, atLeast, atMost);
           THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
         } else {
           try {
@@ -858,7 +850,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
                 items.reset(block->getSomeForShard(atLeast, atMost, shardId));
                 if (items.get()){
                   skipped = items->size();
-                  Result rv = query->resultAdd(*items);
+                  Result rv = query->resultAddPart(*items);
                   LOG_DEVEL_IF(rv.fail()) << rv.errorMessage();
                   THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
                 }
@@ -881,8 +873,8 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         bool exhausted;
         if(query->cacheEntryAvailable()){
           // cache available
-          size_t skipped = 0;
-          Result rv = query->cacheSkipSome(number, number, skipped,exhausted);
+          Result rv = query->cacheGetOrSkipSomePart(answerBuilder, true /*skip*/, number, number);
+          exhausted = query->cacheExhausted();
           THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
         } else {
           try {
@@ -968,7 +960,8 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         try {
 
           if(query->cacheBuildingResult()){
-            LOG_DEVEL << "STORING QUERY WITH ID: " << query->cacheId();
+            TRI_ASSERT(query->cacheId());
+            LOG_DEVEL << query->cacheId() << " handler - shotdown store";
             query->cacheStore(query->cacheId());
           }
 

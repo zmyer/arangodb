@@ -8,12 +8,15 @@
 
 #include <velocypack/Slice.h>
 #include <velocypack/Builder.h>
+#include <velocypack/Iterator.h>
 #include <velocypack/velocypack-aliases.h>
 
 namespace arangodb {
 namespace aql {
 
+class AqlItemBlock;
 class ExecutionPlan;
+class ResourceMonitor;
 
 namespace cache {
 
@@ -30,9 +33,16 @@ Result clear();
 // the empty string signals that the query is not cacheable
 std::string fakeQueryString(ExecutionPlan const*);
 
+// convert AqlItemBlock to and VPackSlice contained in passed builder that contains an array arrays of values 
+Result blockToVPack(AqlItemBlock const& block, VPackBuilder& builder, std::size_t regs = 0);
+
+auto vPackToBlock(VPackArrayIterator&
+                 ,std::unique_ptr<ResourceMonitor>&
+                 ,std::size_t atLeast, std::size_t atMost)
+  -> std::tuple<Result,std::unique_ptr<AqlItemBlock>, std::size_t>;
+
 }
 }
 }
 
 #endif
-

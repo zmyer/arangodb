@@ -1380,7 +1380,6 @@ bool CalculationNode::fakeQueryStringThisNode(std::string& outString) const {
   outString.append(_outVariable->name);
   arangodb::basics::StringBuffer buff{TRI_UNKNOWN_MEM_ZONE};
   _expression->stringify(&buff,true /*quote strings*/);
-  LOG_DEVEL << "############CN EXPRESSION################ " << std::string(buff.c_str(), buff.length());
   outString.append(buff.c_str(),buff.length());
   return true;
 }

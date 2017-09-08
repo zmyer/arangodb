@@ -151,7 +151,7 @@ struct AqlValue final {
   // note: this is the default constructor and should be as cheap as possible
   AqlValue() noexcept {
     // construct a slice of type None
-    _data.internal[0] = '\x00';
+    _data.internal[0] = '\x00'; //none
     setType(AqlValueType::VPACK_INLINE);
   }
   

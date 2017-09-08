@@ -109,23 +109,24 @@ class Query {
 
   /// Add Items to Cache
   //Result cacheAdd(VPackSlice const&); //single doc
-  Result resultAdd(AqlItemBlock const&);
   void   resultCancel(){ _resultBuilder.reset();}
 
+  Result resultAddPart(AqlItemBlock const&, std::size_t regs = 0);
+
 private:
+  Result resultAddComplete(AqlItemBlock const&);
   // this function is just there to have the same interface in all functions
   // it is possible that the cache is not used at all
   // because the QueryResultV8 expects to be filled in one go this can not be
   // used with getSome!
-  Result resultAdd(AqlItemBlock const&, v8::Isolate* isolate, QueryResultV8&, uint32_t& position, bool canCache = true);
+  Result resultAddComplete(AqlItemBlock const&, v8::Isolate* isolate, QueryResultV8&, uint32_t& position, bool canCache = true);
 public:
   /// Work on Cache Entry
   // try to use cache -- will set _cacgedResultBuilder if possible
   Result cacheUse(uint64_t queryHash); //fills _cachedResultBuilder member variable and initalizes / Array Iterator
   bool   cacheEntryAvailable() { if (_cachedResultBuilder && _cachedResultIterator){return true;} return false;}
   bool   cacheBuildingResult() { if (_resultBuilder){return true;} return false;}
-  Result cacheGetSome(std::size_t atLeast, std::size_t atMost, VPackBuilder& builder, std::size_t& count);
-  Result cacheSkipSome(std::size_t atLeast, std::size_t atMost, std::size_t& count, bool& exhausted);
+  Result cacheGetOrSkipSomePart(VPackBuilder& builder, bool skip, std::size_t atLeast, std::size_t atMost);
   bool   cacheExhausted();
   void   cacheCursorReset();
 

@@ -1,7 +1,7 @@
-
 #include "Aql/AqlQueryResultCache.h"
 #include "Aql/ExecutionPlan.h"
 #include "Aql/QueryCache.h"
+#include "Aql/AqlItemBlock.h"
 
 #include "Basics/Result.h"
 #include "Cluster/ClusterInfo.h"
@@ -30,9 +30,107 @@ std::string fakeQueryString(ExecutionPlan const* subPlan){
   return result;
 }
 
+auto vPackToBlock(VPackArrayIterator& iter
+                 ,std::unique_ptr<ResourceMonitor>& monitor
+                 ,std::size_t atLeast, std::size_t atMost
+                 )
+  -> std::tuple<Result, std::unique_ptr<AqlItemBlock>, std::size_t>
+{
+  //tries to read `items` items from `iter` into a default inititalized AqlItemBlock `block`
+  std::tuple<Result,std::unique_ptr<AqlItemBlock>, std::size_t> result{TRI_ERROR_NO_ERROR,nullptr,0};
+
+  Result& rv = std::get<0>(result);
+  std::unique_ptr<AqlItemBlock>& block = std::get<1>(result);
+  std::size_t& items = std::get<2>(result);
+
+  if(atLeast && !iter.valid()){
+    rv.reset(TRI_ERROR_INTERNAL,"try to get items from invalid iterator");
+  }
+
+  bool skip = (monitor == nullptr);
+
+  TRI_ASSERT(iter.value().isArray());
+  auto max = std::min(atMost,iter.size()-iter.index());
+
+  if(!skip){
+    block.reset(new AqlItemBlock(monitor.get()
+                                ,max /*nrItems*/
+                                ,iter.value().length() /*nrRegs*/
+                                ));
+  }
+
+  std::size_t items_received = 0;
+  try {
+    while(items_received < max && iter.valid()) {
+      if(!skip){
+        std::size_t reg=0;
+        for(auto const& value : VPackArrayIterator(iter.value())){
+          if(value != VPackSlice::nullSlice()){
+            AqlValue aql(value);
+            block->setValue(items_received, reg, aql);
+          }
+          ++reg;
+        }
+      }
+      ++items_received;
+      iter.next();
+    }
+  } CATCH_TO_RESULT(rv)
+  items=items_received;
+  return result;
+}
+
+Result blockToVPack(AqlItemBlock const& block, VPackBuilder& builder, std::size_t regs /*0 if unknown*/){
+  // this functions writes rows (results) of an AqlItemBlock as Arrays to an
+  // already open VPackBuilder.
+  // 
+  // the following translation is applied:
+  //    empty -> nullSlice
+  //    range -> "peter"
+  //    slice (untranslated)
+
+
+  // due to lack of discussion a pragmatic implementation will be used
+  // this will be slow because the data in aql blocks is stored per column
+  // and we need to access rows. This is a hard requirement because we need
+  // to append data. While the itemblock has chosen the columnise layout
+  // to store the data more effective. This is expected to be slow. Especially
+  // if we need to create later the "raw" VelocyPack that is used in the remote
+  // (coordinator) to create a new itemblock.
+  Result rv;
+  {
+    std::size_t n = block.getNrRegs();
+    if(regs){
+      if (regs != n ){
+        TRI_ASSERT(false);
+        return rv.reset(TRI_ERROR_INTERNAL, "number of registers in AqlItemBlock does not match expected value");
+      }
+    } else {
+      regs = n;
+    }
+  }
+  LOG_DEVEL << "adding AqlItemBlock with regs: " << regs << "and items: " << block.size(); 
+  try {
+    for(std::size_t i = 0; i < block.size() /*number of items in block*/ ; i++){
+      builder.openArray();
+      for(std::size_t r=0 ; r < regs /*number of vars in block*/; r++){
+        AqlValue const& val = block.getValueReference(i,r);
+        if(val.isRange()){
+          builder.add(VPackValuePair("peter",5));
+        } else if(val.isEmpty()) {
+          builder.add(VPackSlice::nullSlice());
+        } else {
+          builder.add(val.slice());
+        }
+      }
+      builder.close();
+    }
+  } CATCH_TO_RESULT(rv)
+  return rv;
+}
+
 Result properties(VPackBuilder& result) {
   Result rv;
-
   if(ServerState::instance()->isCoordinator()) {
     ClusterInfo* ci = ClusterInfo::instance();
     if (!ci){
