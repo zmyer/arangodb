@@ -1346,6 +1346,12 @@ LimitNode::LimitNode(ExecutionPlan* plan, arangodb::velocypack::Slice const& bas
       _limit(base.get("limit").getNumericValue<decltype(_limit)>()),
       _fullCount(base.get("fullCount").getBoolean()) {}
 
+bool LimitNode::fakeQueryStringThisNode(std::string& outString) const {
+  outString.append("L",1);
+  outString.append(std::to_string(_offset) + std::to_string(_limit) + std::to_string(_fullCount));
+  return true;
+}
+
 // @brief toVelocyPack, for LimitNode
 void LimitNode::toVelocyPackHelper(VPackBuilder& nodes, bool verbose) const {
   ExecutionNode::toVelocyPackHelperGeneric(nodes, verbose);  // call base class method
@@ -1444,6 +1450,10 @@ SubqueryNode::SubqueryNode(ExecutionPlan* plan,
       _subquery(nullptr),
       _outVariable(Variable::varFromVPack(plan->getAst(), base, "outVariable")) {}
 
+bool SubqueryNode::fakeQueryStringThisNode(std::string& outString) const {
+  outString.append("SU",2);
+  return _subquery->fakeQueryString(outString);
+}
 /// @brief toVelocyPack, for SubqueryNode
 void SubqueryNode::toVelocyPackHelper(VPackBuilder& nodes, bool verbose) const {
   ExecutionNode::toVelocyPackHelperGeneric(nodes,
@@ -1763,6 +1773,11 @@ void NoResultsNode::toVelocyPackHelper(VPackBuilder& nodes,
 
   //And close it
   nodes.close();
+}
+
+bool NoResultsNode::fakeQueryStringThisNode(std::string& outString) const {
+  outString.append("N",1);
+  return true;
 }
 
 /// @brief estimateCost, the cost of a NoResults is nearly 0

@@ -4,6 +4,7 @@
 #include "Aql/AqlItemBlock.h"
 
 #include "Basics/Result.h"
+#include "Basics/encoding.h"
 #include "Cluster/ClusterInfo.h"
 #include "Cluster/ClusterComm.h"
 #include "Cluster/ServerState.h"
@@ -59,24 +60,38 @@ auto vPackToBlock(VPackArrayIterator& iter
                                 ));
   }
 
-  std::size_t items_received = 0;
+  std::size_t itemsReceived = 0;
   try {
-    while(items_received < max && iter.valid()) {
+    while(itemsReceived < max && iter.valid()) {
       if(!skip){
         std::size_t reg=0;
         for(auto const& value : VPackArrayIterator(iter.value())){
-          if(value != VPackSlice::nullSlice()){
-            AqlValue aql(value);
-            block->setValue(items_received, reg, aql);
+          if(value.isCustom()){
+            uint8_t const* p = value.startAs<uint8_t>();
+            if(*p == 0xf6){
+              LOG_DEVEL << "unpack custom";
+              p+=2; //skip type and len;
+              int64_t low = encoding::readNumber<int64_t>(p,sizeof(std::int64_t));
+              p += sizeof(std::int64_t);
+              int64_t high = encoding::readNumber<int64_t>(p,sizeof(std::int64_t));
+              block->emplaceValue(itemsReceived, reg, low,high);
+              //block->setValue(itemsReceived, reg, AqlValue(low,high));
+            } else {
+              THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "unknown custom type");
+            }
+          } else if(!value.isNone()){
+            block->emplaceValue(itemsReceived, reg, value);
+            //block->setValue(itemsReceived, reg, AqlValue(value));
           }
           ++reg;
         }
       }
-      ++items_received;
+      ++itemsReceived;
       iter.next();
     }
   } CATCH_TO_RESULT(rv)
-  items=items_received;
+  items=itemsReceived;
+  LOG_DEVEL_IF(rv.fail()) << "!!!!!!!!!!" <<rv.errorMessage();
   return result;
 }
 
@@ -109,16 +124,30 @@ Result blockToVPack(AqlItemBlock const& block, VPackBuilder& builder, std::size_
       regs = n;
     }
   }
-  LOG_DEVEL << "adding AqlItemBlock with regs: " << regs << "and items: " << block.size(); 
   try {
     for(std::size_t i = 0; i < block.size() /*number of items in block*/ ; i++){
       builder.openArray();
       for(std::size_t r=0 ; r < regs /*number of vars in block*/; r++){
         AqlValue const& val = block.getValueReference(i,r);
         if(val.isRange()){
-          builder.add(VPackValuePair("peter",5));
+
+          uint8_t* p = builder.add(VPackValuePair(18ULL, VPackValueType::Custom));
+          // 1 - customtype 0xf6
+          // 1 - length of payload
+          // 8 - low  (int64_t)
+          // 8 - high (int64_t)
+          *p++ = 0xf6;  // custom type for range
+          *p++ = 0x10;  // 16byte to store
+          encoding::storeNumber(p, val.range()->_low, sizeof(std::int64_t));
+          p += sizeof(std::int64_t);
+          encoding::storeNumber(p, val.range()->_high, sizeof(std::int64_t));
+
+        } else if(val.isDocvec()){
+          LOG_DEVEL << " ############### not implemented for docvec ###################";
+          builder.add(VPackSlice::noneSlice());
+          return rv.reset(TRI_ERROR_INTERNAL, "caching of docvec is not supported");
         } else if(val.isEmpty()) {
-          builder.add(VPackSlice::nullSlice());
+          builder.add(VPackSlice::noneSlice());
         } else {
           builder.add(val.slice());
         }
@@ -126,6 +155,7 @@ Result blockToVPack(AqlItemBlock const& block, VPackBuilder& builder, std::size_
       builder.close();
     }
   } CATCH_TO_RESULT(rv)
+  LOG_DEVEL_IF(rv.fail()) << "!!!!!!!!!!" <<rv.errorMessage();
   return rv;
 }
 

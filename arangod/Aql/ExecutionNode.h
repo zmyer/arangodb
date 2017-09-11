@@ -835,6 +835,8 @@ class LimitNode : public ExecutionNode {
       : ExecutionNode(plan, id), _offset(0), _limit(limit), _fullCount(false) {}
 
   LimitNode(ExecutionPlan*, arangodb::velocypack::Slice const& base);
+  
+  bool fakeQueryStringThisNode(std::string& outString) const override;
 
   /// @brief return the type of the node
   NodeType getType() const override final { return LIMIT; }
@@ -1014,6 +1016,7 @@ class SubqueryNode : public ExecutionNode {
     TRI_ASSERT(_outVariable != nullptr);
   }
 
+  bool fakeQueryStringThisNode(std::string& outString) const override;
   /// @brief return the type of the node
   NodeType getType() const override final { return SUBQUERY; }
 
@@ -1247,6 +1250,7 @@ class NoResultsNode : public ExecutionNode {
                           bool) const override final;
 
 
+  bool fakeQueryStringThisNode(std::string& outString) const override;
   /// @brief clone ExecutionNode recursively
   ExecutionNode* clone(ExecutionPlan* plan, bool withDependencies,
                        bool withProperties) const override final {

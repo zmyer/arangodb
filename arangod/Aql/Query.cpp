@@ -243,7 +243,7 @@ Result Query::resultStart(){
 }
 
 Result Query::resultAddComplete(AqlItemBlock const& value){
-  LOG_DEVEL_IF(_queryCacheId) << _queryCacheId << " query - resultAdd";
+  //LOG_DEVEL_IF(_queryCacheId) << _queryCacheId << " query - resultAdd";
   Result rv;
   auto const resultRegister = _engine->resultRegister();
   size_t const n = value.size();
@@ -294,7 +294,7 @@ Result Query::cacheStore(uint64_t queryHash){
   _resultBuilder->close();
   if (_warnings.empty()) {
     // finally store the generated result in the query cache
-    LOG_DEVEL << queryHash << " query - store: '" <<  _queryString; // << "' contents: @@@" << _resultBuilder->slice().toJson() << "@@@";
+    //LOG_DEVEL << queryHash << " query - store: '" <<  _queryString; // << "' contents: @@@" << _resultBuilder->slice().toJson() << "@@@";
     auto result = QueryCache::instance()->store(
         _vocbase, queryHash, _queryString,
         _resultBuilder, _trx->state()->collectionNames());
@@ -308,7 +308,7 @@ Result Query::cacheStore(uint64_t queryHash){
 
 Result Query::cacheUse(uint64_t queryHash){
   Result rv;
-  LOG_DEVEL_IF(_queryCacheId) << queryHash << " query - cacheUse - try to find query: " << _queryString;
+  //LOG_DEVEL_IF(_queryCacheId) << queryHash << " query - cacheUse - try to find query: " << _queryString;
   auto cacheEntry = arangodb::aql::QueryCache::instance()->lookup( _vocbase, queryHash, _queryString);
   arangodb::aql::QueryCacheResultEntryGuard guard(cacheEntry);
 
@@ -329,7 +329,7 @@ Result Query::cacheUse(uint64_t queryHash){
     _cachedResultBuilder = cacheEntry->_queryResult;
     _cachedResultIterator = std::unique_ptr<VPackArrayIterator>( new VPackArrayIterator(_cachedResultBuilder->slice()));
   } else {
-    LOG_DEVEL_IF(_queryCacheId) << _queryCacheId << " query - useCache - no query found in cache: " << _queryString;
+    //LOG_DEVEL_IF(_queryCacheId) << _queryCacheId << " query - useCache - no query found in cache: " << _queryString;
   }
   return rv;
 }

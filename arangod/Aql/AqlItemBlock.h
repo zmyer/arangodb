@@ -105,15 +105,56 @@ class AqlItemBlock {
       << ") + varNr(" << varNr << ")";
     TRI_ASSERT(_data.capacity() > index * _nrRegs + varNr);
     TRI_ASSERT(_data[index * _nrRegs + varNr].isEmpty());
-
+    
+		size_t mem = 0;
     // First update the reference count, if this fails, the value is empty
     if (value.requiresDestruction()) {
       if (++_valueCount[value] == 1) {
-        increaseMemoryUsage(value.memoryUsage());
+				mem = value.memoryUsage();
+        increaseMemoryUsage(mem);
       }
     }
+		try {
+			_data[index * _nrRegs + varNr] = value;
+    } catch (...){
+			decreaseMemoryUsage(mem);
+		}
+  }
 
-    _data[index * _nrRegs + varNr] = value;
+  template<typename... Args>
+  void emplaceValue(size_t index, RegisterId varNr, Args&&... args) {
+    LOG_DEVEL_IF(!(_data.capacity() > index * _nrRegs + varNr))
+      << "_data.capacity()(" << _data.capacity()
+      << ") > index(" << index
+      << ") * _nrRegs(" << _nrRegs
+      << ") + varNr(" << varNr << ")";
+    TRI_ASSERT(_data.capacity() > index * _nrRegs + varNr);
+    TRI_ASSERT(_data[index * _nrRegs + varNr].isEmpty());
+
+
+    void* p = &_data[index * _nrRegs + varNr];
+
+    // construct the AqlValue in place
+    AqlValue* value = new (p) AqlValue(std::forward<Args>(args)...);
+
+    size_t mem = 0;
+    try {
+      // Now update the reference count, if this fails, we'll roll it back
+      if (value->requiresDestruction()) {
+        if (++_valueCount[*value] == 1) {
+          mem = value->memoryUsage();
+          increaseMemoryUsage(mem);
+        }
+      }
+    } catch (std::exception const& e) {
+      decreaseMemoryUsage(mem);
+      _data[index * _nrRegs + varNr].destroy();
+      throw e;
+    } catch (...) {
+      decreaseMemoryUsage(mem);
+      _data[index * _nrRegs + varNr].destroy();
+      throw;
+    }
   }
 
   /// @brief eraseValue, erase the current value of a register and freeing it

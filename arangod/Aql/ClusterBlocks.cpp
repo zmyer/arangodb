@@ -1463,7 +1463,7 @@ AqlItemBlock* RemoteBlock::getSome(size_t atLeast, size_t atMost) {
     return nullptr;
   }
 
-  LOG_DEVEL << "cluster blocks: " << responseBody.toJson();
+  //LOG_DEVEL << "cluster blocks: " << responseBody.toJson();
   auto r = std::make_unique<AqlItemBlock>(_engine->getQuery()->resourceMonitor(), responseBody);
   traceGetSomeEnd(r.get());
   return r.release();
