@@ -95,6 +95,9 @@ if (Lz4_INCLUDE_DIR AND Lz4_SHARED_LIB AND Lz4_STATIC_LIB)
     "Directory containing lz4 libraries"
     FORCE
   )
+  add_library(lz4_static IMPORTED)
+  add_target_include_directories(lz4_static PUBLIC ${Lz4_INCLUDE_DIR})
+  add_target_link_libraries(lz4_static PUBLIC ${Lz4_STATIC_LIBS})
 else ()
   set(Lz4_FOUND FALSE)
 endif()

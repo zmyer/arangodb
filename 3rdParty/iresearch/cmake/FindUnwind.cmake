@@ -153,6 +153,10 @@ if (Unwind_INCLUDE_DIR AND UNWIND_SHARED_LIBRARY_CORE AND UNWIND_SHARED_LIBRARY_
       list(APPEND Unwind_SHARED_LIB_RESOURCES ${ELEMENT_LIB})
     endif()
   endforeach()
+
+  add_library(unwind_static IMPORTED)
+  add_target_include_directories(unwind_static PUBLIC ${Unwind_INCLUDE_DIR})
+  add_target_link_libraries(unwind_static PUBLIC ${Unwind_STATIC_LIBS})
 else ()
   set(Unwind_FOUND FALSE)
 endif()

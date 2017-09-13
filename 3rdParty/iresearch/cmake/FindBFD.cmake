@@ -142,6 +142,12 @@ if (BFD_INCLUDE_DIR_ANSIDECL AND BFD_INCLUDE_DIR_BFD AND BFD_SHARED_LIB AND BFD_
       list(APPEND BFD_SHARED_LIB_RESOURCES ${ELEMENT_LIB})
     endif()
   endforeach()
+
+  #TODO add shared support
+  add_library(bfd_static IMPORTED)
+  add_target_include_directories(bfd_static PUBLIC ${BFD_INCLUDE_DIR})
+  add_target_link_libraries(bfd_static PUBLIC ${BFD_STATIC_LIBS})
+
 else ()
   set(BFD_FOUND FALSE)
 endif()

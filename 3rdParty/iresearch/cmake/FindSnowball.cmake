@@ -101,6 +101,9 @@ if (Snowball_INCLUDE_DIR AND Snowball_SHARED_LIB AND Snowball_STATIC_LIB)
     "Directory containing Snowball libraries"
     FORCE
   )
+  add_library(snowball_static IMPORTED)
+  add_target_include_directories(snowball_static PUBLIC ${Snowball_INCLUDE_DIR})
+  add_target_link_libraries(snowball_static PUBLIC ${Snowball_STATIC_LIBS})
 else ()
   set(Snowball_FOUND FALSE)
 endif()

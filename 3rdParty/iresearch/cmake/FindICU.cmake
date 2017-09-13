@@ -165,6 +165,11 @@ if (ICU_INCLUDE_DIR AND ICU_SHARED_LIBRARY_DT AND ICU_STATIC_LIBRARY_DT AND ICU_
   endforeach()
 
   list(REMOVE_DUPLICATES ICU_SHARED_LIB_RESOURCES)
+
+  add_library(icu_static IMPORTED)
+  add_target_include_directories(icu_static PUBLIC ${ICU_INCLUDE_DIR})
+  add_target_link_libraries(icu_static PUBLIC ${ICU_STATIC_LIBS})
+
 else ()
   set(ICU_FOUND FALSE)
 endif()
