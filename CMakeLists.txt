@@ -755,13 +755,7 @@ endif()
 # IResearch
 # ------------------------------------------------------------------------------
 
-option(USE_IRESEARCH OFF)
-
-if(USE_IRESEARCH)
-  add_definitions("-DUSE_IRESEARCH=1")
-
-  set(LIB_ARANGO_IRESEARCH arango_iresearch)
-endif()
+set(USE_IRESEARCH ON)
 
 # 3rdParty exports:
 #
@@ -872,6 +866,12 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/curl/curl-7.50.3/include/
   ${CMAKE_CURRENT_BINARY_DIR}/3rdParty/curl/curl-7.50.3/include/curl/
 )
+
+#IRESEARCH
+if(USE_IRESEARCH)
+    add_subdirectory(3rdParty/iresearch)
+    add_definitions("-DUSE_IRESEARCH=1")
+endif()
 
 ################################################################################
 ## PATHS, installation, packages
