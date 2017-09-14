@@ -62,7 +62,7 @@ set_find_library_options("${Snowball_LIBRARY_PREFIX}" "${Snowball_LIBRARY_SUFFIX
 # find library
 find_library(Snowball_SHARED_LIB
   NAMES stemmer
-  PATHS ${Snowball_SEARCH_LIB_PATH} ${UNIX_DEFAULT_LIB}
+  PATHS ${Snowball_SEARCH_LIB_PATH} ${UNIX_DEFAULT_LIB} /usr/lib/x86_64-linux-gnu
   PATH_SUFFIXES ${SNOWBALL_ROOT_SUFFIX}
   NO_DEFAULT_PATH
 )
@@ -84,7 +84,7 @@ set_find_library_options("${Snowball_LIBRARY_PREFIX}" "${Snowball_LIBRARY_SUFFIX
 # find library
 find_library(Snowball_STATIC_LIB
   NAMES stemmer
-  PATHS ${Snowball_SEARCH_LIB_PATH} ${UNIX_DEFAULT_LIB}
+  PATHS ${Snowball_SEARCH_LIB_PATH} ${UNIX_DEFAULT_LIB} /usr/lib/x86_64-linux-gnu
   PATH_SUFFIXES ${SNOWBALL_ROOT_SUFFIX}
   NO_DEFAULT_PATH
 )
@@ -101,9 +101,12 @@ if (Snowball_INCLUDE_DIR AND Snowball_SHARED_LIB AND Snowball_STATIC_LIB)
     "Directory containing Snowball libraries"
     FORCE
   )
-  add_library(snowball_static IMPORTED)
-  add_target_include_directories(snowball_static PUBLIC ${Snowball_INCLUDE_DIR})
-  add_target_link_libraries(snowball_static PUBLIC ${Snowball_STATIC_LIBS})
+  
+  add_library(snowball_static IMPORTED STATIC)
+  set_target_properties(snowball_static PROPERTIES
+       INTERFACE_INCLUDE_DIRECTORIES "${Snowball_INCLUDE_DIR}"
+       IMPORTED_LOCATION "${Snowball_STATIC_LIBS}"
+  )
 else ()
   set(Snowball_FOUND FALSE)
 endif()

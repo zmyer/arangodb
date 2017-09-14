@@ -66,7 +66,7 @@ set_find_library_options("${BFD_LIBRARY_PREFIX}" "${BFD_LIBRARY_SUFFIX}")
 # find library
 find_library(BFD_SHARED_LIB
   NAMES bfd
-  PATHS ${BFD_SEARCH_LIB_PATH} ${UNIX_DEFAULT_LIB}
+  PATHS ${BFD_SEARCH_LIB_PATH} ${UNIX_DEFAULT_LIB} /usr/lib/x86_64-linux-gnu
   PATH_SUFFIXES ${BFD_ROOT_SUFFIX}
   NO_DEFAULT_PATH
 )

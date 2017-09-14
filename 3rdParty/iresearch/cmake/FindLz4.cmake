@@ -56,7 +56,7 @@ set_find_library_options("${LZ4_LIBRARY_PREFIX}" "${LZ4_LIBRARY_SUFFIX}")
 # find library
 find_library(Lz4_SHARED_LIB
   NAMES lz4
-  PATHS ${LZ4_SEARCH_LIB_PATH} ${UNIX_DEFAULT_LIB}
+  PATHS ${LZ4_SEARCH_LIB_PATH} ${UNIX_DEFAULT_LIB} /usr/lib/x86_64-linux-gnu 
   PATH_SUFFIXES ${LZ4_ROOT_SUFFIX}
   NO_DEFAULT_PATH
 )
@@ -78,7 +78,7 @@ set_find_library_options("${LZ4_LIBRARY_PREFIX}" "${LZ4_LIBRARY_SUFFIX}")
 # find library
 find_library(Lz4_STATIC_LIB
   NAMES lz4
-  PATHS ${LZ4_SEARCH_LIB_PATH} ${UNIX_DEFAULT_LIB}
+  PATHS ${LZ4_SEARCH_LIB_PATH} ${UNIX_DEFAULT_LIB} /usr/lib/x86_64-linux-gnu 
   PATH_SUFFIXES ${LZ4_ROOT_SUFFIX}
   NO_DEFAULT_PATH
 )
@@ -95,9 +95,11 @@ if (Lz4_INCLUDE_DIR AND Lz4_SHARED_LIB AND Lz4_STATIC_LIB)
     "Directory containing lz4 libraries"
     FORCE
   )
-  add_library(lz4_static IMPORTED)
-  add_target_include_directories(lz4_static PUBLIC ${Lz4_INCLUDE_DIR})
-  add_target_link_libraries(lz4_static PUBLIC ${Lz4_STATIC_LIBS})
+  add_library(lz4_static IMPORTED STATIC)
+  set_target_properties(snowball_static PROPERTIES
+       INTERFACE_INCLUDE_DIRECTORIES "${Lz4_INCLUDE_DIR}"
+       IMPORTED_LOCATION "${Lz4_STATIC_LIBS}"
+  )
 else ()
   set(Lz4_FOUND FALSE)
 endif()
