@@ -1,4 +1,18 @@
 # generate version_defines.hpp ################################################
+# set version components
+if (NOT IResearch_version_major)
+  set(IResearch_version_major "1")
+endif()
+if (NOT IResearch_version_minor)
+  set(IResearch_version_minor "0")
+endif()
+if (NOT IResearch_version_revision)
+  set(IResearch_version_revision "0")
+endif()
+if (NOT IResearch_version_patch)
+  set(IResearch_version_patch "0")
+endif()
+
 math(EXPR IResearch_int_version "(${IResearch_version_major} * 1000000) + (${IResearch_version_minor} * 10000) + (${IResearch_version_revision} * 100) + (${IResearch_version_patch} * 1)" )
 set(IResearch_version "${IResearch_version_major}.${IResearch_version_minor}.${IResearch_version_revision}.${IResearch_version_patch}")
 configure_file(

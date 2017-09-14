@@ -25,7 +25,7 @@
 #endif
 
 #include <boost/locale/encoding.hpp>
-#include <rapidjson/rapidjson/document.h> // for rapidjson::Document, rapidjson::Value
+#include <rapidjson/document.h> // for rapidjson::Document, rapidjson::Value
 #include <unicode/brkiter.h> // for icu::BreakIterator
 
 #if defined(_MSC_VER)
