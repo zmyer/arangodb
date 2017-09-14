@@ -2,15 +2,32 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 project(IResearch CXX)
 set(CMAKE_CXX_STANDARD 11)
 
+## TODO
+#  - select if libs and depends should be STATIC / SHARED (configurable)
+#  - runtime should be handled by the project that includes iresearch
+#  - add defines for debugging
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 message(STATUS "module path: ${CMAKE_MODULE_PATH}")
+
+if(NOT BUILD_SHARED_LIB)
+    set(IRESEARCH_BUILD_LIB STATIC)
+else()
+    set(IRESEARCH_BUILD_LIB SHARED)
+endif()
 
 include(IResearchDefineSourceFiles)
 include(IResearchGenerateFiles)
 
 ## libraries provided by arangodb in final version
-find_package(Boost COMPONENTS filesystem system locale thread REQUIRED)
-find_package(ICU COMPONENTS data i18n io le lx test tu uc REQUIRED)
+if(IRESEARCH_IN_ARANGO)
+    set(Boost_LIBRARIES boost_boost boost_filesystem boost_system boost_locale boost_thread)
+    set(ICU_INCLUDES ${ICU_INCLUDE_DIR})
+    set(ICU_LIBRARIES ${ICU_LIBS})
+else()
+    find_package(Boost COMPONENTS filesystem system locale thread REQUIRED)
+    find_package(ICU COMPONENTS data i18n io le lx test tu uc REQUIRED)
+endif()
 message(STATUS "Using ICU tagets: ${ICU_LIBRARIES}")
 
 ## mandatroy libraries
@@ -42,30 +59,31 @@ endif()
 add_subdirectory(external)
 
 ## iresearch main library
-add_library(iresearch STATIC ${iresearch_sources})
+add_library(iresearch ${IRESEARCH_BUILD_LIB} ${iresearch_sources})
 add_dependencies(iresearch
   iresearch-build_identifier
   iresearch-build_version
 )
 
+if(IRESEARCH_IN_ARANGO)
+    add_dependencies(iresearch v8_build)
+endif()
+
 target_include_directories(iresearch PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/core"
     "${CMAKE_CURRENT_BINARY_DIR}/core"
+    "${ICU_INCLUDES}"
 )
 
 target_link_libraries(iresearch PUBLIC
     openfst
-    rapidjson
     murmurhash
     cmdline
     lz4_static
     snowball_static
     ${IResearch_extra_libs}
-    Boost::filesystem
-    Boost::system
-    Boost::locale
-    Boost::thread
+    ${Boost_LIBRARIES}
     ${ICU_LIBRARIES}
 )
 ################################################################################
@@ -75,7 +93,7 @@ target_link_libraries(iresearch PUBLIC
 ### analysis plugins
 add_library(analyzer-text STATIC ./core/analysis/text_token_stream.cpp)
 target_include_directories(analyzer-text PRIVATE "./core/analysis")
-target_link_libraries(analyzer-text iresearch)
+target_link_libraries(analyzer-text iresearch rapidjson)
 
 
 ### format plugins

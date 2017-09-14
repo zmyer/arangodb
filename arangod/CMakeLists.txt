@@ -43,53 +43,29 @@ endif ()
 ################################################################################
 
 if (USE_IRESEARCH)
-  find_package(IResearch REQUIRED)
-
-  add_library(${LIB_ARANGO_IRESEARCH}
-    IResearch/ApplicationServerHelper.h IResearch/ApplicationServerHelper.cpp
-    IResearch/AttributeScorer.cpp IResearch/AttributeScorer.h
-    IResearch/Containers.cpp IResearch/Containers.h
-    IResearch/IResearchAnalyzerFeature.cpp IResearch/IResearchAnalyzerFeature.h
-    IResearch/IResearchAttributes.cpp IResearch/IResearchAttributes.h
-    IResearch/IResearchKludge.cpp IResearch/IResearchKludge.h
-    IResearch/IResearchLink.cpp IResearch/IResearchLink.h
-    IResearch/IResearchLinkMeta.cpp IResearch/IResearchLinkMeta.h
-    IResearch/IResearchMMFilesLink.cpp IResearch/IResearchMMFilesLink.h
-    IResearch/IResearchRocksDBLink.cpp IResearch/IResearchRocksDBLink.h
-    IResearch/IResearchView.cpp IResearch/IResearchView.h
-    IResearch/IResearchViewMeta.cpp IResearch/IResearchViewMeta.h
-    IResearch/IResearchFeature.cpp IResearch/IResearchFeature.h
-    IResearch/IResearchDocument.cpp IResearch/IResearchDocument.h
-    IResearch/IResearchFilterFactory.cpp IResearch/IResearchFilterFactory.h
-    IResearch/IResearchOrderFactory.cpp IResearch/IResearchOrderFactory.h
-    IResearch/SystemDatabaseFeature.cpp IResearch/SystemDatabaseFeature.h
-    IResearch/VelocyPackHelper.cpp IResearch/VelocyPackHelper.h
-    IResearch/AstHelper.cpp IResearch/AstHelper.h
+  add_library(arango_iresearch
+    IResearch/ApplicationServerHelper.h
+    IResearch/AttributeScorer.cpp
+    IResearch/Containers.cpp
+    IResearch/IResearchAnalyzerFeature.cpp
+    IResearch/IResearchAttributes.cpp
+    IResearch/IResearchKludge.cpp
+    IResearch/IResearchLink.cpp
+    IResearch/IResearchLinkMeta.cpp
+    IResearch/IResearchMMFilesLink.cpp
+    IResearch/IResearchRocksDBLink.cpp
+    IResearch/IResearchView.cpp
+    IResearch/IResearchViewMeta.cpp
+    IResearch/IResearchFeature.cpp
+    IResearch/IResearchDocument.cpp
+    IResearch/IResearchFilterFactory.cpp
+    IResearch/IResearchOrderFactory.cpp
+    IResearch/SystemDatabaseFeature.cpp
+    IResearch/VelocyPackHelper.cpp
+    IResearch/AstHelper.cpp
   )
-
-  target_include_directories(${LIB_ARANGO_IRESEARCH}
-    PUBLIC ${Boost_INCLUDE_DIR} # for boost/lockfree/queue.hpp from WorkMonitor.h
-    PUBLIC ${IRESEARCH_INCLUDE}
-  )
-
-  if(MSVC)
-    set(IRESEARCH_TARGET_DEPENDENCY iresearch-static-scrt) # use static + staticCRT to match ArangoDB
-  else()
-    set(IRESEARCH_TARGET_DEPENDENCY iresearch-static) # use static to match ArangoDB
-  endif()
-
-  target_link_libraries(${LIB_ARANGO_IRESEARCH}
-    ${IRESEARCH_TARGET_DEPENDENCY}
-    boost_filesystem # required by iResearch
-    boost_locale # required by iResearch
-  )
-
-  add_dependencies(${LIB_ARANGO_IRESEARCH}
-    ${IRESEARCH_TARGET_DEPENDENCY}
-    v8_build # for ICU required by iResearch
-  )
-else()
-  set(LIB_ARANGO_IRESEARCH "")
+  target_include_directories(arango_iresearch PUBLIC IResearch)
+  target_link_libraries(arango_iresearch iresearch)
 endif ()
 
 ################################################################################
@@ -478,7 +454,7 @@ target_link_libraries(arangoserver
   ${MSVC_LIBS}
   ${V8_LIBS}
   ${ROCKSDB_LIBS}
-  ${LIB_ARANGO_IRESEARCH}
+  arango_iresearch
   boost_boost
   boost_system
   ${SYSTEM_LIBRARIES}

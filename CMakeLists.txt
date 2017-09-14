@@ -869,6 +869,7 @@ include_directories(
 
 #IRESEARCH
 if(USE_IRESEARCH)
+    set(IRESEARCH_IN_ARANGO TRUE)
     add_subdirectory(3rdParty/iresearch)
     add_definitions("-DUSE_IRESEARCH=1")
 endif()
