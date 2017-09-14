@@ -141,21 +141,32 @@ set(iresearch_sources
   ./core/utils/numeric_utils.cpp
 )
 
-add_custom_command(
-  OUTPUT ./core/iql/parser.cc
-  MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/core/iql/parser.yy
-  DEPENDS ./core/iql ${CMAKE_CURRENT_SOURCE_DIR}/core/iql/parser.yy
-  COMMAND bison --graph --report=all -o parser.cc ./core/iql/parser.yy
-  WORKING_DIRECTORY ./core/iql
+# Find includes in corresponding build directories
+# generate version_defines.hpp
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/core/utils/version_defines.template.hpp" 
+  "${CMAKE_CURRENT_BINARY_DIR}/core/utils/version_defines.hpp"
 )
 
 add_custom_command(
-  OUTPUT ./core/iql
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/core/iql
+  OUTPUT core/iql/parser.cc
+  MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/core/iql/parser.yy
+  DEPENDS core/iql ${CMAKE_CURRENT_SOURCE_DIR}/core/iql/parser.yy
+  COMMAND bison --graph --report=all -o parser.cc ${CMAKE_CURRENT_SOURCE_DIR}/core/iql/parser.yy
+  WORKING_DIRECTORY core/iql
+)
+
+add_custom_command(
+  OUTPUT core/iql
+  COMMAND ${CMAKE_COMMAND} -E make_directory core/iql
 )
 
 add_library(iresearch STATIC ${iresearch_sources})
-target_include_directories(iresearch PUBLIC ./core)
+target_include_directories(iresearch PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/core"
+    "${CMAKE_CURRENT_BINARY_DIR}/core"
+)
 target_link_libraries(iresearch PUBLIC
     openfst
     rapidjson
