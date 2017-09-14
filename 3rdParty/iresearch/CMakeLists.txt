@@ -60,6 +60,11 @@ add_subdirectory(external)
 
 ## iresearch main library
 add_library(iresearch STATIC ${iresearch_sources})
+add_dependencies(iresearch
+  iresearch-build_identifier
+  iresearch-build_version
+)
+
 target_include_directories(iresearch PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/core"

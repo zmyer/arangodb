@@ -24,35 +24,35 @@ add_custom_command(
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/BUILD_IDENTIFIER 
   COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/BUILD_IDENTIFIER
-  DEPENDS utils
-  WORKING_DIRECTORY utils
+  DEPENDS core/utils
+  WORKING_DIRECTORY core/utils
 )
 
-# trigger regeneration of utils/version_utils.cpp with build_id from file: BUILD_IDENTIFIER
+# trigger regeneration of core/utils/version_core/utils.cpp with build_id from file: BUILD_IDENTIFIER
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/utils/build_identifier.csx
-  COMMAND ${CMAKE_COMMAND} -DSRC="${CMAKE_BINARY_DIR}/BUILD_IDENTIFIER" -DDST="${CMAKE_CURRENT_BINARY_DIR}/utils/build_identifier.csx" -P "${PROJECT_SOURCE_DIR}/cmake/HexEncodeFile.cmake"
-  COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${CMAKE_CURRENT_SOURCE_DIR}/version_utils.cpp
-  DEPENDS utils ${CMAKE_BINARY_DIR}/BUILD_IDENTIFIER
-  WORKING_DIRECTORY utils
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/core/utils/build_identifier.csx
+  COMMAND ${CMAKE_COMMAND} -DSRC="${CMAKE_BINARY_DIR}/BUILD_IDENTIFIER" -DDST="${CMAKE_CURRENT_BINARY_DIR}/core/utils/build_identifier.csx" -P "${PROJECT_SOURCE_DIR}/cmake/HexEncodeFile.cmake"
+  COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${CMAKE_CURRENT_SOURCE_DIR}/version_core/utils.cpp
+  DEPENDS core/utils ${CMAKE_BINARY_DIR}/BUILD_IDENTIFIER
+  WORKING_DIRECTORY core/utils
 )
 
 add_custom_target(
-  ${IResearch_TARGET_NAME}-build_identifier
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/utils/build_identifier.csx
+  iresearch-build_identifier
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/core/utils/build_identifier.csx
 )
 
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/BUILD_VERSION
   COMMAND ${CMAKE_COMMAND} -E echo_append "${IResearch_version}" > ${CMAKE_BINARY_DIR}/BUILD_VERSION
-  COMMAND ${CMAKE_COMMAND} -DSRC="${CMAKE_BINARY_DIR}/BUILD_VERSION" -DDST="${CMAKE_CURRENT_BINARY_DIR}/utils/build_version.csx" -P "${PROJECT_SOURCE_DIR}/cmake/HexEncodeFile.cmake"
-  COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${CMAKE_CURRENT_SOURCE_DIR}/version_utils.cpp
-  DEPENDS utils
-  WORKING_DIRECTORY utils
+  COMMAND ${CMAKE_COMMAND} -DSRC="${CMAKE_BINARY_DIR}/BUILD_VERSION" -DDST="${CMAKE_CURRENT_BINARY_DIR}/core/utils/build_version.csx" -P "${PROJECT_SOURCE_DIR}/cmake/HexEncodeFile.cmake"
+  COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${CMAKE_CURRENT_SOURCE_DIR}/version_core/utils.cpp
+  DEPENDS core/utils
+  WORKING_DIRECTORY core/utils
 )
 
 add_custom_target(
-  ${IResearch_TARGET_NAME}-build_version
+  iresearch-build_version
   DEPENDS ${CMAKE_BINARY_DIR}/BUILD_VERSION
 )
 ##
