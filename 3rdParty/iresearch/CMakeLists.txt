@@ -1,539 +1,174 @@
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
+project(iresearch)
 
-set (IResearch_TARGET_NAME 
-  "iresearch"
-  CACHE INTERNAL
-  ""
-)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+message(STATUS "module path: ${CMAKE_MODULE_PATH}")
+set(CMAKE_CXX_STANDARD 11)
 
-project(${IResearch_TARGET_NAME})
-
-# attach additional cmake modules
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-
-if (NOT MSVC)
-  # put GCC version into GCC_VERSION variable
-  execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+# set version components
+if (NOT IResearch_version_major)
+  set(IResearch_version_major "1")
+endif()
+if (NOT IResearch_version_minor)
+  set(IResearch_version_minor "0")
+endif()
+if (NOT IResearch_version_revision)
+  set(IResearch_version_revision "0")
+endif()
+if (NOT IResearch_version_patch)
+  set(IResearch_version_patch "0")
 endif()
 
-################################################################################
-### find Boost
-################################################################################
+# calculate version
+math(EXPR IResearch_int_version "(${IResearch_version_major} * 1000000) + (${IResearch_version_minor} * 10000) + (${IResearch_version_revision} * 100) + (${IResearch_version_patch} * 1)" )
+set(IResearch_version "${IResearch_version_major}.${IResearch_version_minor}.${IResearch_version_revision}.${IResearch_version_patch}")
 
-if("${BOOST_ROOT}" STREQUAL "")
-  if(NOT "$ENV{BOOST_ROOT}" STREQUAL "")
-    set(BOOST_ROOT "$ENV{BOOST_ROOT}")
-  else()
-    if(NOT MSVC AND EXISTS "/usr/include/boost/version.hpp")
-      set(BOOST_ROOT "/usr")
-    endif()
-  endif()
-endif()
+# conains openfst murmurhash openfst commandline
+add_subdirectory(external)
 
-if (MSVC)
-  # disable automatic selection of boost library build variant
-  add_definitions( -DBOOST_ALL_NO_LIB )
-endif()
-
-set(Boost_USE_MULTITHREAD ON)
-
-# define boost required components
-set(Boost_REQUIRED_COMPONENTS filesystem locale system thread)
-
-if (NOT MSVC AND GCC_VERSION VERSION_LESS 4.9)
-  # GCC before 4.9 does not support std::regex
-  set(Boost_REQUIRED_COMPONENTS ${Boost_REQUIRED_COMPONENTS} regex)
-endif()
-
-# clear Boost cache before invocation
-unset(Boost_INCLUDE_DIR CACHE)
-unset(Boost_FILESYSTEM_LIBRARY_DEBUG CACHE)
-unset(Boost_FILESYSTEM_LIBRARY_RELEASE CACHE)
-unset(Boost_LIBRARIES CACHE)
-unset(Boost_LIBRARY_DIRS CACHE)
-unset(Boost_LOCALE_LIBRARY_DEBUG CACHE)
-unset(Boost_LOCALE_LIBRARY_RELEASE CACHE)
-unset(Boost_SYSTEM_LIBRARY_DEBUG CACHE)
-unset(Boost_SYSTEM_LIBRARY_RELEASE CACHE)
-unset(Boost_THREAD_LIBRARY_DEBUG CACHE)
-unset(Boost_THREAD_LIBRARY_RELEASE CACHE)
-
-# find Boost (shared + shared RT)
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost
-  1.57.0
-  REQUIRED
-  COMPONENTS ${Boost_REQUIRED_COMPONENTS}
+# generate version_defines.hpp
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/core/utils/version_defines.template.hpp"
+  "${CMAKE_CURRENT_BINARY_DIR}/core/utils/version_defines.hpp"
 )
-set(Boost_SHARED_sharedRT_LIBRARIES ${Boost_LIBRARIES})
-set(Boost_SHARED_sharedRT_FILESYSTEM_LIBRARY_DEBUG ${Boost_FILESYSTEM_LIBRARY_DEBUG})
-set(Boost_SHARED_sharedRT_FILESYSTEM_LIBRARY_RELEASE ${Boost_FILESYSTEM_LIBRARY_RELEASE})
-set(Boost_SHARED_sharedRT_LOCALE_LIBRARY_DEBUG ${Boost_LOCALE_LIBRARY_DEBUG})
-set(Boost_SHARED_sharedRT_LOCALE_LIBRARY_RELEASE ${Boost_LOCALE_LIBRARY_RELEASE})
-set(Boost_SHARED_sharedRT_REGEX_LIBRARY_DEBUG ${Boost_REGEX_LIBRARY_DEBUG})
-set(Boost_SHARED_sharedRT_REGEX_LIBRARY_RELEASE ${Boost_REGEX_LIBRARY_RELEASE})
-set(Boost_SHARED_sharedRT_SYSTEM_LIBRARY_DEBUG ${Boost_SYSTEM_LIBRARY_DEBUG})
-set(Boost_SHARED_sharedRT_SYSTEM_LIBRARY_RELEASE ${Boost_SYSTEM_LIBRARY_RELEASE})
-set(Boost_SHARED_sharedRT_THREAD_LIBRARY_DEBUG ${Boost_THREAD_LIBRARY_DEBUG})
-set(Boost_SHARED_sharedRT_THREAD_LIBRARY_RELEASE ${Boost_THREAD_LIBRARY_RELEASE})
+# Find includes in corresponding build directories
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-# build a list of shared libraries (sharedRT)
-foreach(ELEMENT ${Boost_SHARED_sharedRT_LIBRARIES})
-  get_filename_component(ELEMENT_FILENAME ${ELEMENT} NAME)
-  string(REGEX MATCH "^(.*)\\.(lib|so)$" ELEMENT_MATCHES ${ELEMENT_FILENAME})
+# compiler version: ${CMAKE_CXX_COMPILER_VERSION}
 
-  if(NOT ELEMENT_MATCHES)
-    continue()
-  endif()
+# boost provided by arangodb
+find_package(Boost COMPONENTS filesystem system locale thread REQUIRED)
+# icu must be provided by arangodb
 
-  get_filename_component(ELEMENT_DIRECTORY ${ELEMENT} DIRECTORY)
-  file(GLOB ELEMENT_LIB
-    "${ELEMENT_DIRECTORY}/${CMAKE_MATCH_1}.so"
-    "${ELEMENT_DIRECTORY}/lib${CMAKE_MATCH_1}.so"
-    "${ELEMENT_DIRECTORY}/${CMAKE_MATCH_1}.so.*"
-    "${ELEMENT_DIRECTORY}/lib${CMAKE_MATCH_1}.so.*"
-    "${ELEMENT_DIRECTORY}/${CMAKE_MATCH_1}.dll"
-    "${ELEMENT_DIRECTORY}/lib${CMAKE_MATCH_1}.dll"
-    "${ELEMENT_DIRECTORY}/${CMAKE_MATCH_1}.pdb"
-    "${ELEMENT_DIRECTORY}/lib${CMAKE_MATCH_1}.pdb"
-  )
+set(PTHREAD_LIBRARY pthread)
+find_package(Threads REQUIRED)
+#set(icu_roots "/usr" "/usr/local" "/opt" "/usr/lib/x86_64-linux-gnu/")
+#set(ICU_CXX_LIBRARY  "/usr/lib/x86_64-linux-gnu/")
+find_package(ICU COMPONENTS data i18n io le lx test tu uc REQUIRED)
 
-  if(ELEMENT_LIB)
-    list(APPEND Boost_SHARED_sharedRT_LIB_RESOURCES ${ELEMENT_LIB})
-  endif()
-endforeach()
-
-message("Boost_SHARED_sharedRT_VERSION: " ${Boost_VERSION})
-message("Boost_SHARED_sharedRT_LIBRARIES: " ${Boost_SHARED_sharedRT_LIBRARIES})
-message("Boost_SHARED_sharedRT_FILESYSTEM_LIBRARY_DEBUG: " ${Boost_SHARED_sharedRT_FILESYSTEM_LIBRARY_DEBUG})
-message("Boost_SHARED_sharedRT_FILESYSTEM_LIBRARY_RELEASE: " ${Boost_SHARED_sharedRT_FILESYSTEM_LIBRARY_RELEASE})
-message("Boost_SHARED_sharedRT_LOCALE_LIBRARY_DEBUG: " ${Boost_SHARED_sharedRT_LOCALE_LIBRARY_DEBUG})
-message("Boost_SHARED_sharedRT_LOCALE_LIBRARY_RELEASE: " ${Boost_SHARED_sharedRT_LOCALE_LIBRARY_RELEASE})
-message("Boost_SHARED_sharedRT_REGEX_LIBRARY_DEBUG: " ${Boost_SHARED_sharedRT_REGEX_LIBRARY_DEBUG})
-message("Boost_SHARED_sharedRT_REGEX_LIBRARY_RELEASE: " ${Boost_SHARED_sharedRT_REGEX_LIBRARY_RELEASE})
-message("Boost_SHARED_sharedRT_SYSTEM_LIBRARY_DEBUG: " ${Boost_SHARED_sharedRT_SYSTEM_LIBRARY_DEBUG})
-message("Boost_SHARED_sharedRT_SYSTEM_LIBRARY_RELEASE: " ${Boost_SHARED_sharedRT_SYSTEM_LIBRARY_RELEASE})
-message("Boost_SHARED_sharedRT_THREAD_LIBRARY_DEBUG: " ${Boost_SHARED_sharedRT_THREAD_LIBRARY_DEBUG})
-message("Boost_SHARED_sharedRT_THREAD_LIBRARY_RELEASE: " ${Boost_SHARED_sharedRT_THREAD_LIBRARY_RELEASE})
-message("Boost_SHARED_sharedRT_LIB_RESOURCES: " ${Boost_SHARED_sharedRT_LIB_RESOURCES})
-
-
-# clear Boost cache before invocation
-unset(Boost_INCLUDE_DIR CACHE)
-unset(Boost_FILESYSTEM_LIBRARY_DEBUG CACHE)
-unset(Boost_FILESYSTEM_LIBRARY_RELEASE CACHE)
-unset(Boost_LIBRARIES CACHE)
-unset(Boost_LIBRARY_DIRS CACHE)
-unset(Boost_LOCALE_LIBRARY_DEBUG CACHE)
-unset(Boost_LOCALE_LIBRARY_RELEASE CACHE)
-unset(Boost_REGEX_LIBRARY_DEBUG CACHE)
-unset(Boost_REGEX_LIBRARY_RELEASE CACHE)
-unset(Boost_SYSTEM_LIBRARY_DEBUG CACHE)
-unset(Boost_SYSTEM_LIBRARY_RELEASE CACHE)
-unset(Boost_THREAD_LIBRARY_DEBUG CACHE)
-unset(Boost_THREAD_LIBRARY_RELEASE CACHE)
-
-
-# find Boost (shared + static RT)
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_STATIC_RUNTIME ON)
-find_package(Boost
-  1.57.0
-  REQUIRED
-  COMPONENTS ${Boost_REQUIRED_COMPONENTS}
-)
-set(Boost_SHARED_staticRT_LIBRARIES ${Boost_LIBRARIES})
-set(Boost_SHARED_staticRT_FILESYSTEM_LIBRARY_DEBUG ${Boost_FILESYSTEM_LIBRARY_DEBUG})
-set(Boost_SHARED_staticRT_FILESYSTEM_LIBRARY_RELEASE ${Boost_FILESYSTEM_LIBRARY_RELEASE})
-set(Boost_SHARED_staticRT_LOCALE_LIBRARY_DEBUG ${Boost_LOCALE_LIBRARY_DEBUG})
-set(Boost_SHARED_staticRT_LOCALE_LIBRARY_RELEASE ${Boost_LOCALE_LIBRARY_RELEASE})
-set(Boost_SHARED_staticRT_REGEX_LIBRARY_DEBUG ${Boost_REGEX_LIBRARY_DEBUG})
-set(Boost_SHARED_staticRT_REGEX_LIBRARY_RELEASE ${Boost_REGEX_LIBRARY_RELEASE})
-set(Boost_SHARED_staticRT_SYSTEM_LIBRARY_DEBUG ${Boost_SYSTEM_LIBRARY_DEBUG})
-set(Boost_SHARED_staticRT_SYSTEM_LIBRARY_RELEASE ${Boost_SYSTEM_LIBRARY_RELEASE})
-set(Boost_SHARED_staticRT_THREAD_LIBRARY_DEBUG ${Boost_THREAD_LIBRARY_DEBUG})
-set(Boost_SHARED_staticRT_THREAD_LIBRARY_RELEASE ${Boost_THREAD_LIBRARY_RELEASE})
-
-# build a list of shared libraries (staticRT)
-foreach(ELEMENT ${Boost_SHARED_staticRT_LIBRARIES})
-  get_filename_component(ELEMENT_FILENAME ${ELEMENT} NAME)
-  string(REGEX MATCH "^(.*)\\.(lib|so)$" ELEMENT_MATCHES ${ELEMENT_FILENAME})
-
-  if(NOT ELEMENT_MATCHES)
-    continue()
-  endif()
-
-  get_filename_component(ELEMENT_DIRECTORY ${ELEMENT} DIRECTORY)
-  file(GLOB ELEMENT_LIB
-    "${SEARCH_LIB_PATH}/${CMAKE_MATCH_1}.so"
-    "${SEARCH_LIB_PATH}/lib${CMAKE_MATCH_1}.so"
-    "${SEARCH_LIB_PATH}/${CMAKE_MATCH_1}.so.*"
-    "${SEARCH_LIB_PATH}/lib${CMAKE_MATCH_1}.so.*"
-    "${SEARCH_LIB_PATH}/${CMAKE_MATCH_1}.dll"
-    "${SEARCH_LIB_PATH}/lib${CMAKE_MATCH_1}.dll"
-    "${SEARCH_LIB_PATH}/${CMAKE_MATCH_1}.pdb"
-    "${SEARCH_LIB_PATH}/lib${CMAKE_MATCH_1}.pdb"
-  )
-
-  if(ELEMENT_LIB)
-    list(APPEND Boost_SHARED_staticRT_LIB_RESOURCES ${ELEMENT_LIB})
-  endif()
-endforeach()
-
-message("Boost_SHARED_staticRT_VERSION: " ${Boost_VERSION})
-message("Boost_SHARED_staticRT_LIBRARIES: " ${Boost_SHARED_staticRT_LIBRARIES})
-message("Boost_SHARED_staticRT_FILESYSTEM_LIBRARY_DEBUG: " ${Boost_SHARED_staticRT_FILESYSTEM_LIBRARY_DEBUG})
-message("Boost_SHARED_staticRT_FILESYSTEM_LIBRARY_RELEASE: " ${Boost_SHARED_staticRT_FILESYSTEM_LIBRARY_RELEASE})
-message("Boost_SHARED_staticRT_LOCALE_LIBRARY_DEBUG: " ${Boost_SHARED_staticRT_LOCALE_LIBRARY_DEBUG})
-message("Boost_SHARED_staticRT_LOCALE_LIBRARY_RELEASE: " ${Boost_SHARED_staticRT_LOCALE_LIBRARY_RELEASE})
-message("Boost_SHARED_staticRT_REGEX_LIBRARY_DEBUG: " ${Boost_SHARED_staticRT_REGEX_LIBRARY_DEBUG})
-message("Boost_SHARED_staticRT_REGEX_LIBRARY_RELEASE: " ${Boost_SHARED_staticRT_REGEX_LIBRARY_RELEASE})
-message("Boost_SHARED_staticRT_SYSTEM_LIBRARY_DEBUG: " ${Boost_SHARED_staticRT_SYSTEM_LIBRARY_DEBUG})
-message("Boost_SHARED_staticRT_SYSTEM_LIBRARY_RELEASE: " ${Boost_SHARED_staticRT_SYSTEM_LIBRARY_RELEASE})
-message("Boost_SHARED_staticRT_THREAD_LIBRARY_DEBUG: " ${Boost_SHARED_staticRT_THREAD_LIBRARY_DEBUG})
-message("Boost_SHARED_staticRT_THREAD_LIBRARY_RELEASE: " ${Boost_SHARED_staticRT_THREAD_LIBRARY_RELEASE})
-message("Boost_SHARED_staticRT_LIB_RESOURCES: " ${Boost_SHARED_staticRT_LIB_RESOURCES})
-
-
-# clear Boost cache before invocation
-unset(Boost_INCLUDE_DIR CACHE)
-unset(Boost_FILESYSTEM_LIBRARY_DEBUG CACHE)
-unset(Boost_FILESYSTEM_LIBRARY_RELEASE CACHE)
-unset(Boost_LIBRARIES CACHE)
-unset(Boost_LIBRARY_DIRS CACHE)
-unset(Boost_LOCALE_LIBRARY_DEBUG CACHE)
-unset(Boost_LOCALE_LIBRARY_RELEASE CACHE)
-unset(Boost_REGEX_LIBRARY_DEBUG CACHE)
-unset(Boost_REGEX_LIBRARY_RELEASE CACHE)
-unset(Boost_SYSTEM_LIBRARY_DEBUG CACHE)
-unset(Boost_SYSTEM_LIBRARY_RELEASE CACHE)
-unset(Boost_THREAD_LIBRARY_DEBUG CACHE)
-unset(Boost_THREAD_LIBRARY_RELEASE CACHE)
-
-# find Boost (static + shared RT)
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost
-  1.57.0
-  REQUIRED
-  COMPONENTS ${Boost_REQUIRED_COMPONENTS}
-)
-set(Boost_STATIC_sharedRT_LIBRARIES ${Boost_LIBRARIES})
-set(Boost_STATIC_sharedRT_FILESYSTEM_LIBRARY_DEBUG ${Boost_FILESYSTEM_LIBRARY_DEBUG})
-set(Boost_STATIC_sharedRT_FILESYSTEM_LIBRARY_RELEASE ${Boost_FILESYSTEM_LIBRARY_RELEASE})
-set(Boost_STATIC_sharedRT_LOCALE_LIBRARY_DEBUG ${Boost_LOCALE_LIBRARY_DEBUG})
-set(Boost_STATIC_sharedRT_LOCALE_LIBRARY_RELEASE ${Boost_LOCALE_LIBRARY_RELEASE})
-set(Boost_STATIC_sharedRT_REGEX_LIBRARY_DEBUG ${Boost_REGEX_LIBRARY_DEBUG})
-set(Boost_STATIC_sharedRT_REGEX_LIBRARY_RELEASE ${Boost_REGEX_LIBRARY_RELEASE})
-set(Boost_STATIC_sharedRT_SYSTEM_LIBRARY_DEBUG ${Boost_SYSTEM_LIBRARY_DEBUG})
-set(Boost_STATIC_sharedRT_SYSTEM_LIBRARY_RELEASE ${Boost_SYSTEM_LIBRARY_RELEASE})
-set(Boost_STATIC_sharedRT_THREAD_LIBRARY_DEBUG ${Boost_THREAD_LIBRARY_DEBUG})
-set(Boost_STATIC_sharedRT_THREAD_LIBRARY_RELEASE ${Boost_THREAD_LIBRARY_RELEASE})
-
-message("Boost_STATIC_sharedRT_VERSION: " ${Boost_VERSION})
-message("Boost_STATIC_sharedRT_LIBRARIES: " ${Boost_STATIC_sharedRT_LIBRARIES})
-message("Boost_STATIC_sharedRT_FILESYSTEM_LIBRARY_DEBUG: " ${Boost_STATIC_sharedRT_FILESYSTEM_LIBRARY_DEBUG})
-message("Boost_STATIC_sharedRT_FILESYSTEM_LIBRARY_RELEASE: " ${Boost_STATIC_sharedRT_FILESYSTEM_LIBRARY_RELEASE})
-message("Boost_STATIC_sharedRT_LOCALE_LIBRARY_DEBUG: " ${Boost_STATIC_sharedRT_LOCALE_LIBRARY_DEBUG})
-message("Boost_STATIC_sharedRT_LOCALE_LIBRARY_RELEASE: " ${Boost_STATIC_sharedRT_LOCALE_LIBRARY_RELEASE})
-message("Boost_STATIC_sharedRT_REGEX_LIBRARY_DEBUG: " ${Boost_STATIC_sharedRT_REGEX_LIBRARY_DEBUG})
-message("Boost_STATIC_sharedRT_REGEX_LIBRARY_RELEASE: " ${Boost_STATIC_sharedRT_REGEX_LIBRARY_RELEASE})
-message("Boost_STATIC_sharedRT_SYSTEM_LIBRARY_DEBUG: " ${Boost_STATIC_sharedRT_SYSTEM_LIBRARY_DEBUG})
-message("Boost_STATIC_sharedRT_SYSTEM_LIBRARY_RELEASE: " ${Boost_STATIC_sharedRT_SYSTEM_LIBRARY_RELEASE})
-message("Boost_STATIC_sharedRT_THREAD_LIBRARY_DEBUG: " ${Boost_STATIC_sharedRT_THREAD_LIBRARY_DEBUG})
-message("Boost_STATIC_sharedRT_THREAD_LIBRARY_RELEASE: " ${Boost_STATIC_sharedRT_THREAD_LIBRARY_RELEASE})
-
-
-# clear Boost cache before invocation
-unset(Boost_INCLUDE_DIR CACHE)
-unset(Boost_FILESYSTEM_LIBRARY_DEBUG CACHE)
-unset(Boost_FILESYSTEM_LIBRARY_RELEASE CACHE)
-unset(Boost_LIBRARIES CACHE)
-unset(Boost_LIBRARY_DIRS CACHE)
-unset(Boost_LOCALE_LIBRARY_DEBUG CACHE)
-unset(Boost_LOCALE_LIBRARY_RELEASE CACHE)
-unset(Boost_REGEX_LIBRARY_DEBUG CACHE)
-unset(Boost_REGEX_LIBRARY_RELEASE CACHE)
-unset(Boost_SYSTEM_LIBRARY_DEBUG CACHE)
-unset(Boost_SYSTEM_LIBRARY_RELEASE CACHE)
-unset(Boost_THREAD_LIBRARY_DEBUG CACHE)
-unset(Boost_THREAD_LIBRARY_RELEASE CACHE)
-
-
-# find Boost (static + static RT)
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_STATIC_RUNTIME ON)
-find_package(Boost
-  1.57.0
-  REQUIRED
-  COMPONENTS ${Boost_REQUIRED_COMPONENTS}
-)
-set(Boost_STATIC_staticRT_LIBRARIES ${Boost_LIBRARIES})
-set(Boost_STATIC_staticRT_FILESYSTEM_LIBRARY_DEBUG ${Boost_FILESYSTEM_LIBRARY_DEBUG})
-set(Boost_STATIC_staticRT_FILESYSTEM_LIBRARY_RELEASE ${Boost_FILESYSTEM_LIBRARY_RELEASE})
-set(Boost_STATIC_staticRT_LOCALE_LIBRARY_DEBUG ${Boost_LOCALE_LIBRARY_DEBUG})
-set(Boost_STATIC_staticRT_LOCALE_LIBRARY_RELEASE ${Boost_LOCALE_LIBRARY_RELEASE})
-set(Boost_STATIC_staticRT_REGEX_LIBRARY_DEBUG ${Boost_REGEX_LIBRARY_DEBUG})
-set(Boost_STATIC_staticRT_REGEX_LIBRARY_RELEASE ${Boost_REGEX_LIBRARY_RELEASE})
-set(Boost_STATIC_staticRT_SYSTEM_LIBRARY_DEBUG ${Boost_SYSTEM_LIBRARY_DEBUG})
-set(Boost_STATIC_staticRT_SYSTEM_LIBRARY_RELEASE ${Boost_SYSTEM_LIBRARY_RELEASE})
-set(Boost_STATIC_staticRT_THREAD_LIBRARY_DEBUG ${Boost_THREAD_LIBRARY_DEBUG})
-set(Boost_STATIC_staticRT_THREAD_LIBRARY_RELEASE ${Boost_THREAD_LIBRARY_RELEASE})
-
-message("Boost_STATIC_staticRT_VERSION: " ${Boost_VERSION})
-message("Boost_STATIC_staticRT_LIBRARIES: " ${Boost_STATIC_staticRT_LIBRARIES})
-message("Boost_STATIC_staticRT_FILESYSTEM_LIBRARY_DEBUG: " ${Boost_STATIC_staticRT_FILESYSTEM_LIBRARY_DEBUG})
-message("Boost_STATIC_staticRT_FILESYSTEM_LIBRARY_RELEASE: " ${Boost_STATIC_staticRT_FILESYSTEM_LIBRARY_RELEASE})
-message("Boost_STATIC_staticRT_LOCALE_LIBRARY_DEBUG: " ${Boost_STATIC_staticRT_LOCALE_LIBRARY_DEBUG})
-message("Boost_STATIC_staticRT_LOCALE_LIBRARY_RELEASE: " ${Boost_STATIC_staticRT_LOCALE_LIBRARY_RELEASE})
-message("Boost_STATIC_staticRT_REGEX_LIBRARY_DEBUG: " ${Boost_STATIC_staticRT_REGEX_LIBRARY_DEBUG})
-message("Boost_STATIC_staticRT_REGEX_LIBRARY_RELEASE: " ${Boost_STATIC_staticRT_REGEX_LIBRARY_RELEASE})
-message("Boost_STATIC_staticRT_SYSTEM_LIBRARY_DEBUG: " ${Boost_STATIC_staticRT_SYSTEM_LIBRARY_DEBUG})
-message("Boost_STATIC_staticRT_SYSTEM_LIBRARY_RELEASE: " ${Boost_STATIC_staticRT_SYSTEM_LIBRARY_RELEASE})
-message("Boost_STATIC_staticRT_THREAD_LIBRARY_DEBUG: " ${Boost_STATIC_staticRT_THREAD_LIBRARY_DEBUG})
-message("Boost_STATIC_staticRT_THREAD_LIBRARY_RELEASE: " ${Boost_STATIC_staticRT_THREAD_LIBRARY_RELEASE})
-
-
-################################################################################
-### find 3rd party libraries
-################################################################################
-
-# set pthread library
-if (NOT MSVC)
-  set(PTHREAD_LIBRARY pthread)
-endif()
-
-# set gcov library
-if (NOT MSVC AND (CMAKE_BUILD_TYPE STREQUAL "Coverage"))
-  set(GCOV_LIBRARY gcov)
-endif()
-
-#find BFD
-find_package(BFD
-  #OPTIONAL
-)
-
+find_package(BFD)
 if (BFD_FOUND)
   add_definitions(-DUSE_LIBBFD)
-else()
-  set(BFD_INCLUDE_DIR "")
-  set(BFD_SHARED_LIBS "")
-  set(BFD_STATIC_LIBS "")
-  set(BFD_SHARED_LIB_RESOURCES "")
 endif()
 
-# find LZ4
-find_package(Lz4
-  REQUIRED
-)
+find_package(Snowball REQUIRED)
+find_package(Lz4 REQUIRED)
+ 
+set(IResearch_extra_libs lz4_static snowball_static)
 
-# find ICU
-find_package(ICU
-  REQUIRED
-)
-
-# find Snowball
-find_package(Snowball
-  REQUIRED
-)
-
-# find Unwind
-find_package(Unwind
-  #OPTIONAL
-)
-
+find_package(Unwind)
 if (Unwind_FOUND)
   add_definitions(-DUSE_LIBUNWIND)
-else()
-  set(Unwind_INCLUDE_DIR "")
-  set(Unwind_SHARED_LIBS "")
-  set(Unwind_STATIC_LIBS "")
-  set(Unwind_SHARED_LIB_RESOURCES "")
+  list(APPEND IResearch_extra_libs unwind_static)
 endif()
 
-# set external dirs
-set(EXTERNAL_INCLUDE_DIRS 
-  ${PROJECT_SOURCE_DIR}/external
-  CACHE INTERNAL 
-  ""
-)
 
-set(IResearch_INCLUDE_DIR 
-  "${PROJECT_SOURCE_DIR}/core"
-  CACHE INTERNAL
-  ""
-)
-
-# set output directories
-set(EXECUTABLE_OUTPUT_PATH
-  ${CMAKE_BINARY_DIR}/bin
-  CACHE PATH
-  "Executable output path"
-)
-
-set(LIBRARY_OUTPUT_PATH
-  ${CMAKE_BINARY_DIR}/bin
-  CACHE PATH 
-  "Library output path"
-)
-
-mark_as_advanced( 
-  EXECUTABLE_OUTPUT_PATH 
-  LIBRARY_OUTPUT_PATH
-)
-
-add_definitions(-DUNICODE -D_UNICODE)
-
-add_subdirectory(core)
-add_subdirectory(tests)
-add_subdirectory(utils)
-
-# setup code coverage
-if (NOT MSVC AND (CMAKE_BUILD_TYPE STREQUAL "Coverage"))
-  include(CodeCoverage)
-  
-  # exclude directories from coverage report
-  SET(LCOV_EXCLUDE "external/*;boost/*")
-
-  setup_target_for_coverage(
-    ${IResearch_TARGET_NAME}-coverage 
-    $<TARGET_FILE:${IResearchTests_TARGET_NAME}-static>
-    coverage
-    "--ires_output"
-  )
-  add_dependencies(${IResearch_TARGET_NAME}-coverage
-    ${IResearchTests_TARGET_NAME}
-  )
-
-  if (PYTHON_EXECUTABLE AND GCOVR_PATH)   
-    # exclude directories from coverage report
-    SET(GCOVR_EXTRA_ARGS "-e;${PROJECT_SOURCE_DIR}/external/")
-
-    setup_target_for_coverage_cobertura(
-      ${IResearch_TARGET_NAME}-coverage-cobertura
-      $<TARGET_FILE:${IResearchTests_TARGET_NAME}-static>
-      coverage
-      "--ires_output"
-    )
-    add_dependencies(${IResearch_TARGET_NAME}-coverage-cobertura
-      ${IResearchTests_TARGET_NAME}
-    )
-  endif()
+if(WIN32)
+    add_definitions(-DUNICODE -D_UNICODE)
 endif()
 
-# testing
-enable_testing()
-add_test(
-  iresearch-tests
-  ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests${CMAKE_EXECUTABLE_SUFFIX}
+set(iresearch_sources
+  ./core/utils/string.cpp
+  ./core/analysis/analyzer.cpp
+  ./core/analysis/analyzers.cpp
+  ./core/analysis/token_attributes.cpp
+  ./core/analysis/token_stream.cpp
+  ./core/analysis/token_streams.cpp
+  ./core/document/field.cpp
+  ./core/error/error.cpp
+  ./core/formats/formats.cpp
+  ./core/formats/format_utils.cpp
+  ./core/formats/skip_list.cpp
+  ./core/index/directory_reader.cpp
+  ./core/index/field_data.cpp
+  ./core/index/field_meta.cpp
+  ./core/index/file_names.cpp
+  ./core/index/index_meta.cpp
+  ./core/index/index_writer.cpp
+  ./core/index/index_reader.cpp
+  ./core/index/iterators.cpp
+  ./core/index/merge_writer.cpp
+  ./core/index/postings.cpp
+  ./core/index/segment_reader.cpp
+  ./core/index/segment_writer.cpp
+  ./core/iql/parser.cc
+  ./core/iql/parser_common.cpp
+  ./core/iql/parser_context.cpp
+  ./core/iql/query_builder.cpp
+  ./core/search/all_filter.cpp
+  ./core/search/granular_range_filter.cpp
+  ./core/search/scorers.cpp
+  ./core/search/sort.cpp
+  ./core/search/cost.cpp
+  ./core/search/score_doc_iterators.cpp
+  ./core/search/filter.cpp
+  ./core/search/term_filter.cpp
+  ./core/search/prefix_filter.cpp
+  ./core/search/range_filter.cpp
+  ./core/search/phrase_filter.cpp
+  ./core/search/column_existence_filter.cpp
+  ./core/search/same_position_filter.cpp
+  ./core/search/range_query.cpp
+  ./core/search/term_query.cpp
+  ./core/search/boolean_filter.cpp
+  ./core/store/data_input.cpp
+  ./core/store/data_output.cpp
+  ./core/store/directory.cpp
+  ./core/store/directory_attributes.cpp
+  ./core/store/directory_cleaner.cpp
+  ./core/store/fs_directory.cpp
+  ./core/store/memory_directory.cpp
+  ./core/store/store_utils.cpp
+  ./core/utils/async_utils.cpp
+  ./core/utils/attributes.cpp
+  ./core/utils/bit_packing.cpp
+  ./core/utils/compression.cpp
+  ./core/utils/directory_utils.cpp
+  ./core/utils/file_utils.cpp
+  ./core/utils/hash_utils.cpp
+  ./core/utils/index_utils.cpp
+  ./core/utils/math_utils.cpp
+  ./core/utils/memory.cpp
+  ./core/utils/version_utils.cpp
+  ./core/utils/utf8_path.cpp
+  ./core/utils/locale_utils.cpp
+  ./core/utils/log.cpp
+  ./core/utils/unicode_utils.cpp
+  ./core/utils/so_utils.cpp
+  ./core/utils/process_utils.cpp
+  ./core/utils/network_utils.cpp
+  ./core/utils/cpuinfo.cpp
+  ./core/utils/numeric_utils.cpp
 )
 
-# testing auto build not working
-# due to the following bug in cmake
-# http://public.kitware.com/Bug/view.php?id=8774
-# here is the workaround:
-add_custom_target(iresearch-check
-  COMMAND ${CMAKE_CTEST_COMMAND} 
-  DEPENDS iresearch-tests
+add_custom_command(
+  OUTPUT ./core/iql/parser.cc
+  MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/core/iql/parser.yy
+  DEPENDS ./core/iql ${CMAKE_CURRENT_SOURCE_DIR}/core/iql/parser.yy
+  COMMAND bison --graph --report=all -o parser.cc ./core/iql/parser.yy
+  WORKING_DIRECTORY ./core/iql
 )
 
-# setup target for memory allocation profiling
-add_custom_target(iresearch-tests-malloc
-  COMMAND valgrind --tool=massif --depth=100 --max-snapshots=500 --time-unit=ms --detailed-freq=1 --massif-out-file=massif.out ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests${CMAKE_EXECUTABLE_SUFFIX} --ires_output
-  COMMAND ms_print --x=500 --y=100 massif.out > massif.log
-  DEPENDS iresearch-tests
+add_custom_command(
+  OUTPUT ./core/iql
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/core/iql
 )
 
-# setup target for memory allocation profiling
-add_custom_target(iresearch-tests-malloc-s
-  COMMAND valgrind --tool=massif --depth=100 --max-snapshots=500 --time-unit=ms --detailed-freq=1 --massif-out-file=massif.out ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests-s${CMAKE_EXECUTABLE_SUFFIX} --ires_output
-  COMMAND ms_print --x=500 --y=100 massif.out > massif.log
-  DEPENDS iresearch-tests
+add_library(iresearch STATIC ${iresearch_sources})
+target_include_directories(iresearch PUBLIC ./core)
+target_link_libraries(iresearch PUBLIC
+    openfst
+    rapidjson
+    murmurhash
+    cmdline
+    ${IResearch_extra_libs}
+    Boost::filesystem
+    Boost::system
+    Boost::locale
+    Boost::thread
+    icu_static
 )
 
-# setup target for memory allocation profiling
-add_custom_target(iresearch-tests-malloc-fast
-  COMMAND valgrind --tool=massif --depth=100 --max-snapshots=500 --time-unit=ms --detailed-freq=1 --massif-out-file=massif.out ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests${CMAKE_EXECUTABLE_SUFFIX} --gtest_filter=*:-:*europ*:-:*eco*:-:*postings_seek*:-:*profile* --ires_output
-  COMMAND ms_print --x=500 --y=100 massif.out > massif.log
-  DEPENDS iresearch-tests
-)
-
-# setup target for memory allocation profiling
-add_custom_target(iresearch-tests-malloc-s-fast
-  COMMAND valgrind --tool=massif --depth=100 --max-snapshots=500 --time-unit=ms --detailed-freq=1 --massif-out-file=massif.out ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests-s${CMAKE_EXECUTABLE_SUFFIX} --gtest_filter=*:-:*europ*:-:*eco*:-:*postings_seek*:-:*profile* --ires_output
-  COMMAND ms_print --x=500 --y=100 massif.out > massif.log
-  DEPENDS iresearch-tests
-)
-
-# setup target for memory leak detection
-add_custom_target(iresearch-tests-memleak
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --leak-check=yes --track-origins=yes --read-var-info=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests${CMAKE_EXECUTABLE_SUFFIX} --ires_output
-  DEPENDS iresearch-tests
-)
-
-# setup target for memory leak detection
-add_custom_target(iresearch-tests-memleak-s
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --leak-check=yes --track-origins=yes --read-var-info=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests-s${CMAKE_EXECUTABLE_SUFFIX} --ires_output
-  DEPENDS iresearch-tests-static
-)
-
-# setup target for memory leak detection
-add_custom_target(iresearch-tests-memleak-fast
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --leak-check=yes --track-origins=yes --read-var-info=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests${CMAKE_EXECUTABLE_SUFFIX} --gtest_filter=*:-:*europ*:-:*eco*:-:*postings_seek*:-:*profile* --ires_output
-  DEPENDS iresearch-tests
-)
-
-# setup target for memory leak detection
-add_custom_target(iresearch-tests-memleak-s-fast
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --leak-check=yes --track-origins=yes --read-var-info=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests-s${CMAKE_EXECUTABLE_SUFFIX} --gtest_filter=*:-:*europ*:-:*eco*:-:*postings_seek*:-:*profile* --ires_output
-  DEPENDS iresearch-tests-static
-)
-
-# setup target for memory leak detection
-add_custom_target(iresearch-tests-memleak-shallow
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --leak-check=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests${CMAKE_EXECUTABLE_SUFFIX} --ires_output
-  DEPENDS iresearch-tests
-)
-
-# setup target for memory leak detection
-add_custom_target(iresearch-tests-memleak-s-shallow
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --leak-check=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests-s${CMAKE_EXECUTABLE_SUFFIX} --ires_output
-  DEPENDS iresearch-tests-static
-)
-
-# setup target for memory leak detection
-add_custom_target(iresearch-tests-memleak-shallow-fast
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --leak-check=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests${CMAKE_EXECUTABLE_SUFFIX} --gtest_filter=*:-:*europ*:-:*eco*:-:*postings_seek*:-:*profile* --ires_output
-  DEPENDS iresearch-tests
-)
-
-# setup target for memory leak detection
-add_custom_target(iresearch-tests-memleak-s-shallow-fast
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --leak-check=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests-s${CMAKE_EXECUTABLE_SUFFIX} --gtest_filter=*:-:*europ*:-:*eco*:-:*postings_seek*:-:*profile* --ires_output
-  DEPENDS iresearch-tests-static
-)
-
-# setup target for thread race detection
-add_custom_target(iresearch-tests-threadrace
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --tool=helgrind --read-var-info=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests${CMAKE_EXECUTABLE_SUFFIX} --ires_output
-  DEPENDS iresearch-tests
-)
-
-# setup target for thread race detection
-add_custom_target(iresearch-tests-threadrace-s
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --tool=helgrind --read-var-info=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests-s${CMAKE_EXECUTABLE_SUFFIX} --ires_output
-  DEPENDS iresearch-tests-static
-)
-
-# setup target for thread race detection
-add_custom_target(iresearch-tests-threadrace-fast
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --tool=helgrind --read-var-info=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests${CMAKE_EXECUTABLE_SUFFIX} --gtest_filter=*profile*:*concurrent* --ires_output
-  DEPENDS iresearch-tests
-)
-
-# setup target for thread race detection
-add_custom_target(iresearch-tests-threadrace-s-fast
-  COMMAND valgrind --xml=yes --xml-file=valgrind.xml --tool=helgrind --read-var-info=yes --num-callers=64 ${EXECUTABLE_OUTPUT_PATH}/iresearch-tests-s${CMAKE_EXECUTABLE_SUFFIX} --gtest_filter=*profile*:*concurrent* --ires_output
-  DEPENDS iresearch-tests-static
-)
+#add_subdirectory(core)
+#add_subdirectory(tests)
+#add_subdirectory(utils)
