@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 11)
 #  - select if libs and depends should be STATIC / SHARED (configurable)
 #  - runtime should be handled by the project that includes iresearch
 #  - add defines for debugging
+#  - add tests
+#  - add coverage
+#  - provide new findboost
+#  - update build containers
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 message(STATUS "module path: ${CMAKE_MODULE_PATH}")
