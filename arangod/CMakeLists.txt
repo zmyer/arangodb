@@ -65,8 +65,14 @@ if (USE_IRESEARCH)
     IResearch/AstHelper.cpp
   )
   target_include_directories(arango_iresearch PUBLIC IResearch)
-  target_link_libraries(arango_iresearch iresearch)
-endif ()
+  target_link_libraries(arango_iresearch
+      analyzer-text
+      format-1_0
+      scorer-tfidf
+      scorer-bm25
+      iresearch
+  )
+endif()
 
 ################################################################################
 ## arangod
@@ -493,9 +499,9 @@ install(
 install_config(arangod)
 
 if (NOT USE_PRECOMPILED_V8)
-  add_dependencies(arangod zlibstatic v8_build ${LIB_ARANGO_IRESEARCH})
+  add_dependencies(arangod zlibstatic v8_build arango_iresearch)
 else ()
-  add_dependencies(arangod zlibstatic ${LIB_ARANGO_IRESEARCH})
+  add_dependencies(arangod zlibstatic arango_iresearch)
 endif ()
 
 if (USE_JEMALLOC)

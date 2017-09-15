@@ -6,7 +6,8 @@ endforeach()
 ## IResearch
 ################################################################################
 
-if (USE_IRESEARCH)
+#if (USE_IRESEARCH)
+if (FALSE)
   set(IRESEARCH_TESTS_SOURCES
     IResearch/common.cpp
     IResearch/AttributeScorer-test.cpp
@@ -102,20 +103,20 @@ target_include_directories(arangodbtests SYSTEM PRIVATE
   ${CMAKE_SOURCE_DIR}/3rdParty/fakeit
 )
 
-if (USE_IRESEARCH)
-  find_package(OpenSSL REQUIRED)
-  list(APPEND IRESEARCH_LIB_RESOURCES
-    "${LIB_EAY_DEBUG_DLL}"
-    "${SSL_EAY_DEBUG_DLL}"
-    "${LIB_EAY_RELEASE_DLL}"
-    "${SSL_EAY_RELEASE_DLL}"
-  )
-
-  foreach(ELEMENT ${IRESEARCH_LIB_RESOURCES})
-    add_custom_command(
-      TARGET arangodbtests POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E echo "copying library resource:" "${ELEMENT}" " -> " "$<TARGET_FILE_DIR:arangodbtests>"
-      COMMAND cp -lf ${ELEMENT} $<TARGET_FILE_DIR:arangodbtests> || ${CMAKE_COMMAND} -E copy ${ELEMENT} $<TARGET_FILE_DIR:arangodbtests>
-    )
-  endforeach()
-endif()
+#if (USE_IRESEARCH)
+#  find_package(OpenSSL REQUIRED)
+#  list(APPEND IRESEARCH_LIB_RESOURCES
+#    "${LIB_EAY_DEBUG_DLL}"
+#    "${SSL_EAY_DEBUG_DLL}"
+#    "${LIB_EAY_RELEASE_DLL}"
+#    "${SSL_EAY_RELEASE_DLL}"
+#  )
+#
+#  foreach(ELEMENT ${IRESEARCH_LIB_RESOURCES})
+#    add_custom_command(
+#      TARGET arangodbtests POST_BUILD
+#      COMMAND ${CMAKE_COMMAND} -E echo "copying library resource:" "${ELEMENT}" " -> " "$<TARGET_FILE_DIR:arangodbtests>"
+#      COMMAND cp -lf ${ELEMENT} $<TARGET_FILE_DIR:arangodbtests> || ${CMAKE_COMMAND} -E copy ${ELEMENT} $<TARGET_FILE_DIR:arangodbtests>
+#    )
+#  endforeach()
+#endif()
