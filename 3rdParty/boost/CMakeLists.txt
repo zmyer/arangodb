@@ -4,7 +4,7 @@ project(boost)
 set(boost_version "1.62.0")
 set(BOOST_VERSION ${boost_version} PARENT_SCOPE)
 set(boost_src "${CMAKE_CURRENT_SOURCE_DIR}/${boost_version}")
-
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 #find_package(Boost 1.62.0 EXACT COMPONENTS system)
 #if(Boost_FOUND)
 option(USE_BOOST_UNITTESTS "use boost unit-tests" ON)

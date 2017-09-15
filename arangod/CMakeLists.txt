@@ -44,7 +44,7 @@ endif ()
 
 if (USE_IRESEARCH)
   add_library(arango_iresearch
-    IResearch/ApplicationServerHelper.h
+    IResearch/ApplicationServerHelper.cpp
     IResearch/AttributeScorer.cpp
     IResearch/Containers.cpp
     IResearch/IResearchAnalyzerFeature.cpp
@@ -65,13 +65,7 @@ if (USE_IRESEARCH)
     IResearch/AstHelper.cpp
   )
   target_include_directories(arango_iresearch PUBLIC IResearch)
-  target_link_libraries(arango_iresearch
-      analyzer-text
-      format-1_0
-      scorer-tfidf
-      scorer-bm25
-      iresearch
-  )
+  target_link_libraries(arango_iresearch iresearch)
 endif()
 
 ################################################################################

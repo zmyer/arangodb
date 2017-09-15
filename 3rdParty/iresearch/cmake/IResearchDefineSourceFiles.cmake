@@ -73,3 +73,27 @@ set(iresearch_sources
 )
 
 
+set(analyzer-text_sources
+    ./core/analysis/text_token_stream.cpp
+)
+
+set(format-1_0_sources
+  ./core/formats/formats_10.cpp
+  ./core/formats/formats_10_attributes.cpp
+  ./core/formats/formats_burst_trie.cpp
+)
+
+set(scorer-tfidf_sources
+    ./core/search/tfidf.cpp
+)
+
+set(scorer-bm25_sources
+    ./core/search/bm25.cpp
+)
+
+set(iresearch_plugin_sources
+    ${analyzer-text_sources}
+    ${format-1_0_sources}
+    ${scorer-tfidf_sources}
+    ${scorer-bm25_sources}
+)

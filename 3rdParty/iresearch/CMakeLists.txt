@@ -14,14 +14,15 @@ set(CMAKE_CXX_STANDARD 11)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 message(STATUS "module path: ${CMAKE_MODULE_PATH}")
 
+include(IResearchDefineSourceFiles)
+include(IResearchGenerateFiles)
+
 if(NOT BUILD_SHARED_LIB)
     set(IRESEARCH_BUILD_LIB STATIC)
+    list(APPEND iresearch_sources ${iresearch_plugin_sources})
 else()
     set(IRESEARCH_BUILD_LIB SHARED)
 endif()
-
-include(IResearchDefineSourceFiles)
-include(IResearchGenerateFiles)
 
 ## libraries provided by arangodb in final version
 if(IRESEARCH_IN_ARANGO)
@@ -58,6 +59,7 @@ endif()
 if(WIN32)
     add_definitions(-DUNICODE -D_UNICODE)
 endif()
+set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 ## exteranl libraries requiered by iresearch
 add_subdirectory(external)
@@ -86,6 +88,7 @@ target_link_libraries(iresearch PUBLIC
     cmdline
     lz4_static
     snowball_static
+    rapidjson
     ${IResearch_extra_libs}
     ${Boost_LIBRARIES}
     ${ICU_LIBRARIES}
@@ -94,28 +97,26 @@ target_link_libraries(iresearch PUBLIC
 ### iresearch plugins
 ################################################################################
 
+# TODO - plugins need to become shared as soon as they libs they depend on are PIC
+
 ### analysis plugins
-add_library(analyzer-text STATIC ./core/analysis/text_token_stream.cpp)
+add_library(analyzer-text STATIC ${analyzer-text_sources})
 target_include_directories(analyzer-text PRIVATE "./core/analysis")
 target_link_libraries(analyzer-text iresearch rapidjson)
 
 
 ### format plugins
-add_library(format-1_0 STATIC
-  ./core/formats/formats_10.cpp
-  ./core/formats/formats_10_attributes.cpp
-  ./core/formats/formats_burst_trie.cpp
-)
+add_library(format-1_0 STATIC ${formats_10_sources})
 target_include_directories(format-1_0 PUBLIC "./core/formats")
 target_link_libraries(format-1_0 iresearch rapidjson)
 
 ### scorer plugin : TF-IDF
-add_library(scorer-tfidf STATIC ./core/search/tfidf.cpp)
+add_library(scorer-tfidf STATIC ${scorer-tfidf_sources})
 target_include_directories(format-1_0 PUBLIC "./core/search")
 target_link_libraries(scorer-tfidf iresearch)
 
 ### scorer plugin : BM25
-add_library(scorer-bm25 STATIC ./core/search/bm25.cpp)
+add_library(scorer-bm25 STATIC ${scorer-bm25_sources})
 target_include_directories(scorer-bm25 PUBLIC "./core/search")
 target_link_libraries(scorer-bm25 iresearch)
 
