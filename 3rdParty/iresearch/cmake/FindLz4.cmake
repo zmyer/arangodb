@@ -96,9 +96,9 @@ if (Lz4_INCLUDE_DIR AND Lz4_SHARED_LIB AND Lz4_STATIC_LIB)
     FORCE
   )
   add_library(lz4_static IMPORTED STATIC)
-  set_target_properties(snowball_static PROPERTIES
+  set_target_properties(lz4_static PROPERTIES
        INTERFACE_INCLUDE_DIRECTORIES "${Lz4_INCLUDE_DIR}"
-       IMPORTED_LOCATION "${Lz4_STATIC_LIBS}"
+       IMPORTED_LOCATION "${Lz4_STATIC_LIB}"
   )
 else ()
   set(Lz4_FOUND FALSE)

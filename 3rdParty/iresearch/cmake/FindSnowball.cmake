@@ -105,7 +105,7 @@ if (Snowball_INCLUDE_DIR AND Snowball_SHARED_LIB AND Snowball_STATIC_LIB)
   add_library(snowball_static IMPORTED STATIC)
   set_target_properties(snowball_static PROPERTIES
        INTERFACE_INCLUDE_DIRECTORIES "${Snowball_INCLUDE_DIR}"
-       IMPORTED_LOCATION "${Snowball_STATIC_LIBS}"
+       IMPORTED_LOCATION "${Snowball_STATIC_LIB}"
   )
 else ()
   set(Snowball_FOUND FALSE)

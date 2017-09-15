@@ -47,7 +47,7 @@ if (BFD_FOUND)
   list(APPEND IResearch_extra_libs ${bfd=something=something})
 endif()
 
-find_package(Unwind)
+find_package(Unwind REQUIRED)
 if (Unwind_FOUND)
   add_definitions(-DUSE_LIBUNWIND)
   list(APPEND IResearch_extra_libs ${Unwind_STATIC})
