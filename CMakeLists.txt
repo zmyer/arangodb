@@ -756,6 +756,7 @@ endif()
 # ------------------------------------------------------------------------------
 
 set(USE_IRESEARCH ON)
+set(IRESEACH_TESTS OFF)
 
 # 3rdParty exports:
 #

@@ -21,8 +21,8 @@
 /// @author Vasiliy Nabatchikov
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "catch.hpp"
 #include "common.h"
+#include "catch.hpp"
 
 #include "StorageEngineMock.h"
 

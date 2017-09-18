@@ -24,6 +24,8 @@
 #ifndef TESTS_IRESEARCH__COMMON_H
 #define TESTS_IRESEARCH__COMMON_H 1
 
+#include "tests_config.hpp"
+
 namespace v8 {
 
   class Isolate; // forward declaration

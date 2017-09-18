@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 project(IResearch CXX)
 set(CMAKE_CXX_STANDARD 11)
 
-set(IRESEARCH_TESTS ON)
-set(IRESEARCH_COVERAGE ON)
-set(IRESEARCH_UTILS ON)
+set(option IRESEARCH_TESTS ON)
+set(option IRESEARCH_COVERAGE ON)
+set(option IRESEARCH_UTILS ON)
 
 ## TODO
 #  - select if libs and depends should be STATIC / SHARED (configurable)
@@ -151,9 +151,7 @@ endif()
 ################################################################################
 ### tests
 ################################################################################
-if(IRESEARCH_TESTS)
-    add_subdirectory(tests)
-endif()
+add_subdirectory(tests)
 
 ################################################################################
 ### coverage
