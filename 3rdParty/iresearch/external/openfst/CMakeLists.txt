@@ -1,7 +1,7 @@
 # set openfst directories
 project(OpenFST CXX)
 
-add_library(openfst
+add_library(openfst STATIC
   ./compat.cc
   ./flags.cc
   ./fst.cc

@@ -1,5 +1,5 @@
 project(lz4)
-add_library(lz4
+add_library(lz4 STATIC
     lib/lz4.c
     lib/lz4frame.c
     lib/lz4hc.c

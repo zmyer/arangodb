@@ -121,23 +121,24 @@ target_link_libraries(iresearch PUBLIC
 # TODO - plugins need to become shared as soon as they libs they depend on are PIC
 
 ### analysis plugins
+# we need to build icu PIC
 add_library(analyzer-text STATIC ${analyzer-text_sources})
 target_include_directories(analyzer-text PRIVATE "./core/analysis")
 target_link_libraries(analyzer-text iresearch rapidjson)
 
 
 ### format plugins
-add_library(format-1_0 STATIC ${formats_10_sources})
+add_library(format-1_0 SHARED ${formats_10_sources})
 target_include_directories(format-1_0 PUBLIC "./core/formats")
 target_link_libraries(format-1_0 iresearch rapidjson)
 
 ### scorer plugin : TF-IDF
-add_library(scorer-tfidf STATIC ${scorer-tfidf_sources})
-target_include_directories(format-1_0 PUBLIC "./core/search")
+add_library(scorer-tfidf SHARED ${scorer-tfidf_sources})
+target_include_directories(scorer-tfidf PUBLIC "./core/search")
 target_link_libraries(scorer-tfidf iresearch)
 
 ### scorer plugin : BM25
-add_library(scorer-bm25 STATIC ${scorer-bm25_sources})
+add_library(scorer-bm25 SHARED ${scorer-bm25_sources})
 target_include_directories(scorer-bm25 PUBLIC "./core/search")
 target_link_libraries(scorer-bm25 iresearch)
 
