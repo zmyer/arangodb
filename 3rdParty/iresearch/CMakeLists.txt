@@ -139,4 +139,34 @@ target_link_libraries(scorer-bm25 iresearch)
 ## iresearch tests
 #add_subdirectory(tests)
 
-## iresearch coverage
+if (NOT MSVC
+    AND (CMAKE_BUILD_TYPE STREQUAL "Coverage")
+    AND (TARGET iresearch-test)
+   )
+  include(CodeCoverage REQUIRED)
+  
+  # exclude directories from coverage report
+  SET(LCOV_EXCLUDE "external/*;boost/*")
+
+  setup_target_for_coverage(
+    iresearch-coverage 
+    $<TARGET_FILE:iresearch-test>
+    coverage
+    "--ires_output"
+  )
+
+  add_dependencies(iresearch-coverage iresearch-test)
+
+  if (PYTHON_EXECUTABLE AND GCOVR_PATH)
+    # exclude directories from coverage report
+    SET(GCOVR_EXTRA_ARGS "-e;${PROJECT_SOURCE_DIR}/external/")
+
+    setup_target_for_coverage_cobertura(
+      iresearch-coverage-cobertura
+      $<TARGET_FILE:iresearch-test>
+      coverage
+      "--ires_output"
+    )
+    add_dependencies(iresearch-coverage-cobertura iresearch-test)
+  endif()
+endif()
