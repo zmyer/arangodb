@@ -24,47 +24,58 @@ else()
     set(IRESEARCH_BUILD_LIB SHARED)
 endif()
 
-## libraries provided by arangodb in final version
+###############################################################################
+### extra defines
+################################################################################
+if(WIN32)
+    add_definitions(-DUNICODE -D_UNICODE)
+endif()
+
+set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+
+################################################################################
+### mandatory libraries
+################################################################################
+## exteranl libraries requiered by iresearch
+add_subdirectory(external)
+
 if(IRESEARCH_IN_ARANGO)
     set(Boost_LIBRARIES boost_boost boost_filesystem boost_system boost_locale boost_thread)
     set(ICU_INCLUDES ${ICU_INCLUDE_DIR})
     set(ICU_LIBRARIES ${ICU_LIBS})
+    set(DO_NOT_SYSTEM_LIBS ON)
 else()
     find_package(Boost COMPONENTS filesystem system locale thread REQUIRED)
     find_package(ICU COMPONENTS data i18n io le lx test tu uc REQUIRED)
 endif()
 message(STATUS "Using ICU tagets: ${ICU_LIBRARIES}")
 
-## mandatroy libraries
 set(PTHREAD_LIBRARY pthread)
 find_package(Threads REQUIRED)
-#find_package(Snowball REQUIRED)
-#find_package(Lz4 REQUIRED)
 
-## optional libraries
-find_package(BFD)
-if (BFD_FOUND)
-  add_definitions(-DUSE_LIBBFD)
-  list(APPEND IResearch_extra_libs ${bfd=something=something})
+################################################################################
+### optional libraries
+################################################################################
+# it is possible that the libs are not build PIC what will keep us form linking
+# static code into shared objects
+if(NOT DO_NOT_SYSTEM_LIBS)
+    find_package(BFD)
+    if (BFD_FOUND)
+      add_definitions(-DUSE_LIBBFD)
+      list(APPEND IResearch_extra_libs ${bfd=something=something})
+    endif()
+
+    find_package(Unwind)
+    if (Unwind_FOUND)
+      add_definitions(-DUSE_LIBUNWIND)
+      list(APPEND IResearch_extra_libs ${Unwind_STATIC})
+      message(STATUS "Using UNWIND tagets: ${Unwind_STATIC}")
+    endif()
 endif()
 
-find_package(Unwind REQUIRED)
-if (Unwind_FOUND)
-  add_definitions(-DUSE_LIBUNWIND)
-  list(APPEND IResearch_extra_libs ${Unwind_STATIC})
-  message(STATUS "Using UNWIND tagets: ${Unwind_STATIC}")
-endif()
-
-## extra defines
-if(WIN32)
-    add_definitions(-DUNICODE -D_UNICODE)
-endif()
-set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
-
-## exteranl libraries requiered by iresearch
-add_subdirectory(external)
-
-## iresearch main library
+################################################################################
+### iresearch main library
+################################################################################
 add_library(iresearch ${IRESEARCH_BUILD_LIB} ${iresearch_sources})
 add_dependencies(iresearch
   iresearch-build_identifier
@@ -124,6 +135,8 @@ target_link_libraries(scorer-bm25 iresearch)
 
 ## iresearch utils
 #add_subdirectory(utils)
+
 ## iresearch tests
 #add_subdirectory(tests)
+
 ## iresearch coverage
