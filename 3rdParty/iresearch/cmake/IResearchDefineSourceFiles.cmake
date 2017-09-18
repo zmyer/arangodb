@@ -1,5 +1,4 @@
 set(iresearch_sources
-  ./core/utils/string.cpp
   ./core/analysis/analyzer.cpp
   ./core/analysis/analyzers.cpp
   ./core/analysis/token_attributes.cpp
@@ -7,16 +6,16 @@ set(iresearch_sources
   ./core/analysis/token_streams.cpp
   ./core/document/field.cpp
   ./core/error/error.cpp
-  ./core/formats/formats.cpp
   ./core/formats/format_utils.cpp
+  ./core/formats/formats.cpp
   ./core/formats/skip_list.cpp
   ./core/index/directory_reader.cpp
   ./core/index/field_data.cpp
   ./core/index/field_meta.cpp
   ./core/index/file_names.cpp
   ./core/index/index_meta.cpp
-  ./core/index/index_writer.cpp
   ./core/index/index_reader.cpp
+  ./core/index/index_writer.cpp
   ./core/index/iterators.cpp
   ./core/index/merge_writer.cpp
   ./core/index/postings.cpp
@@ -27,21 +26,21 @@ set(iresearch_sources
   ./core/iql/parser_context.cpp
   ./core/iql/query_builder.cpp
   ./core/search/all_filter.cpp
-  ./core/search/granular_range_filter.cpp
-  ./core/search/scorers.cpp
-  ./core/search/sort.cpp
+  ./core/search/boolean_filter.cpp
+  ./core/search/column_existence_filter.cpp
   ./core/search/cost.cpp
-  ./core/search/score_doc_iterators.cpp
   ./core/search/filter.cpp
-  ./core/search/term_filter.cpp
+  ./core/search/granular_range_filter.cpp
+  ./core/search/phrase_filter.cpp
   ./core/search/prefix_filter.cpp
   ./core/search/range_filter.cpp
-  ./core/search/phrase_filter.cpp
-  ./core/search/column_existence_filter.cpp
-  ./core/search/same_position_filter.cpp
   ./core/search/range_query.cpp
+  ./core/search/same_position_filter.cpp
+  ./core/search/score_doc_iterators.cpp
+  ./core/search/scorers.cpp
+  ./core/search/sort.cpp
+  ./core/search/term_filter.cpp
   ./core/search/term_query.cpp
-  ./core/search/boolean_filter.cpp
   ./core/store/data_input.cpp
   ./core/store/data_output.cpp
   ./core/store/directory.cpp
@@ -54,22 +53,24 @@ set(iresearch_sources
   ./core/utils/attributes.cpp
   ./core/utils/bit_packing.cpp
   ./core/utils/compression.cpp
+  ./core/utils/cpuinfo.cpp
   ./core/utils/directory_utils.cpp
   ./core/utils/file_utils.cpp
   ./core/utils/hash_utils.cpp
   ./core/utils/index_utils.cpp
-  ./core/utils/math_utils.cpp
-  ./core/utils/memory.cpp
-  ./core/utils/version_utils.cpp
-  ./core/utils/utf8_path.cpp
   ./core/utils/locale_utils.cpp
   ./core/utils/log.cpp
-  ./core/utils/unicode_utils.cpp
-  ./core/utils/so_utils.cpp
-  ./core/utils/process_utils.cpp
+  ./core/utils/math_utils.cpp
+  ./core/utils/memory.cpp
   ./core/utils/network_utils.cpp
-  ./core/utils/cpuinfo.cpp
   ./core/utils/numeric_utils.cpp
+  ./core/utils/process_utils.cpp
+  ./core/utils/so_utils.cpp
+  ./core/utils/string.cpp
+  ./core/utils/timer_utils.cpp
+  ./core/utils/unicode_utils.cpp
+  ./core/utils/utf8_path.cpp
+  ./core/utils/version_utils.cpp
 )
 
 

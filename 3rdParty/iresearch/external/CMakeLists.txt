@@ -4,3 +4,7 @@ add_subdirectory(MurmurHash)
 add_subdirectory(cmdline)
 add_subdirectory(stemmer)
 add_subdirectory(lz4)
+
+if(IRESEARCH_TESTS)
+    add_subdirectory(gtest)
+endif()

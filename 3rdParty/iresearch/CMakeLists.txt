@@ -2,13 +2,14 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 project(IResearch CXX)
 set(CMAKE_CXX_STANDARD 11)
 
+set(IRESEARCH_TESTS ON)
+set(IRESEARCH_COVERAGE ON)
+set(IRESEARCH_UTILS ON)
+
 ## TODO
 #  - select if libs and depends should be STATIC / SHARED (configurable)
 #  - runtime should be handled by the project that includes iresearch
 #  - add defines for debugging
-#  - add tests
-#  - add coverage
-#  - provide new findboost
 #  - update build containers
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -29,6 +30,7 @@ endif()
 ################################################################################
 if(WIN32)
     add_definitions(-DUNICODE -D_UNICODE)
+    add_definitions(-D_SCL_SECURE_NO_WARNINGS)
 endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
@@ -105,6 +107,7 @@ target_link_libraries(iresearch PUBLIC
     ${IResearch_extra_libs}
     ${Boost_LIBRARIES}
     ${ICU_LIBRARIES}
+    ${CMAKE_DL_LIBS}
 )
 ################################################################################
 ### iresearch plugins
@@ -133,23 +136,34 @@ add_library(scorer-bm25 STATIC ${scorer-bm25_sources})
 target_include_directories(scorer-bm25 PUBLIC "./core/search")
 target_link_libraries(scorer-bm25 iresearch)
 
-## iresearch utils
-#add_subdirectory(utils)
+################################################################################
+### utils
+################################################################################
+if(IRESEARCH_UTILS)
+    add_subdirectory(utils)
+endif()
 
-## iresearch tests
-#add_subdirectory(tests)
+################################################################################
+### tests
+################################################################################
+if(IRESEARCH_TESTS)
+    add_subdirectory(tests)
+endif()
 
-if (NOT MSVC
+################################################################################
+### coverage
+################################################################################
+if (IRESEARCH_TESTS AND IRESEARCH_COVERAGE AND NOT MSVC
     AND (CMAKE_BUILD_TYPE STREQUAL "Coverage")
     AND (TARGET iresearch-test)
    )
   include(CodeCoverage REQUIRED)
-  
+
   # exclude directories from coverage report
   SET(LCOV_EXCLUDE "external/*;boost/*")
 
   setup_target_for_coverage(
-    iresearch-coverage 
+    iresearch-coverage
     $<TARGET_FILE:iresearch-test>
     coverage
     "--ires_output"
