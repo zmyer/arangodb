@@ -38,8 +38,8 @@ message(STATUS "Using ICU tagets: ${ICU_LIBRARIES}")
 ## mandatroy libraries
 set(PTHREAD_LIBRARY pthread)
 find_package(Threads REQUIRED)
-find_package(Snowball REQUIRED)
-find_package(Lz4 REQUIRED)
+#find_package(Snowball REQUIRED)
+#find_package(Lz4 REQUIRED)
 
 ## optional libraries
 find_package(BFD)
@@ -86,8 +86,10 @@ target_link_libraries(iresearch PUBLIC
     openfst
     murmurhash
     cmdline
-    lz4_static
-    snowball_static
+    #lz4_static
+    lz4
+    #snowball_static
+    stemmer
     rapidjson
     ${IResearch_extra_libs}
     ${Boost_LIBRARIES}
