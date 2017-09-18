@@ -42,11 +42,15 @@ set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 add_subdirectory(external)
 
 if(IRESEARCH_IN_ARANGO)
+    message(STATUS "-- building iresearch as part of ArangoDB")
+    message(STATUS "-- Using Arango boost and icu")
     set(Boost_LIBRARIES boost_boost boost_filesystem boost_system boost_locale boost_thread)
     set(ICU_INCLUDES ${ICU_INCLUDE_DIR})
     set(ICU_LIBRARIES ${ICU_LIBS})
     set(DO_NOT_SYSTEM_LIBS ON)
 else()
+    message(STATUS "-- building iresearch standalone")
+    message(STATUS "-- Using SYSTEM boost and icu")
     find_package(Boost COMPONENTS filesystem system locale thread REQUIRED)
     find_package(ICU COMPONENTS data i18n io le lx test tu uc REQUIRED)
 endif()
@@ -60,7 +64,7 @@ find_package(Threads REQUIRED)
 ################################################################################
 # it is possible that the libs are not build PIC what will keep us form linking
 # static code into shared objects
-if(NOT DO_NOT_SYSTEM_LIBS)
+if(NOT DO_NOT_SYSTEM_LIBS AND FALSE)
     find_package(BFD)
     if (BFD_FOUND)
       add_definitions(-DUSE_LIBBFD)
@@ -85,6 +89,7 @@ add_dependencies(iresearch
 )
 
 if(IRESEARCH_IN_ARANGO)
+    message(status "-- adding dependency to v8_build")
     add_dependencies(iresearch v8_build)
 endif()
 
