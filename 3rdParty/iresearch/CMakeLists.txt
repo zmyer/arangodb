@@ -116,9 +116,7 @@ target_link_libraries(iresearch PUBLIC
     openfst
     murmurhash
     cmdline
-    #lz4_static
     lz4
-    #snowball_static
     stemmer
     rapidjson
     ${IResearch_extra_libs}
