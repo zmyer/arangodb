@@ -1150,6 +1150,14 @@ void RocksDBEngine::createView(TRI_vocbase_t* vocbase, TRI_voc_cid_t id,
   }
 }
 
+// asks the storage engine to persist renaming of a view
+// This will write a renameMarker if not in recovery
+Result RocksDBEngine::renameView(
+    TRI_vocbase_t* vocbase, std::shared_ptr<arangodb::LogicalView> view,
+    std::string const& oldName) {
+  return persistView(vocbase, view.get());
+}
+
 arangodb::Result RocksDBEngine::persistView(
     TRI_vocbase_t* vocbase, arangodb::LogicalView const* logical) {
   auto physical = static_cast<RocksDBView*>(logical->getPhysical());
