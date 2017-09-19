@@ -26,6 +26,7 @@ set(iresearch_sources
   ./core/iql/parser_context.cpp
   ./core/iql/query_builder.cpp
   ./core/search/all_filter.cpp
+  ./core/search/bitset_doc_iterator.cpp
   ./core/search/boolean_filter.cpp
   ./core/search/column_existence_filter.cpp
   ./core/search/cost.cpp
@@ -36,6 +37,7 @@ set(iresearch_sources
   ./core/search/range_filter.cpp
   ./core/search/range_query.cpp
   ./core/search/same_position_filter.cpp
+  ./core/search/score.cpp
   ./core/search/score_doc_iterators.cpp
   ./core/search/scorers.cpp
   ./core/search/sort.cpp
