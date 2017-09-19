@@ -5,4 +5,4 @@ add_library(lz4 STATIC
     lib/lz4hc.c
     lib/xxhash.c
 )
-target_include_directories(lz4 PUBLIC lib)
+target_include_directories(lz4 SYSTEM PUBLIC lib)

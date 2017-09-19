@@ -755,22 +755,7 @@ endif()
 # IResearch
 # ------------------------------------------------------------------------------
 
-set(USE_IRESEARCH ON)
-set(IRESEACH_TESTS OFF)
-
-# 3rdParty exports:
-#
-# V8_VERSION
-# V8_LIBS
-# V8_INCLUDE_DIR
-#
-# ICU_VERSION
-# ICU_LIBS
-# ICU_INCLUDE_DIR
-#
-# ZLIB_VERSION
-# ZLIB_LIBS
-# ZLIB_INCLUDE_DIR
+option (USE_IRESEARCH "make use of the iresearch project" ON)
 add_definitions(-DBOOST_ALL_NO_LIB=1) #disable boost autolink on windows
 add_subdirectory(3rdParty)
 
@@ -868,9 +853,9 @@ include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/3rdParty/curl/curl-7.50.3/include/curl/
 )
 
-#IRESEARCH
 if(USE_IRESEARCH)
     set(IRESEARCH_IN_ARANGO TRUE)
+    set(IRESEACH_TESTS OFF)
     add_subdirectory(3rdParty/iresearch)
     add_definitions("-DUSE_IRESEARCH=1")
 endif()

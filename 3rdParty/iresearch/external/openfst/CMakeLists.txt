@@ -12,4 +12,4 @@ add_library(openfst STATIC
   ./util.cc
 )
 
-target_include_directories(openfst PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(openfst SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

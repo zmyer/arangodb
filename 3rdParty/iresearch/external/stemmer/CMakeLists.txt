@@ -38,8 +38,8 @@ set(snowball_sources
 )
 
 add_library(stemmer STATIC ${snowball_sources})
-target_include_directories(stemmer PUBLIC "libstemmer_c/include")
-target_include_directories(stemmer PUBLIC
+target_include_directories(stemmer SYSTEM PUBLIC "libstemmer_c/include")
+target_include_directories(stemmer SYSTEM PRIVATE
     "libstemmer_c/libstemmer"
     "libstemmer_c/src_c"
     "libstemmer_c/runtime"
