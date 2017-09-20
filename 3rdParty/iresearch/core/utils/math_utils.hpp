@@ -224,30 +224,30 @@ FORCE_INLINE uint64_t log2_ceil_64(uint64_t v) {
   return log2_floor_64(v) + CEIL_EXTRA[is_power2(v)];
 }
 
+template<typename T, int N>
+struct math_traits_imp {};
+
 template<typename T>
-struct math_traits {
-  static size_t clz(T value);
-  static size_t ctz(T value);
-  static size_t pop(T value);
-}; // math_traits 
+struct math_traits_imp<T,4> {
+  typedef T type;
+  static T clz(type value) { return clz32(value); }
+  static T ctz(type value) { return ctz32(value); }
+  static T pop(type value) { return pop32(value); }
+};
 
-template<>
-struct math_traits<uint32_t> {
-  typedef uint32_t type;
+template<typename T>
+struct math_traits_imp<T,8> {
+  typedef T type;
+  static T clz(type value) { return clz64(value); }
+  static T ctz(type value) { return ctz64(value); }
+  static T pop(type value) { return pop64(value); }
+};
 
-  static size_t clz(type value) { return clz32(value); }
-  static size_t ctz(type value) { return ctz32(value); }
-  static size_t pop(type value) { return pop32(value); }
-}; // math_traits
-
-template<>
-struct math_traits<uint64_t> {
-  typedef uint64_t type;
-
-  static size_t clz(type value) { return clz64(value); }
-  static size_t ctz(type value) { return ctz64(value); }
-  static size_t pop(type value) { return pop64(value); }
-}; // math_traits
+template<typename T
+	,typename std::enable_if<std::is_integral<T>::value && std::is_unsigned<T>::value, int>::type = 0
+	>
+struct math_traits : math_traits_imp<T,sizeof(T)>
+{};
 
 NS_END // math
 NS_END // root
