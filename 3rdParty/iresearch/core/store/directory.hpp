@@ -32,7 +32,7 @@ struct IRESEARCH_API index_lock : private util::noncopyable {
   DECLARE_IO_PTR(index_lock, unlock);
   DECLARE_FACTORY(index_lock);
 
-  static const size_t LOCK_WAIT_FOREVER = integer_traits<size_t>::const_max;
+  static const size_t LOCK_WAIT_FOREVER = integer_traits<std::size_t>::const_max;
 
   ////////////////////////////////////////////////////////////////////////////
   /// @brief destructor 

@@ -80,7 +80,7 @@ inline irs::string_ref getStringRef(VPackSlice const& slice) {
 
   TRI_ASSERT(slice.isString());
 
-  size_t size;
+  uint64_t size;
   auto const* str = slice.getString(size);
 
   return irs::string_ref(str, size);

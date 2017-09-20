@@ -17,6 +17,9 @@
 #ifdef _WIN32
   #include <Winsock2.h>
   #pragma comment(lib,"Ws2_32.lib")
+#elif defined(__APPLE__)
+  #include <arpa/inet.h>
+  #include <machine/endian.h>
 #else
   #include <arpa/inet.h>
   #include <endian.h>

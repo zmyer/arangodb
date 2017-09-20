@@ -2963,7 +2963,7 @@ class column
   }
 
   doc_id_t max() const NOEXCEPT { return max_; }
-  virtual doc_id_t size() const NOEXCEPT override { return count_; }
+  virtual size_t size() const NOEXCEPT override { return count_; }
   bool empty() const NOEXCEPT { return 0 == size(); }
   size_t avg_block_size() const NOEXCEPT { return avg_block_size_; }
   size_t avg_block_count() const NOEXCEPT { return avg_block_count_; }
