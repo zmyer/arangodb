@@ -38,7 +38,7 @@ class ViewIterator;
 
 namespace aql {
   class Ast;
-  class AstNode;
+  struct AstNode;
   class SortCondition;
   struct Variable;
 };

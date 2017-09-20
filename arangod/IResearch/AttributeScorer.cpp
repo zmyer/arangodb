@@ -500,12 +500,12 @@ irs::sort::prepared::ptr AttributeScorer::prepare() const {
 
   try {
     auto storedAttr = arangodb::iresearch::attribute::AttributePath::make();
-
-    #ifdef ARANGODB_ENABLE_MAINTAINER_MODE
-      auto* storedAttrPath = dynamic_cast<arangodb::iresearch::attribute::AttributePath*>(storedAttr.get());
-    #else
-      auto* storedAttrPath = static_cast<arangodb::iresearch::attribute::AttributePath*>(storedAttr.get());
-    #endif
+	
+	#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+		auto* storedAttrPath = dynamic_cast<arangodb::iresearch::attribute::AttributePath*>(storedAttr.get());
+	#else
+		auto* storedAttrPath = static_cast<arangodb::iresearch::attribute::AttributePath*>(storedAttr.get());
+	#endif
 
     if (!storedAttrPath) {
       return nullptr; // malloc failure
@@ -528,7 +528,7 @@ irs::sort::prepared::ptr AttributeScorer::prepare() const {
 
     builder.close();
     _storedAttrBuf->emplace_back(std::move(storedAttr));
-    *attr = storedAttrPath;
+	*attr = std::move(storedAttrPath);
   } catch (...) {
     return nullptr; // jSON build failure
   }
