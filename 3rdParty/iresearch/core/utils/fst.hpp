@@ -140,7 +140,7 @@ class fst_builder : util::noncopyable {
       state& s = states_[in.size()];
       assert( s.arcs.size() );
       assert( s.arcs.back().label == in[pref - 1] );
-      s.arcs.back().out == fst::Times( s.arcs.back().out, output );
+      s.arcs.back().out = fst::Times( s.arcs.back().out, output );
     }
 
     last_ = in;

@@ -415,8 +415,8 @@ SECTION("test_writeCustomizedValues") {
 
   overrideAll._boost = 11.;
   overrideAll._fields.clear(); // do not inherit fields to match jSon inheritance
-  overrideAll._fields["x"] = std::move(arangodb::iresearch::IResearchLinkMeta());
-  overrideAll._fields["y"] = std::move(arangodb::iresearch::IResearchLinkMeta());
+  overrideAll._fields["x"] = arangodb::iresearch::IResearchLinkMeta();
+  overrideAll._fields["y"] = arangodb::iresearch::IResearchLinkMeta();
   overrideAll._includeAllFields = false;
   overrideAll._nestListValues = false;
   overrideAll._tokenizers.clear();

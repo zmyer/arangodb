@@ -1142,7 +1142,7 @@ NS_BEGIN(iresearch)
     .field(DocumentPrimaryKey::CID()) // set field
     .term(DocumentPrimaryKey::encode(cid)); // set value
 
-  return std::move(filter);
+  return filter;
 }
 
 /*static*/ irs::filter::ptr FilterFactory::filter(
@@ -1160,7 +1160,7 @@ NS_BEGIN(iresearch)
     .field(DocumentPrimaryKey::RID()) // set field
     .term(DocumentPrimaryKey::encode(rid)); // set value
 
-  return std::move(filter);
+  return filter;
 }
 
 /*static*/ bool FilterFactory::filter(

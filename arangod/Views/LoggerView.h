@@ -89,7 +89,7 @@ class LoggerView final : public ViewImplementation {
   virtual bool supportsFilterCondition(arangodb::aql::AstNode const* node,
                                        arangodb::aql::Variable const* reference,
                                        size_t& estimatedItems,
-                                       double& estimatedCost) const {
+                                       double& estimatedCost) const override {
     return false;
   }
 
@@ -118,7 +118,7 @@ class LoggerView final : public ViewImplementation {
   virtual bool supportsSortCondition(
       arangodb::aql::SortCondition const* sortCondition,
       arangodb::aql::Variable const* reference, double& estimatedCost,
-      size_t& coveredAttributes) const {
+      size_t& coveredAttributes) const override {
     return false;
   }
 
@@ -136,7 +136,7 @@ class LoggerView final : public ViewImplementation {
   //////////////////////////////////////////////////////////////////////////////
   virtual arangodb::aql::AstNode* specializeCondition(
       arangodb::aql::Ast* ast, arangodb::aql::AstNode const* node,
-      arangodb::aql::Variable const* reference) { return nullptr; }
+      arangodb::aql::Variable const* reference) override { return nullptr; }
 
   //////////////////////////////////////////////////////////////////////////////
   /// @brief this method will be called at query execution, when the AQL query
@@ -149,7 +149,7 @@ class LoggerView final : public ViewImplementation {
   virtual ViewIterator* iteratorForCondition(
       transaction::Methods* trx, arangodb::aql::AstNode const* node,
       arangodb::aql::Variable const* reference,
-      arangodb::aql::SortCondition const* sortCondition) {
+      arangodb::aql::SortCondition const* sortCondition) override {
     return nullptr;
   }
 
