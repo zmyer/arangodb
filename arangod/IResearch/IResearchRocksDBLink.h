@@ -46,7 +46,7 @@ class IResearchRocksDBLink final
     transaction::Methods* trx,
     std::vector<std::pair<TRI_voc_rid_t, arangodb::velocypack::Slice>> const& documents,
     std::shared_ptr<arangodb::basics::LocalTaskQueue> queue
-  ) {
+  ) override {
     return IResearchLink::batchInsert(trx, documents, queue);
   }
 

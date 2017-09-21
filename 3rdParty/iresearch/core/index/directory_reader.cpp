@@ -47,16 +47,16 @@ iresearch::index_file_refs::ref_t load_newest_index_meta(
           return nullptr;
         }
 
-        ref = std::move(iresearch::directory_utils::reference(
+        ref = iresearch::directory_utils::reference(
           const_cast<iresearch::directory&>(dir), filename
-        ));
+        );
       }
 
       if (ref) {
         reader->read(dir, meta, *ref);
       }
 
-      return std::move(ref);
+      return ref;
     } catch (...) {
       IR_EXCEPTION();
 
@@ -107,9 +107,9 @@ iresearch::index_file_refs::ref_t load_newest_index_meta(
           break; // try the next codec
         }
 
-        ref = std::move(iresearch::directory_utils::reference(
+        ref = iresearch::directory_utils::reference(
           const_cast<iresearch::directory&>(dir), filename
-        ));
+        );
       }
 
       std::time_t mtime;

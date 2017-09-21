@@ -350,7 +350,7 @@ void compound_term_iterator::add(
     const irs::term_reader& reader,
     const doc_id_map_t& doc_id_map) {
   term_iterator_mask_.emplace_back(term_iterators_.size()); // mark as used to trigger next()
-  term_iterators_.emplace_back(std::move(reader.iterator()), &doc_id_map);
+  term_iterators_.emplace_back(reader.iterator(), &doc_id_map);
 }
 
 bool compound_term_iterator::next() {
@@ -574,7 +574,7 @@ irs::doc_id_t compute_doc_ids(
   } catch (...) {
     IR_FRMT_ERROR(
       "Failed to resize merge_writer::doc_id_map to accommodate element: %lu",
-      reader.docs_count() + irs::type_limits<irs::type_t::doc_id_t>::min()
+      static_cast<unsigned long>(reader.docs_count() + irs::type_limits<irs::type_t::doc_id_t>::min())
     );
     return irs::type_limits<irs::type_t::doc_id_t>::invalid();
   }

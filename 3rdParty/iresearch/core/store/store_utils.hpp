@@ -25,6 +25,7 @@
 #include "utils/attributes.hpp"
 #include "utils/std.hpp"
 
+#include <type_traits>
 #include <unordered_set>
 
 NS_LOCAL
@@ -32,25 +33,22 @@ NS_LOCAL
 using iresearch::data_input;
 using iresearch::data_output;
 
-template<typename T>
-struct read_write_helper {
-  static T read(data_input& in);
-  static T write(data_output& out, T size);
-};
+template<typename T, int N>
+struct read_write_helper_imp {} ;
 
-template<>
-struct read_write_helper<uint32_t> {
-  inline static uint32_t read( data_input& in ) { 
+template<typename T>
+struct read_write_helper_imp<T,4> {
+  inline static T read( data_input& in ) { 
     return in.read_vint();
   }
 
-  inline static void write( data_output& out, uint32_t size ) {
+  inline static void write( data_output& out, T size ) {
     out.write_vint(size);
   }
 };
 
-template<>
-struct read_write_helper<uint64_t> {
+template<typename T>
+struct read_write_helper_imp<T,8> {
   inline static uint64_t read( data_input& in ) {
     return in.read_vlong();
   }
@@ -59,6 +57,13 @@ struct read_write_helper<uint64_t> {
     out.write_vlong(size);
   }
 };
+
+template<typename T
+        ,typename std::enable_if<std::is_integral<T>::value && std::is_unsigned<T>::value
+                                ,int>::type = 0
+        >
+struct read_write_helper : read_write_helper_imp<T,sizeof(T)> {};
+
 
 NS_END // LOCAL
 
@@ -458,7 +463,7 @@ class IRESEARCH_API bytes_ref_input : public index_input {
     reset(ref.c_str(), ref.size());
   }
 
-  virtual ptr dup() const NOEXCEPT {
+  virtual ptr dup() const NOEXCEPT override {
     try {
       return index_input::make<bytes_ref_input>(*this);
     } catch (...) {
@@ -466,7 +471,7 @@ class IRESEARCH_API bytes_ref_input : public index_input {
     }
   }
 
-  virtual ptr reopen() const NOEXCEPT {
+  virtual ptr reopen() const NOEXCEPT override {
     return dup();
   }
 

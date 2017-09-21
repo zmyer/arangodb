@@ -1,7 +1,5 @@
 *.ao
 *.d
-*.1
-*.8
 *.pc
 
 libev/.libs/
@@ -11,3 +9,4 @@ libev/event.lo
 libev/libev.la
 libev/libtool
 libev/stamp-h1
+iresearch-build

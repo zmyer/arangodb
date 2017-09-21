@@ -446,6 +446,10 @@ include(MMFiles/CMakeLists.txt)
 
 add_library(arangoserver STATIC ${ARANGOD_SOURCES} ${MMFILES_SOURCES} ${ROCKSDB_SOURCES})
 
+if(APPLE)
+  set(iconv "-liconv")
+endif()
+
 target_link_libraries(arangoserver
   ${LIB_ARANGO_FE}
   ${LIB_ARANGO_V8}
@@ -458,6 +462,7 @@ target_link_libraries(arangoserver
   boost_boost
   boost_system
   ${SYSTEM_LIBRARIES}
+  ${iconv}
 )
 
 if (USE_ENTERPRISE)

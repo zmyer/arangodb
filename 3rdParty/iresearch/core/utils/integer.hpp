@@ -16,6 +16,7 @@
 
 #include <limits>
 #include <limits.h>
+#include <cstdint>
 
 NS_BEGIN( detail )
 
@@ -74,6 +75,13 @@ template<> struct integer_traits< uint64_t > :
   std::numeric_limits< uint64_t >,
   ::detail::integer_traits_base < uint64_t, uint64_t(0), UINT64_MAX > {
 };
+
+#ifdef __APPLE__
+template<> struct integer_traits<__darwin_size_t> :
+  std::numeric_limits< __darwin_size_t >,
+  ::detail::integer_traits_base < __darwin_size_t, __darwin_size_t(0), ULONG_MAX > {
+};
+#endif
 
 NS_END
 

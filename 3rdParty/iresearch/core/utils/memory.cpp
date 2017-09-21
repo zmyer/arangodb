@@ -11,7 +11,11 @@
 
 #ifndef _MSC_VER
   #include <execinfo.h> // for backtrace(...)
-  #include <malloc.h>
+  #ifndef __APPLE__
+    #include <malloc.h>
+  #else
+    #include <stdlib.h> //mallinfo and malloc_stats missing on mac
+  #endif
 #endif
 
 #include "memory.hpp"
@@ -20,7 +24,7 @@ NS_ROOT
 NS_BEGIN(memory)
 
 void dump_mem_stats_trace() NOEXCEPT {
-  #ifndef _MSC_VER
+  #if !defined(_MSC_VER) && !defined(__APPLE__)
     // ...........................................................................
     // output mallinfo()
     // ...........................................................................
