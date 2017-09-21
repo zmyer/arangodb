@@ -180,12 +180,12 @@ SECTION("test_inheritDefaults") {
   analyzers.start();
 
   defaults._boost = 3.14f;
-  defaults._fields["abc"] = std::move(arangodb::iresearch::IResearchLinkMeta());
+  defaults._fields["abc"] = arangodb::iresearch::IResearchLinkMeta();
   defaults._includeAllFields = true;
   defaults._nestListValues = true;
   defaults._tokenizers.clear();
   defaults._tokenizers.emplace_back(analyzers.ensure("empty"));
-  defaults._fields["abc"]->_fields["xyz"] = std::move(arangodb::iresearch::IResearchLinkMeta());
+  defaults._fields["abc"]->_fields["xyz"] = arangodb::iresearch::IResearchLinkMeta();
 
   auto json = arangodb::velocypack::Parser::fromJson("{}");
   CHECK(true == meta.init(json->slice(), tmpString, defaults));

@@ -362,7 +362,7 @@ class MMFilesEngine final : public StorageEngine {
 
   virtual TRI_voc_tick_t currentTick() const;
   virtual TRI_voc_tick_t releasedTick() const;
-  virtual void releaseTick(TRI_voc_tick_t);
+  virtual void releaseTick(TRI_voc_tick_t) override;
 
  private:
   /// @brief: check the initial markers in a datafile
