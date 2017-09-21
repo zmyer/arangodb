@@ -804,7 +804,7 @@ arangodb::iresearch::IResearchLink* findFirstMatchingLink(
   }
 
   return nullptr;
-}
+  }
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief register a callback to be called after recovery to persist properties
@@ -1987,7 +1987,8 @@ bool IResearchView::linkRegister(IResearchLink& link) {
     return nullptr;
   }
 
-  return std::move(ptr);
+  //move here prevents copy elision
+  return ptr;
 }
 
 size_t IResearchView::memory() const {

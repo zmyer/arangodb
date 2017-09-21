@@ -17,8 +17,9 @@
 NS_ROOT
 NS_BEGIN(numeric_utils)
 
-inline CONSTEXPR bool is_big_endian() { 
-  return *(uint16_t*)"\0\xff" < 0x100; 
+//inline CONSTEXPR bool is_big_endian() { 
+inline bool is_big_endian() { 
+  return *reinterpret_cast<uint16_t const*>("\0\xff") < 0x100; 
 }
 
 IRESEARCH_API const bytes_ref& mini64();

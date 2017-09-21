@@ -167,7 +167,7 @@ byte_type skip_reader::level::read_byte() {
 }
 
 size_t skip_reader::level::read_bytes(byte_type* b, size_t count) {
-  return stream->read_bytes(b, std::min(end - file_pointer(), count));
+  return stream->read_bytes(b, std::min(static_cast<size_t>(end - file_pointer()), count));
 }
 
 index_input::ptr skip_reader::level::reopen() const NOEXCEPT {
