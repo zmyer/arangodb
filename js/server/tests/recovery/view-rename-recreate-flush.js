@@ -71,7 +71,7 @@ function recoverySuite () {
     // / @brief test whether rename and recreate works
     // //////////////////////////////////////////////////////////////////////////////
 
-    testCollectionRenameRecreate: function () {
+    testViewRenameRecreateWithFlush: function () {
       var v, prop;
 
       v = db._view('UnitTestsRecovery1');
