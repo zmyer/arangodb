@@ -105,6 +105,7 @@ struct QueryCacheDatabaseEntry {
   /// @brief store a query result in the database-specific cache
   void store(uint64_t, QueryCacheResultEntry*);
 
+  std::vector<uint64_t> getInvalidationCounters(std::vector<std::string> const&);
   /// @brief invalidate all entries for the given collections in the
   /// database-specific cache
   void invalidate(std::vector<std::string> const&);
@@ -131,8 +132,7 @@ struct QueryCacheDatabaseEntry {
   /// @brief hash table that contains all collection-specific query results
   /// maps from collection names to a set of query results as defined in
   /// _entriesByHash
-  std::unordered_map<std::string, std::unordered_set<uint64_t>>
-      _entriesByCollection;
+  std::unordered_map<std::string, std::tuple<uint64_t,std::unordered_set<uint64_t>>> _entriesByCollection;
 
   /// @brief beginning of linked list of result entries
   QueryCacheResultEntry* _head;
@@ -187,6 +187,7 @@ class QueryCache {
                                std::vector<std::string> const&);
 
   /// @brief invalidate all queries for the given collections
+  std::vector<uint64_t> getInvalidationCounters(TRI_vocbase_t*, std::vector<std::string> const&);
   void invalidate(TRI_vocbase_t*, std::vector<std::string> const&);
 
   /// @brief invalidate all queries for a particular collection
