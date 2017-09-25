@@ -227,8 +227,13 @@ Query::~Query() {
   AqlFeature::unlease();
 }
 
-Result Query::resultStart(){
+Result Query::resultStart(bool checkCache){
   Result rv;
+
+  if (checkCache) {
+    _invaidationCounters = QueryCache::instance()->getInvalidationCounters(_vocbase,this->collectionNames());
+  }
+
   if(! _resultBuilder){
     VPackOptions options = VPackOptions::Defaults;
     options.buildUnindexedArrays = true;
@@ -287,20 +292,24 @@ Result Query::resultAddComplete(AqlItemBlock const& value
   return rv;
 }
 
-Result Query::cacheStore(uint64_t queryHash){
+Result Query::cacheStore(uint64_t queryHash, bool checkCache){
   Result rv;
   TRI_ASSERT(_resultBuilder != nullptr);
   TRI_ASSERT(_resultBuilder->isOpenArray());
   _resultBuilder->close();
   if (_warnings.empty()) {
-    // finally store the generated result in the query cache
-    //LOG_DEVEL << queryHash << " query - store: '" <<  _queryString; // << "' contents: @@@" << _resultBuilder->slice().toJson() << "@@@";
-    auto result = QueryCache::instance()->store(
-        _vocbase, queryHash, _queryString,
-        _resultBuilder, _trx->state()->collectionNames());
+    auto* cache = QueryCache::instance();
 
-    if (result == nullptr) {
-      THROW_ARANGO_EXCEPTION(TRI_ERROR_OUT_OF_MEMORY);
+    if(!checkCache || cache->getInvalidationCounters(_vocbase, this->collectionNames()) == _invaidationCounters){
+      // finally store the generated result in the query cache
+      //LOG_DEVEL << queryHash << " query - store: '" <<  _queryString; // << "' contents: @@@" << _resultBuilder->slice().toJson() << "@@@";
+      auto result = cache->store(
+          _vocbase, queryHash, _queryString,
+          _resultBuilder, _trx->state()->collectionNames());
+
+      if (result == nullptr) {
+        THROW_ARANGO_EXCEPTION(TRI_ERROR_OUT_OF_MEMORY);
+      }
     }
   }
   return rv;
@@ -379,10 +388,18 @@ bool Query::cacheExhausted(){
  return ! _cachedResultIterator->valid();
 }
 
-void Query::cacheCursorReset(){
+Result Query::cacheCursorReset(std::size_t pos){
+  Result rv;
   if (this->cacheEntryAvailable()){
     _cachedResultIterator.reset(new VPackArrayIterator(_cachedResultBuilder->slice()));
+    while (pos--) {
+      _cachedResultIterator->next();
+      if (!_cachedResultIterator->valid()){
+        rv.reset(TRI_ERROR_BAD_PARAMETER, "could not advance cursor to requested position");
+      }
+    }
   }
+  return rv;
 }
 
 

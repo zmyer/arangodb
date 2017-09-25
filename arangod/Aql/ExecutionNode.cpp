@@ -1451,8 +1451,9 @@ SubqueryNode::SubqueryNode(ExecutionPlan* plan,
       _outVariable(Variable::varFromVPack(plan->getAst(), base, "outVariable")) {}
 
 bool SubqueryNode::fakeQueryStringThisNode(std::string& outString) const {
-  outString.append("SU",2);
-  return _subquery->fakeQueryString(outString);
+  return false;
+  //outString.append("SU",2);
+  //return _subquery->fakeQueryString(outString);
 }
 /// @brief toVelocyPack, for SubqueryNode
 void SubqueryNode::toVelocyPackHelper(VPackBuilder& nodes, bool verbose) const {

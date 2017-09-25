@@ -163,7 +163,7 @@ void RestAqlHandler::createQueryFromVelocyPack() {
     if (doCache && !cacheEntryFound && isDBServerInCluster() && query->cacheId()){ // enable caching only for DbServers in Cluster
       TRI_ASSERT(cacheId == query->cacheId());
       //LOG_DEVEL << cacheId << " starting new cache - isDBServer: " << isDBServerInCluster;
-      query->resultStart(); //open cache entry
+      query->resultStart(/*enable cache checking*/ true); //open cache entry
     }
     query.release();
   } catch (...) {
@@ -899,7 +899,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
       } else if (operation == "initialize") {
         if(query->cacheEntryAvailable()){
           answerBuilder.add("error", VPackValue(false));
-          answerBuilder.add("code", VPackValue(static_cast<double>(200)));
+          answerBuilder.add("code", VPackValue(0));
           query->cacheCursorReset();
         } else {
           int res;
@@ -915,18 +915,22 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
             return;
           }
           answerBuilder.add("error", VPackValue(res != TRI_ERROR_NO_ERROR));
-          answerBuilder.add("code", VPackValue(static_cast<double>(res)));
+          answerBuilder.add("code", VPackValue(res));
         }
       } else if (operation == "initializeCursor") {
         auto pos = VelocyPackHelper::getNumericValue<size_t>(querySlice, "pos", 0);
         if(query->cacheEntryAvailable()){
-            if (VelocyPackHelper::getBooleanValue(querySlice, "exhausted", true)) {
-              query->cacheCursorReset();
-            } else {
-              //query->cacheCursorReset(pos);
-            }
-          answerBuilder.add("error", VPackValue(true));
-          answerBuilder.add("code", VPackValue(static_cast<double>(200)));
+          Result rv;
+          if (VelocyPackHelper::getBooleanValue(querySlice, "exhausted", true)) {
+            rv = query->cacheCursorReset();
+          } else {
+            LOG_DEVEL << " #### position pos; " << pos;
+            TRI_ASSERT(false);
+            rv = query->cacheCursorReset(pos);
+          }
+          answerBuilder.add("error", VPackValue(rv.fail()));
+          answerBuilder.add("code", VPackValue(rv.errorNumber()));
+          answerBuilder.add("message", VPackValue(rv.errorMessage()));
         } else {
           std::unique_ptr<AqlItemBlock> items;
           int res;
@@ -936,6 +940,10 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
               res = query->engine()->initializeCursor(nullptr, 0);
             } else {
               items.reset(new AqlItemBlock(query->resourceMonitor(), querySlice.get("items")));
+              if(items || pos){
+                //LOG_DEVEL << "dealing with subquery";
+                query->resultCancel(); //we need to cancel as we are dealing with something that has a subquery
+              }
               res = query->engine()->initializeCursor(items.get(), pos);
             }
           } catch (arangodb::basics::Exception const& ex) {
@@ -948,7 +956,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
             return;
           }
           answerBuilder.add("error", VPackValue(res != TRI_ERROR_NO_ERROR));
-          answerBuilder.add("code", VPackValue(static_cast<double>(res)));
+          answerBuilder.add("code", VPackValue(res));
         }
       } else if (operation == "shutdown") {
         int res = TRI_ERROR_INTERNAL;
@@ -959,7 +967,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
           if(query->cacheBuildingResult()){
             TRI_ASSERT(query->cacheId());
             //LOG_DEVEL << query->cacheId() << " handler - shutdown store";
-            query->cacheStore(query->cacheId());
+            query->cacheStore(query->cacheId(), /*check cache invalidation*/ true);
           }
 
           res = query->engine()->shutdown(
@@ -995,9 +1003,10 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         return;
       }
     } // answerBuilder guard scope
-    //LOG_DEVEL_IF( operation == "getSome") << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
-    //LOG_DEVEL_IF( operation == "getSome") << "get some result: " << answerBuilder.slice().toJson();
-    //LOG_DEVEL_IF( operation == "getSome") << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+    bool pred = true;
+    LOG_DEVEL_IF( pred ) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+    LOG_DEVEL_IF( pred ) << operation; // << ": " << answerBuilder.slice().toJson();
+    LOG_DEVEL_IF( pred ) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
     sendResponse(rest::ResponseCode::OK, answerBuilder.slice(),
                  transactionContext.get());
   } catch (arangodb::basics::Exception const& e) {

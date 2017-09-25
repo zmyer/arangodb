@@ -104,8 +104,8 @@ class Query {
 
   //// Cache Operations
   /// Create and Finalize Cache
-  Result resultStart();
-  Result cacheStore(uint64_t queryHash);
+  Result resultStart(bool checkCache = false);
+  Result cacheStore(uint64_t queryHash, bool checkCache = false);
 
   /// Add Items to Cache
   //Result cacheAdd(VPackSlice const&); //single doc
@@ -128,7 +128,7 @@ public:
   bool   cacheBuildingResult() { if (_resultBuilder){return true;} return false;}
   Result cacheGetOrSkipSomePart(VPackBuilder& builder, bool skip, std::size_t atLeast, std::size_t atMost);
   bool   cacheExhausted();
-  void   cacheCursorReset();
+  Result cacheCursorReset(std::size_t pos = 0);
 
   /// @brief Inject a transaction from outside. Use with care!
   void injectTransaction (transaction::Methods* trx) {
@@ -359,6 +359,7 @@ public:
   std::shared_ptr<arangodb::velocypack::Builder> _cachedResultBuilder;
   std::unique_ptr<velocypack::ArrayIterator> _cachedResultIterator;
   std::string _cachedResultIdString;
+  std::vector<uint64_t> _invaidationCounters;
 
   /// @brief query options
   QueryOptions _queryOptions;
