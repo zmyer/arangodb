@@ -170,8 +170,8 @@ ImportHelper::ImportHelper(ClientFeature const* client,
     _senderThreads.emplace_back(new SenderThread(std::move(http), &_stats));
     _senderThreads.back()->start();
   }
- 
-  // wait until all sender threads are ready 
+
+  // wait until all sender threads are ready
   while (true) {
     uint32_t numReady = 0;
     for (auto const& t : _senderThreads) {
@@ -301,7 +301,7 @@ bool ImportHelper::importDelimited(std::string const& collectionName,
 
   waitForSenders();
   reportProgress(totalLength, totalRead, nextProgress);
-  
+
   _outputBuffer.clear();
   return !_hasError;
 }
@@ -427,7 +427,7 @@ bool ImportHelper::importJson(std::string const& collectionName,
 
   waitForSenders();
   reportProgress(totalLength, totalRead, nextProgress);
-  
+
   MUTEX_LOCKER(guard, _stats._mutex);
   // this is an approximation only. _numberLines is more meaningful for CSV
   // imports
@@ -535,11 +535,11 @@ void ImportHelper::addField(char const* field, size_t fieldLength, size_t row,
       _removeAttributes.find(_columnNames[column]) != _removeAttributes.end()) {
     return;
   }
-  
+
   if (column > 0) {
     _lineBuffer.appendChar(',');
   }
-  
+
   if (_keyColumn == -1 && row == _rowsToSkip && fieldLength == 4 &&
       memcmp(field, "_key", 4) == 0) {
     _keyColumn = column;
@@ -857,7 +857,7 @@ SenderThread* ImportHelper::findSender() {
         return t.get();
       }
     }
-    usleep(100000);
+    usleep(0);
   }
   return nullptr;
 }
@@ -877,7 +877,7 @@ void ImportHelper::waitForSenders() {
     if (numIdle == _senderThreads.size()) {
       return;
     }
-    usleep(10000);
+    usleep(0);
   }
 }
 }
