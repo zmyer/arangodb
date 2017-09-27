@@ -2,7 +2,7 @@
 #
 # arangod        Startup script for the ArangoDB Server
 #
-# chkconfig: - 85 15
+# chkconfig: 2345 85 15
 # description: ArangoDB Server
 # processname: arangod
 # config: /etc/arangodb3/arangod.conf
