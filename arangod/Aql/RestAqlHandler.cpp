@@ -836,26 +836,30 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         } else {
           try {
             if (shardId.empty()) {
-              skipped = query->engine()->skipSome(atLeast, atMost);
+              //dbserver
+              LOG_DEVEL << "DBSERVER";
+              if(query->cacheBuildingResult()){
+                std::unique_ptr<AqlItemBlock> items;
+                items.reset(query->engine()->getSome(atLeast, atMost));
+                if (items.get()){
+                  skipped = items->size();
+                  Result rv = query->resultAddPart(*items);
+                  LOG_DEVEL_IF(rv.fail()) << " ##### DBSERVER ####### "<< rv.errorMessage();
+                  THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
+                }
+              } else {
+                skipped = query->engine()->skipSome(atLeast, atMost);
+              }
             } else {
+              // coordinator
               auto block =
                   static_cast<BlockWithClients*>(query->engine()->root());
               if (block->getPlanNode()->getType() != ExecutionNode::SCATTER &&
                   block->getPlanNode()->getType() != ExecutionNode::DISTRIBUTE) {
                 THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "unexpected node type");
               }
-              if(query->cacheBuildingResult()){
-                std::unique_ptr<AqlItemBlock> items;
-                items.reset(block->getSomeForShard(atLeast, atMost, shardId));
-                if (items.get()){
-                  skipped = items->size();
-                  Result rv = query->resultAddPart(*items);
-                  LOG_DEVEL_IF(rv.fail()) << " ############ "<< rv.errorMessage();
-                  THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
-                }
-              } else {
-                skipped = block->skipSomeForShard(atLeast, atMost, shardId);
-              }
+              skipped = block->skipSomeForShard(atLeast, atMost, shardId);
+
 
             }
           } catch (...) {
@@ -969,24 +973,29 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         try {
 
           if(query->cacheBuildingResult()){
+            LOG_DEVEL << " #####PRIMARY####### ";
+            
             TRI_ASSERT(query->cacheId());
 
             std::unique_ptr<AqlItemBlock> items;
             try {
+              TRI_ASSERT(query);
+              TRI_ASSERT(query->engine());
               if(query->engine()->hasMore()){
+                LOG_DEVEL << "has more!";
                 auto n = query->engine()->remaining();
                 LOG_DEVEL << "adding " << n << "items in shutdown";
                 items.reset(query->engine()->getSome(n,n));
               }
             } catch (std::exception& e){
-              LOG_DEVEL << " ############ "<< e.what();
+              LOG_DEVEL << " ####failed to get remianing######## "<< e.what();
             } catch (...) {
-              LOG_DEVEL << " ############ unknown error";
+              LOG_DEVEL << " #####failed to get remaining####### unknown error";
             }
 
             if (items.get()){
               Result rv = query->resultAddPart(*items);
-              LOG_DEVEL_IF(rv.fail()) << " ############ "<< rv.errorMessage();
+              LOG_DEVEL_IF(rv.fail()) << " ######failed to add result ###### "<< rv.errorMessage();
               THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
             }
             
@@ -1027,8 +1036,8 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         return;
       }
     } // answerBuilder guard scope
-    bool pred = true;
-    bool borders = true;
+    bool pred = false;
+    bool borders = pred && true;
     LOG_DEVEL_IF( borders ) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
     LOG_DEVEL_IF( pred ) << operation  << ": " << answerBuilder.slice().toJson();
     LOG_DEVEL_IF( borders ) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";

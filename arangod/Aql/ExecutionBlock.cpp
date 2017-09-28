@@ -367,6 +367,7 @@ bool ExecutionBlock::hasMore() {
   if (!_buffer.empty()) {
     return true;
   }
+  LOG_DEVEL << "get block";
   if (getBlock(DefaultBatchSize(), DefaultBatchSize())) {
     _pos = 0;
     return true;
