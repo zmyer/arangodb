@@ -1,0 +1,2078 @@
+{"id":"5050002","name":"s4050104","isSystem":false,"doCompact":true,"isVolatile":false,"journalSize":33554432,"keyOptions":{"type":"traditional","allowUserKeys":true,"lastValue":4050204},"waitForSync":false,"indexBuckets":8,"count":100,"status":3,"type":2,"error":false,"code":200}
+#
+T ::1:coordinator -> ::1:primary [AP]
+POST /_db/_system/_api/aql/instantiate HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+X-Arango-Nolock: s4050104.
+x-arango-hlc: _VqHzZ0O---.
+Content-Length: 1469.
+Expect: 100-continue.
+.
+
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 100 (Continue).
+.
+
+#
+T ::1:coordinator -> ::1:primary [AP]
+{"fakeQueryString":"ECUnitTestsAhuacatlOptimizerLimitcS","options":{"allPlans":false,"allowImplicitCollections":true,"cache":false,"count":true,"failOnWarning":false,"fullCount":false,"intermediateCommitCount":1000000,"intermediateCommitSize":536870912,"literalSizeThreshold":-1,"lockTimeout":900,"maxNumberOfPlans":0,"maxTransactionSize":18446744073709551615,"maxWarningCount":10,"memoryLimit":0,"optimizer":{"inspectSimplePlans":true,"rules":["-all"]},"profile":false,"satelliteSyncWait":60,"silent":false,"tracing":0,"verboseErrors":false,"verbosePlans":false,"waitForSync":false},"part":"main","plan":{"collections":[{"name":"s4050104","type":"read"}],"initialize":false,"nodes":[{"dependencies":[],"depth":0,"estimatedCost":1,"estimatedNrItems":1,"id":1,"nrRegs":[0,1],"nrRegsHere":[0,1],"parents":[2],"regsToClear":[],"totalNrRegs":1,"type":"SingletonNode","typeID":1,"varInfoList":[{"RegisterId":0,"VariableId":0,"depth":1}],"varsUsedLater":[{"id":0,"name":"c"}],"varsValid":[]},{"collection":"s4050104","database":"_system","dependencies":[1],"depth":1,"estimatedCost":102,"estimatedNrItems":100,"id":2,"nrRegs":[0,1],"nrRegsHere":[0,1],"outVariable":{"id":0,"name":"c"},"parents":[],"random":false,"regsToClear":[],"satellite":false,"totalNrRegs":1,"type":"EnumerateCollectionNode","typeID":2,"varInfoList":[{"RegisterId":0,"VariableId":0,"depth":1}],"varsUsedLater":[{"id":0,"name":"c"}],"varsValid":[{"id":0,"name":"c"}]}],"variables":[{"id":0,"name":"c"}]}}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 202 Accepted.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 31.
+.
+{"queryId":"5053004","ttl":600}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/lock/5053004 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ0O--_.
+Content-Length: 2.
+.
+{}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/initialize/5053004 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ0S---.
+Content-Length: 2.
+.
+{}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/initializeCursor/5053004 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ0S--_.
+Content-Length: 32.
+.
+{"exhausted":true,"error":false}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/getSome/5053004 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ0W---.
+Content-Length: 26.
+.
+{"atLeast":1,"atMost":500}
+###
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 10175.
+.
+{"nrItems":100,"nrRegs":1,"error":false,"exhausted":false,"data":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"raw":[null,null,{"_key":"4050137","_i ....]}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/getSome/5053004 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ3C---.
+Content-Length: 26.
+.
+{"atLeast":1,"atMost":400}
+##
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 32.
+.
+{"exhausted":true,"error":false}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/shutdown/5053004 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ3C--_.
+Content-Length: 10.
+.
+{"code":0}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 172.
+.
+{"stats":{"writesExecuted":0,"writesIgnored":0,"scannedFull":100,"scannedIndex":0,"filtered":0,"httpRequests":0,"executionTime":0.04552292823791504},"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+GET /_db/_system/_api/collection/s4050104/count HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ3O---.
+.
+
+
+
+
+
+T ::1:coordinator -> ::1:primary [AP]
+POST /_db/_system/_api/aql/instantiate HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+X-Arango-Nolock: s4050104.
+x-arango-hlc: _VqHzZ3a---.
+Content-Length: 1469.
+Expect: 100-continue.
+.
+
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 100 (Continue).
+.
+
+#
+T ::1:coordinator -> ::1:primary [AP]
+{"fakeQueryString":"ECUnitTestsAhuacatlOptimizerLimitcS","options":{"allPlans":false,"allowImplicitCollections":true,"cache":false,"count":true,"failOnWarning":false,"fullCount":false,"intermediateCommitCount":1000000,"intermediateCommitSize":536870912,"literalSizeThreshold":-1,"lockTimeout":900,"maxNumberOfPlans":0,"maxTransactionSize":18446744073709551615,"maxWarningCount":10,"memoryLimit":0,"optimizer":{"inspectSimplePlans":true,"rules":["-all"]},"profile":false,"satelliteSyncWait":60,"silent":false,"tracing":0,"verboseErrors":false,"verbosePlans":false,"waitForSync":false},"part":"main","plan":{"collections":[{"name":"s4050104","type":"read"}],"initialize":false,"nodes":[{"dependencies":[],"depth":0,"estimatedCost":1,"estimatedNrItems":1,"id":1,"nrRegs":[0,1],"nrRegsHere":[0,1],"parents":[2],"regsToClear":[],"totalNrRegs":1,"type":"SingletonNode","typeID":1,"varInfoList":[{"RegisterId":0,"VariableId":0,"depth":1}],"varsUsedLater":[{"id":0,"name":"c"}],"varsValid":[]},{"collection":"s4050104","database":"_system","dependencies":[1],"depth":1,"estimatedCost":102,"estimatedNrItems":100,"id":2,"nrRegs":[0,1],"nrRegsHere":[0,1],"outVariable":{"id":0,"name":"c"},"parents":[],"random":false,"regsToClear":[],"satellite":false,"totalNrRegs":1,"type":"EnumerateCollectionNode","typeID":2,"varInfoList":[{"RegisterId":0,"VariableId":0,"depth":1}],"varsUsedLater":[{"id":0,"name":"c"}],"varsValid":[{"id":0,"name":"c"}]}],"variables":[{"id":0,"name":"c"}]}}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 202 Accepted.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 31.
+.
+{"queryId":"5053010","ttl":600}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/lock/5053010 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ3a--_.
+Content-Length: 2.
+.
+{}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/initialize/5053010 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ3e---.
+Content-Length: 2.
+.
+{}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/initializeCursor/5053010 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ3i---.
+Content-Length: 32.
+.
+{"exhausted":true,"error":false}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 37.
+.
+{"error":false,"code":0,"message":""}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/getSome/5053010 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ3i--_.
+Content-Length: 25.
+.
+{"atLeast":1,"atMost":50}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 5140.
+.
+{"nrItems":50,"nrRegs":1,"error":false,"exhausted":false,"data":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"raw":[null,null,{"_key":"4050137","_id":"UnitTestsAhuacatlOptimizerLimit/4050137","_rev":"_VqHzZyq--A","value":32},{"_key":"4050172","_id":"Un .... ],"cached":true}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/shutdown/5053010 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ3u---.
+Content-Length: 10.
+.
+{"code":0}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 171.
+.
+{"stats":{"writesExecuted":0,"writesIgnored":0,"scannedFull":0,"scannedIndex":0,"filtered":0,"httpRequests":0,"executionTime":0.004795074462890625},"error":false,"code":0}
+
+
+#
+T ::1:coordinator -> ::1:primary [AP]
+POST /_db/_system/_api/aql/instantiate HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+X-Arango-Nolock: s4050104.
+x-arango-hlc: _VqHzZ36---.
+Content-Length: 1469.
+Expect: 100-continue.
+.
+
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 100 (Continue).
+.
+
+#
+T ::1:coordinator -> ::1:primary [AP]
+{"fakeQueryString":"ECUnitTestsAhuacatlOptimizerLimitcS","options":{"allPlans":false,"allowImplicitCollections":true,"cache":false,"count":true,"failOnWarning":false,"fullCount":false,"intermediateCommitCount":1000000,"intermediateCommitSize":536870912,"literalSizeThreshold":-1,"lockTimeout":900,"maxNumberOfPlans":0,"maxTransactionSize":18446744073709551615,"maxWarningCount":10,"memoryLimit":0,"optimizer":{"inspectSimplePlans":true,"rules":["-all"]},"profile":false,"satelliteSyncWait":60,"silent":false,"tracing":0,"verboseErrors":false,"verbosePlans":false,"waitForSync":false},"part":"main","plan":{"collections":[{"name":"s4050104","type":"read"}],"initialize":false,"nodes":[{"dependencies":[],"depth":0,"estimatedCost":1,"estimatedNrItems":1,"id":1,"nrRegs":[0,1],"nrRegsHere":[0,1],"parents":[2],"regsToClear":[],"totalNrRegs":1,"type":"SingletonNode","typeID":1,"varInfoList":[{"RegisterId":0,"VariableId":0,"depth":1}],"varsUsedLater":[{"id":0,"name":"c"}],"varsValid":[]},{"collection":"s4050104","database":"_system","dependencies":[1],"depth":1,"estimatedCost":102,"estimatedNrItems":100,"id":2,"nrRegs":[0,1],"nrRegsHere":[0,1],"outVariable":{"id":0,"name":"c"},"parents":[],"random":false,"regsToClear":[],"satellite":false,"totalNrRegs":1,"type":"EnumerateCollectionNode","typeID":2,"varInfoList":[{"RegisterId":0,"VariableId":0,"depth":1}],"varsUsedLater":[{"id":0,"name":"c"}],"varsValid":[{"id":0,"name":"c"}]}],"variables":[{"id":0,"name":"c"}]}}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 202 Accepted.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 31.
+.
+{"queryId":"5053016","ttl":600}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/lock/5053016 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4----.
+Content-Length: 2.
+.
+{}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/initialize/5053016 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4---_.
+Content-Length: 2.
+.
+{}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/initializeCursor/5053016 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4C---.
+Content-Length: 32.
+.
+{"exhausted":true,"error":false}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 37.
+.
+{"error":false,"code":0,"message":""}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/getSome/5053016 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4G---.
+Content-Length: 24.
+.
+{"atLeast":1,"atMost":5}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 602.
+.
+{"nrItems":5,"nrRegs":1,"error":false,"exhausted":false,"data":[1,1,1,1,1],"raw":[null,null,{"_key":"4050137","_id":"UnitTestsAhuacatlOptimizerLimit/4050137","_rev":"_VqHzZyq--A","value":32},{"_key":"4050172","_id":"UnitTestsAhuacatlOptimizerLimit/4050172","_rev":"_VqHzZza--A","value":67},{"_key":"4050121","_id":"UnitTestsAhuacatlOptimizerLimit/4050121","_rev":"_VqHzZyK--_","value":16},{"_key":"4050127","_id":"UnitTestsAhuacatlOptimizerLimit/4050127","_rev":"_VqHzZyS--D","value":22},{"_key":"4050171","_id":"UnitTestsAhuacatlOptimizerLimit/4050171","_rev":"_VqHzZzW--F","value":66}],"cached":true}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/shutdown/5053016 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4G--_.
+Content-Length: 10.
+.
+{"code":0}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 171.
+.
+{"stats":{"writesExecuted":0,"writesIgnored":0,"scannedFull":0,"scannedIndex":0,"filtered":0,"httpRequests":0,"executionTime":0.003031015396118164},"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+GET /_db/_system/_api/collection/s4050104/count HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4K---.
+.
+
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Location: /_db/_system/_api/collection/s4050104/count.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 281.
+.
+{"id":"5050002","name":"s4050104","isSystem":false,"doCompact":true,"isVolatile":false,"journalSize":33554432,"keyOptions":{"type":"traditional","allowUserKeys":true,"lastValue":4050204},"waitForSync":false,"indexBuckets":8,"count":100,"status":3,"type":2,"error":false,"code":200}
+#
+T ::1:coordinator -> ::1:primary [AP]
+GET /_db/_system/_api/collection/s4050104/count HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4S---.
+.
+
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Location: /_db/_system/_api/collection/s4050104/count.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 281.
+.
+{"id":"5050002","name":"s4050104","isSystem":false,"doCompact":true,"isVolatile":false,"journalSize":33554432,"keyOptions":{"type":"traditional","allowUserKeys":true,"lastValue":4050204},"waitForSync":false,"indexBuckets":8,"count":100,"status":3,"type":2,"error":false,"code":200}
+#
+T ::1:coordinator -> ::1:primary [AP]
+POST /_db/_system/_api/aql/instantiate HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+X-Arango-Nolock: s4050104.
+x-arango-hlc: _VqHzZ4W---.
+Content-Length: 1469.
+Expect: 100-continue.
+.
+
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 100 (Continue).
+.
+
+#
+T ::1:coordinator -> ::1:primary [AP]
+{"fakeQueryString":"ECUnitTestsAhuacatlOptimizerLimitcS","options":{"allPlans":false,"allowImplicitCollections":true,"cache":false,"count":true,"failOnWarning":false,"fullCount":false,"intermediateCommitCount":1000000,"intermediateCommitSize":536870912,"literalSizeThreshold":-1,"lockTimeout":900,"maxNumberOfPlans":0,"maxTransactionSize":18446744073709551615,"maxWarningCount":10,"memoryLimit":0,"optimizer":{"inspectSimplePlans":true,"rules":["-all"]},"profile":false,"satelliteSyncWait":60,"silent":false,"tracing":0,"verboseErrors":false,"verbosePlans":false,"waitForSync":false},"part":"main","plan":{"collections":[{"name":"s4050104","type":"read"}],"initialize":false,"nodes":[{"dependencies":[],"depth":0,"estimatedCost":1,"estimatedNrItems":1,"id":1,"nrRegs":[0,1],"nrRegsHere":[0,1],"parents":[2],"regsToClear":[],"totalNrRegs":1,"type":"SingletonNode","typeID":1,"varInfoList":[{"RegisterId":0,"VariableId":0,"depth":1}],"varsUsedLater":[{"id":0,"name":"c"}],"varsValid":[]},{"collection":"s4050104","database":"_system","dependencies":[1],"depth":1,"estimatedCost":102,"estimatedNrItems":100,"id":2,"nrRegs":[0,1],"nrRegsHere":[0,1],"outVariable":{"id":0,"name":"c"},"parents":[],"random":false,"regsToClear":[],"satellite":false,"totalNrRegs":1,"type":"EnumerateCollectionNode","typeID":2,"varInfoList":[{"RegisterId":0,"VariableId":0,"depth":1}],"varsUsedLater":[{"id":0,"name":"c"}],"varsValid":[{"id":0,"name":"c"}]}],"variables":[{"id":0,"name":"c"}]}}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 202 Accepted.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 31.
+.
+{"queryId":"5053022","ttl":600}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/lock/5053022 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4W--_.
+Content-Length: 2.
+.
+{}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/initialize/5053022 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4a---.
+Content-Length: 2.
+.
+{}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/initializeCursor/5053022 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4a--_.
+Content-Length: 32.
+.
+{"exhausted":true,"error":false}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 37.
+.
+{"error":false,"code":0,"message":""}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/getSome/5053022 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4a--A.
+Content-Length: 24.
+.
+{"atLeast":1,"atMost":1}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 198.
+.
+{"nrItems":1,"nrRegs":1,"error":false,"exhausted":false,"data":[1],"raw":[null,null,{"_key":"4050137","_id":"UnitTestsAhuacatlOptimizerLimit/4050137","_rev":"_VqHzZyq--A","value":32}],"cached":true}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/shutdown/5053022 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4e---.
+Content-Length: 10.
+.
+{"code":0}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 172.
+.
+{"stats":{"writesExecuted":0,"writesIgnored":0,"scannedFull":0,"scannedIndex":0,"filtered":0,"httpRequests":0,"executionTime":0.0023741722106933594},"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+GET /_db/_system/_api/collection/s4050104/count HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4i---.
+.
+
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Location: /_db/_system/_api/collection/s4050104/count.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 281.
+.
+{"id":"5050002","name":"s4050104","isSystem":false,"doCompact":true,"isVolatile":false,"journalSize":33554432,"keyOptions":{"type":"traditional","allowUserKeys":true,"lastValue":4050204},"waitForSync":false,"indexBuckets":8,"count":100,"status":3,"type":2,"error":false,"code":200}
+#
+T ::1:coordinator -> ::1:primary [AP]
+GET /_db/_system/_api/collection/s4050104/count HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4q---.
+.
+
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Location: /_db/_system/_api/collection/s4050104/count.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 281.
+.
+{"id":"5050002","name":"s4050104","isSystem":false,"doCompact":true,"isVolatile":false,"journalSize":33554432,"keyOptions":{"type":"traditional","allowUserKeys":true,"lastValue":4050204},"waitForSync":false,"indexBuckets":8,"count":100,"status":3,"type":2,"error":false,"code":200}
+#
+T ::1:coordinator -> ::1:primary [AP]
+POST /_db/_system/_api/aql/instantiate HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+X-Arango-Nolock: s4050104.
+x-arango-hlc: _VqHzZ4u---.
+Content-Length: 1469.
+Expect: 100-continue.
+.
+
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 100 (Continue).
+.
+
+#
+T ::1:coordinator -> ::1:primary [AP]
+{"fakeQueryString":"ECUnitTestsAhuacatlOptimizerLimitcS","options":{"allPlans":false,"allowImplicitCollections":true,"cache":false,"count":true,"failOnWarning":false,"fullCount":false,"intermediateCommitCount":1000000,"intermediateCommitSize":536870912,"literalSizeThreshold":-1,"lockTimeout":900,"maxNumberOfPlans":0,"maxTransactionSize":18446744073709551615,"maxWarningCount":10,"memoryLimit":0,"optimizer":{"inspectSimplePlans":true,"rules":["-all"]},"profile":false,"satelliteSyncWait":60,"silent":false,"tracing":0,"verboseErrors":false,"verbosePlans":false,"waitForSync":false},"part":"main","plan":{"collections":[{"name":"s4050104","type":"read"}],"initialize":false,"nodes":[{"dependencies":[],"depth":0,"estimatedCost":1,"estimatedNrItems":1,"id":1,"nrRegs":[0,1],"nrRegsHere":[0,1],"parents":[2],"regsToClear":[],"totalNrRegs":1,"type":"SingletonNode","typeID":1,"varInfoList":[{"RegisterId":0,"VariableId":0,"depth":1}],"varsUsedLater":[{"id":0,"name":"c"}],"varsValid":[]},{"collection":"s4050104","database":"_system","dependencies":[1],"depth":1,"estimatedCost":102,"estimatedNrItems":100,"id":2,"nrRegs":[0,1],"nrRegsHere":[0,1],"outVariable":{"id":0,"name":"c"},"parents":[],"random":false,"regsToClear":[],"satellite":false,"totalNrRegs":1,"type":"EnumerateCollectionNode","typeID":2,"varInfoList":[{"RegisterId":0,"VariableId":0,"depth":1}],"varsUsedLater":[{"id":0,"name":"c"}],"varsValid":[{"id":0,"name":"c"}]}],"variables":[{"id":0,"name":"c"}]}}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 202 Accepted.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 31.
+.
+{"queryId":"5053028","ttl":600}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/lock/5053028 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4u--_.
+Content-Length: 2.
+.
+{}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/initialize/5053028 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ4y---.
+Content-Length: 2.
+.
+{}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 24.
+.
+{"error":false,"code":0}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/initializeCursor/5053028 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ42---.
+Content-Length: 32.
+.
+{"exhausted":true,"error":false}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 37.
+.
+{"error":false,"code":0,"message":""}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/skipSome/5053028 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ42--_.
+Content-Length: 24.
+.
+{"atLeast":1,"atMost":1}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 47.
+.
+{"error":false,"exhausted":false,"cached":true}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PUT /_db/_system/_api/aql/shutdown/5053028 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ46---.
+Content-Length: 10.
+.
+{"code":0}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 172.
+.
+{"stats":{"writesExecuted":0,"writesIgnored":0,"scannedFull":0,"scannedIndex":0,"filtered":0,"httpRequests":0,"executionTime":0.0031201839447021484},"error":false,"code":0}
+#
+T ::1:42282 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 17.
+.
+[["arango/Plan"]]
+#
+T ::1:28356 -> ::1:42282 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 8869.
+.
+[{"arango":{"Plan":{"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Collections":{"_system":{"1010008":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_routing","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010009":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010008","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010015":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statisticsRaw","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010016":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010015","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010024":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_frontend","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010025":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010024","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010013":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_aqlfunctions","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010014":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010013","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010026":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_queues","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010027":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010026","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010028":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_jobs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}],"statusString":"loaded","shards":{"s1010029":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010028","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":2097152,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010006":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_modules","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010007":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010006","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010001":{"shards":{"s1010002":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"shardKeys":["_key"],"replicationFactor":2,"path":"","statusString":"loaded","deleted":false,"indexBuckets":8,"type":2,"status":3,"waitForSync":false,"id":"1010001","isSmart":false,"name":"_graphs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"doCompact":true,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true},"numberOfShards":1},"1010038":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_appbundles","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010039":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010038","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"4050103":{"shards":{"s4050104":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"shardKeys":["_key"],"replicationFactor":1,"path":"","statusString":"loaded","deleted":false,"indexBuckets":8,"type":2,"status":3,"waitForSync":false,"id":"4050103","isSmart":false,"name":"UnitTestsAhuacatlOptimizerLimit","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"doCompact":true,"isSystem":false,"isVolatile":false,"journalSize":33554432,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true},"numberOfShards":1},"1010032":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_apps","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010033":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010032","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010021":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics15","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010022":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010021","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010018":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010019":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010018","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010003":{"shardKeys":["user"],"replicationFactor":1,"path":"","name":"_users","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010004":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010003","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}}}},"Version":24,"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Databases":{"_system":{"id":"1","name":"_system"}}}}}]
+#
+T ::1:42282 -> ::1:28356 [AP]
+POST /_api/agency/write HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 176.
+.
+[[{"arango/Current/Collections/_system/4050103":{"op":"observe","url":"http://[::1]:coordinator/_api/agency/agency-callbacks/1687946635"}},{},"aec2aa4b-3229-4287-aaba-c23593879432"]]
+#
+T ::1:28356 -> ::1:42282 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 17.
+.
+{"results":[235]}
+#
+T ::1:42282 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 52.
+.
+[["arango/Plan/Collections/_system/4050103/shards"]]
+#
+T ::1:28356 -> ::1:42282 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 131.
+.
+[{"arango":{"Plan":{"Collections":{"_system":{"4050103":{"shards":{"s4050104":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]}}}}}}}]
+#
+T ::1:42282 -> ::1:28356 [AP]
+POST /_api/agency/write HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 196.
+.
+[[{"arango/Plan/Collections/_system/4050103":{"op":"delete"},"arango/Plan/Version":{"op":"increment"}},{"arango/Plan/Databases/_system":{"oldEmpty":false}},"73e25020-4568-4b7e-9245-879769694c8c"]]
+#
+T ::1:52394 -> ::1:primary [AP]
+POST /_api/agency/agency-callbacks/2129447483 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: AGENT-d02a8e1e-0d82-4b6e-9476-adf58dc7fcef.
+x-arango-hlc: _VqHzZ5a--_.
+Content-Length: 128.
+.
+{
+  "/arango/Plan/Version" : {
+    "arango/Plan/Version" : {
+      "op" : "increment"
+    }
+  },
+  "index" : 235,
+  "term" : 0
+}
+#
+T ::1:28356 -> ::1:42282 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 17.
+.
+{"results":[236]}
+#
+T ::1:primary -> ::1:52394 [AP]
+HTTP/1.1 404 Not Found.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: text/plain; charset=utf-8.
+Content-Length: 0.
+.
+
+#
+T ::1:42282 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 17.
+.
+[["arango/Plan"]]
+##
+T ::1:52396 -> ::1:primary [AP]
+POST /_api/agency/agency-callbacks/3023191392 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: AGENT-d02a8e1e-0d82-4b6e-9476-adf58dc7fcef.
+x-arango-hlc: _VqHzZ5a--A.
+Content-Length: 128.
+.
+{
+  "/arango/Plan/Version" : {
+    "arango/Plan/Version" : {
+      "op" : "increment"
+    }
+  },
+  "index" : 235,
+  "term" : 0
+}
+#
+T ::1:54652 -> ::1:primary [AP]
+POST /_api/agency/agency-callbacks/3870284841 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: AGENT-d02a8e1e-0d82-4b6e-9476-adf58dc7fcef.
+x-arango-hlc: _VqHzZ5a--B.
+Content-Length: 128.
+.
+{
+  "/arango/Plan/Version" : {
+    "arango/Plan/Version" : {
+      "op" : "increment"
+    }
+  },
+  "index" : 235,
+  "term" : 0
+}
+#
+T ::1:primary -> ::1:52396 [AP]
+HTTP/1.1 404 Not Found.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: text/plain; charset=utf-8.
+Content-Length: 0.
+.
+
+##
+T ::1:54654 -> ::1:primary [AP]
+POST /_api/agency/agency-callbacks/4173963397 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: AGENT-d02a8e1e-0d82-4b6e-9476-adf58dc7fcef.
+x-arango-hlc: _VqHzZ5a--C.
+Content-Length: 128.
+.
+{
+  "/arango/Plan/Version" : {
+    "arango/Plan/Version" : {
+      "op" : "increment"
+    }
+  },
+  "index" : 235,
+  "term" : 0
+}
+#
+T ::1:primary -> ::1:54652 [AP]
+HTTP/1.1 404 Not Found.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: text/plain; charset=utf-8.
+Content-Length: 0.
+.
+
+##
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 25.
+.
+[["arango/Plan/Version"]]
+####
+T ::1:54658 -> ::1:primary [AP]
+POST /_api/agency/agency-callbacks/4226035939 HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: AGENT-d02a8e1e-0d82-4b6e-9476-adf58dc7fcef.
+x-arango-hlc: _VqHzZ5a--D.
+Content-Length: 128.
+.
+{
+  "/arango/Plan/Version" : {
+    "arango/Plan/Version" : {
+      "op" : "increment"
+    }
+  },
+  "index" : 235,
+  "term" : 0
+}
+##
+T ::1:primary -> ::1:54658 [AP]
+HTTP/1.1 404 Not Found.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: text/plain; charset=utf-8.
+Content-Length: 0.
+.
+
+##
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 36.
+.
+[{"arango":{"Plan":{"Version":25}}}]
+#
+T ::1:28356 -> ::1:42282 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 8314.
+.
+[{"arango":{"Plan":{"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Collections":{"_system":{"1010008":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_routing","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010009":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010008","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010015":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statisticsRaw","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010016":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010015","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010024":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_frontend","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010025":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010024","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010013":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_aqlfunctions","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010014":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010013","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010026":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_queues","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010027":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010026","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010028":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_jobs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}],"statusString":"loaded","shards":{"s1010029":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010028","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":2097152,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010006":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_modules","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010007":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010006","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010032":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_apps","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010033":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010032","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010038":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_appbundles","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010039":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010038","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010021":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics15","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010022":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010021","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010018":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010019":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010018","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010001":{"shards":{"s1010002":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"shardKeys":["_key"],"replicationFactor":2,"path":"","statusString":"loaded","deleted":false,"indexBuckets":8,"type":2,"status":3,"waitForSync":false,"id":"1010001","isSmart":false,"name":"_graphs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"doCompact":true,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true},"numberOfShards":1},"1010003":{"shardKeys":["user"],"replicationFactor":1,"path":"","name":"_users","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010004":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010003","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}}}},"Version":25,"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Databases":{"_system":{"id":"1","name":"_system"}}}}}]
+##
+T ::1:primary -> ::1:54654 [AP]
+HTTP/1.1 202 Accepted.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: text/plain; charset=utf-8.
+Content-Length: 0.
+.
+
+##
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 17.
+.
+[["arango/Plan"]]
+####
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 8314.
+.
+[{"arango":{"Plan":{"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Collections":{"_system":{"1010008":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_routing","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010009":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010008","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010015":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statisticsRaw","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010016":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010015","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010024":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_frontend","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010025":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010024","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010013":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_aqlfunctions","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010014":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010013","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010026":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_queues","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010027":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010026","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010028":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_jobs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}],"statusString":"loaded","shards":{"s1010029":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010028","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":2097152,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010006":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_modules","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010007":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010006","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010032":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_apps","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010033":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010032","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010038":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_appbundles","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010039":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010038","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010021":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics15","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010022":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010021","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010018":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010019":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010018","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010001":{"shards":{"s1010002":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"shardKeys":["_key"],"replicationFactor":2,"path":"","statusString":"loaded","deleted":false,"indexBuckets":8,"type":2,"status":3,"waitForSync":false,"id":"1010001","isSmart":false,"name":"_graphs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"doCompact":true,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true},"numberOfShards":1},"1010003":{"shardKeys":["user"],"replicationFactor":1,"path":"","name":"_users","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010004":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010003","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}}}},"Version":25,"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Databases":{"_system":{"id":"1","name":"_system"}}}}}]
+####
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/write HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 121.
+.
+[[{"/arango/Current/Collections/_system/4050103/s4050104":{"op":"delete"},"/arango/Current/Version":{"op":"increment"}}]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 17.
+.
+{"results":[237]}
+#####
+T ::1:60960 -> ::1:coordinator [AP]
+POST /_api/agency/agency-callbacks/1687946635 HTTP/1.1.
+Host: [::1]:coordinator.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: AGENT-d02a8e1e-0d82-4b6e-9476-adf58dc7fcef.
+x-arango-hlc: _VqHzZ9S--_.
+Content-Length: 181.
+.
+{
+  "/arango/Current/Collections/_system/4050103" : {
+    "/arango/Current/Collections/_system/4050103/s4050104" : {
+      "op" : "delete"
+    }
+  },
+  "index" : 236,
+  "term" : 0
+}
+##
+T ::1:42282 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 48.
+.
+[["arango/Current/Collections/_system/4050103"]]
+#
+T ::1:28356 -> ::1:42282 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 67.
+.
+[{"arango":{"Current":{"Collections":{"_system":{"4050103":{}}}}}}]
+##
+T ::1:coordinator -> ::1:60960 [AP]
+HTTP/1.1 202 Accepted.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: text/plain; charset=utf-8.
+Content-Length: 0.
+.
+
+#####
+T ::1:42282 -> ::1:28356 [AP]
+POST /_api/agency/write HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 171.
+.
+[[{"arango/Current/Collections/_system/4050103":{"op":"delete"}},{"arango/Current/Collections/_system/4050103":{"oldEmpty":false}},"8642b04c-455a-4655-b50e-795eb86595f9"]]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 73.
+.
+[["arango/Current/ServersRegistered","arango/Target/MapUniqueToShortID"]]
+#
+T ::1:28356 -> ::1:42282 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 17.
+.
+{"results":[238]}
+#
+T ::1:42282 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 20.
+.
+[["arango/Current"]]
+#
+T ::1:60960 -> ::1:coordinator [AP]
+POST /_api/agency/agency-callbacks/1687946635 HTTP/1.1.
+Host: [::1]:coordinator.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: AGENT-d02a8e1e-0d82-4b6e-9476-adf58dc7fcef.
+x-arango-hlc: _VqHzZ9a--_.
+Content-Length: 171.
+.
+{
+  "/arango/Current/Collections/_system/4050103" : {
+    "arango/Current/Collections/_system/4050103" : {
+      "op" : "delete"
+    }
+  },
+  "index" : 237,
+  "term" : 0
+}
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 433.
+.
+[{"arango":{"Target":{"MapUniqueToShortID":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"ShortName":"DBServer0001","TransactionID":1},"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"ShortName":"Coordinator0001","TransactionID":1}}},"Current":{"ServersRegistered":{"Version":1,"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"endpoint":"tcp://[::1]:coordinator"},"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"endpoint":"tcp://[::1]:primary"}}}}}]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 48.
+.
+[["arango/Current/Collections/_system/4050103"]]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 30.
+.
+[["arango/Current/DBServers"]]
+#
+T ::1:28356 -> ::1:42282 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 4187.
+.
+[{"arango":{"Current":{"NewServers":{},"Databases":{"_system":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"errorMessage":"","error":false,"id":"1","name":"_system","errorNum":0}}},"Collections":{"_system":{"1010008":{"s1010009":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010015":{"s1010016":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}]}},"1010024":{"s1010025":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010013":{"s1010014":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010026":{"s1010027":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010028":{"s1010029":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}]}},"1010006":{"s1010007":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010032":{"s1010033":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}]}},"1010038":{"s1010039":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010021":{"s1010022":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}]}},"1010018":{"s1010019":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}]}},"1010001":{"s1010002":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010003":{"s1010004":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}]}}}},"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Foxxmaster":"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","ServersRegistered":{"Version":1,"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"endpoint":"tcp://[::1]:coordinator"},"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"endpoint":"tcp://[::1]:primary"}},"ShardsCopied":{},"FoxxmasterQueueupdate":false,"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Version":26}}}]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 55.
+.
+[{"arango":{"Current":{"Collections":{"_system":{}}}}}]
+##
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 91.
+.
+[{"arango":{"Current":{"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"}}}}]
+#
+T ::1:coordinator -> ::1:60960 [AP]
+HTTP/1.1 202 Accepted.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: text/plain; charset=utf-8.
+Content-Length: 0.
+.
+
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 19.
+.
+[["arango/Target"]]
+####
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 743.
+.
+[{"arango":{"Target":{"ToDo":{"6":{"shard":"s1010002","creator":"supervision","type":"addFollower","database":"_system","jobId":"6","collection":"1010001","timeCreated":"2017-09-26T19:56:58Z"}},"CleanedServers":[],"FailedServers":{},"Databases":{"_system":{"id":"1","name":"_system"}},"Coordinators":{},"LatestCoordinatorId":1,"LatestDBServerId":1,"Failed":{},"MapUniqueToShortID":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"ShortName":"DBServer0001","TransactionID":1},"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"ShortName":"Coordinator0001","TransactionID":1}},"Finished":{},"NumberOfCoordinators":null,"DBServers":{},"Lock":"UNLOCKED","NumberOfDBServers":null,"Version":1,"MapLocalToID":{},"Collections":{"_system":{}},"Pending":{}}}}]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 33.
+.
+[["arango/Current/Coordinators"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 94.
+.
+[{"arango":{"Current":{"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"}}}}]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 17.
+.
+[["arango/Plan"]]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/write HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 178.
+.
+[[{"arango/Current/Collections/_system/4050103":{"op":"unobserve","url":"http://[::1]:coordinator/_api/agency/agency-callbacks/1687946635"}},{},"4e8ce508-3289-48ab-864e-b58d733539e9"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 8314.
+.
+[{"arango":{"Plan":{"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Collections":{"_system":{"1010008":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_routing","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010009":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010008","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010015":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statisticsRaw","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010016":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010015","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010024":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_frontend","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010025":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010024","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010013":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_aqlfunctions","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010014":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010013","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010026":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_queues","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010027":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010026","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010028":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_jobs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}],"statusString":"loaded","shards":{"s1010029":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010028","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":2097152,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010006":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_modules","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010007":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010006","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010032":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_apps","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010033":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010032","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010038":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_appbundles","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010039":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010038","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010021":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics15","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010022":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010021","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010018":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010019":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010018","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010001":{"shards":{"s1010002":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"shardKeys":["_key"],"replicationFactor":2,"path":"","statusString":"loaded","deleted":false,"indexBuckets":8,"type":2,"status":3,"waitForSync":false,"id":"1010001","isSmart":false,"name":"_graphs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"doCompact":true,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true},"numberOfShards":1},"1010003":{"shardKeys":["user"],"replicationFactor":1,"path":"","name":"_users","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010004":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010003","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}}}},"Version":25,"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Databases":{"_system":{"id":"1","name":"_system"}}}}}]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 17.
+.
+{"results":[239]}
+#
+T ::1:coordinator -> ::1:primary [AP]
+PATCH /_db/_system/_api/document/s1010004/1010096?waitForSync=false&ignoreRevs=true&mergeObjects=true HTTP/1.1.
+Host: [::1]:primary.
+Accept: */*.
+Content-Type: application/json.
+x-arango-source: CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb.
+x-arango-hlc: _VqHzZ9m---.
+Content-Length: 442.
+.
+{"_key":"1010096","user":"root","source":"COLLECTION","authData":{"active":true,"simple":{"hash":"16f7441d0a257b0038fd39bf8635c3524e880626079be1e66833a68cc4d40d6d","salt":"039fc9cc","method":"sha256"}},"databases":{"_system":{"permissions":{"read":true,"write":true},"collections":{"*":{"permissions":{"read":true,"write":true}}}},"*":{"permissions":{"read":true,"write":true},"collections":{"*":{"permissions":{"read":true,"write":true}}}}}}
+#
+T ::1:primary -> ::1:coordinator [AP]
+HTTP/1.1 202 Accepted.
+X-Content-Type-Options: nosniff.
+Etag: "_VqHzZ9m--A".
+Location: /_db/_system/_api/document/s1010004/1010096.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 86.
+.
+{"_id":"_users/1010096","_key":"1010096","_rev":"_VqHzZ9m--A","_oldRev":"_VqHwms2--A"}
+##
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 29.
+.
+[["arango/Sync/UserVersion"]]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 20.
+.
+[["arango/Current"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 39.
+.
+[{"arango":{"Sync":{"UserVersion":2}}}]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 4187.
+.
+[{"arango":{"Current":{"NewServers":{},"Databases":{"_system":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"errorMessage":"","error":false,"id":"1","name":"_system","errorNum":0}}},"Collections":{"_system":{"1010008":{"s1010009":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010015":{"s1010016":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}]}},"1010024":{"s1010025":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010013":{"s1010014":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010026":{"s1010027":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010028":{"s1010029":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}]}},"1010006":{"s1010007":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010032":{"s1010033":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}]}},"1010038":{"s1010039":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010021":{"s1010022":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}]}},"1010018":{"s1010019":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}]}},"1010001":{"s1010002":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010003":{"s1010004":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}]}}}},"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Foxxmaster":"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","ServersRegistered":{"Version":1,"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"endpoint":"tcp://[::1]:coordinator"},"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"endpoint":"tcp://[::1]:primary"}},"ShardsCopied":{},"FoxxmasterQueueupdate":false,"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Version":26}}}]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/write HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 129.
+.
+[[{"arango/Sync/UserVersion":{"new":3,"op":"set"}},{"arango/Sync/UserVersion":{"old":2}},"655e1591-3950-435a-aadb-922703b11efd"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 17.
+.
+{"results":[240]}
+#####
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 25.
+.
+[["arango/Plan/Version"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 36.
+.
+[{"arango":{"Plan":{"Version":25}}}]
+##
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/transient HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 144.
+.
+[[{"arango/Sync/ServerStates/PRMR-21c69445-2f73-4719-8377-ce272488601a":{"new":{"status":"SERVING","time":"2017-09-27T08:30:30Z"},"op":"set"}}]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 6.
+.
+[true]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 122.
+.
+[["arango/Shutdown","arango/Current/Version","arango/Sync/Commands/PRMR-21c69445-2f73-4719-8377-ce272488601a","/.agency"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 270.
+.
+[{"arango":{"Sync":{"Commands":{}},"Current":{"Version":26}},".agency":{"id":"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef","active":["d02a8e1e-0d82-4b6e-9476-adf58dc7fcef"],"pool":{"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef":"tcp://[::1]:28356"},"timeoutMult":1,"term":0,"size":1}}]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 20.
+.
+[["arango/Current"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 4187.
+.
+[{"arango":{"Current":{"NewServers":{},"Databases":{"_system":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"errorMessage":"","error":false,"id":"1","name":"_system","errorNum":0}}},"Collections":{"_system":{"1010008":{"s1010009":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010015":{"s1010016":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}]}},"1010024":{"s1010025":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010013":{"s1010014":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010026":{"s1010027":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010028":{"s1010029":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}]}},"1010006":{"s1010007":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010032":{"s1010033":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}]}},"1010038":{"s1010039":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010021":{"s1010022":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}]}},"1010018":{"s1010019":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}]}},"1010001":{"s1010002":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010003":{"s1010004":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}]}}}},"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Foxxmaster":"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","ServersRegistered":{"Version":1,"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"endpoint":"tcp://[::1]:coordinator"},"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"endpoint":"tcp://[::1]:primary"}},"ShardsCopied":{},"FoxxmasterQueueupdate":false,"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Version":26}}}]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 73.
+.
+[["arango/Current/ServersRegistered","arango/Target/MapUniqueToShortID"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 433.
+.
+[{"arango":{"Target":{"MapUniqueToShortID":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"ShortName":"DBServer0001","TransactionID":1},"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"ShortName":"Coordinator0001","TransactionID":1}}},"Current":{"ServersRegistered":{"Version":1,"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"endpoint":"tcp://[::1]:coordinator"},"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"endpoint":"tcp://[::1]:primary"}}}}}]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 30.
+.
+[["arango/Current/DBServers"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 91.
+.
+[{"arango":{"Current":{"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"}}}}]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 19.
+.
+[["arango/Target"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 743.
+.
+[{"arango":{"Target":{"ToDo":{"6":{"shard":"s1010002","creator":"supervision","type":"addFollower","database":"_system","jobId":"6","collection":"1010001","timeCreated":"2017-09-26T19:56:58Z"}},"CleanedServers":[],"FailedServers":{},"Databases":{"_system":{"id":"1","name":"_system"}},"Coordinators":{},"LatestCoordinatorId":1,"LatestDBServerId":1,"Failed":{},"MapUniqueToShortID":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"ShortName":"DBServer0001","TransactionID":1},"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"ShortName":"Coordinator0001","TransactionID":1}},"Finished":{},"NumberOfCoordinators":null,"DBServers":{},"Lock":"UNLOCKED","NumberOfDBServers":null,"Version":1,"MapLocalToID":{},"Collections":{"_system":{}},"Pending":{}}}}]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 33.
+.
+[["arango/Current/Coordinators"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 94.
+.
+[{"arango":{"Current":{"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"}}}}]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 17.
+.
+[["arango/Plan"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 8314.
+.
+[{"arango":{"Plan":{"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Collections":{"_system":{"1010008":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_routing","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010009":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010008","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010015":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statisticsRaw","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010016":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010015","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010024":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_frontend","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010025":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010024","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010013":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_aqlfunctions","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010014":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010013","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010026":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_queues","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010027":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010026","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010028":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_jobs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}],"statusString":"loaded","shards":{"s1010029":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010028","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":2097152,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010006":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_modules","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010007":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010006","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010032":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_apps","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010033":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010032","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010038":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_appbundles","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010039":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010038","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010021":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics15","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010022":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010021","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010018":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010019":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010018","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010001":{"shards":{"s1010002":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"shardKeys":["_key"],"replicationFactor":2,"path":"","statusString":"loaded","deleted":false,"indexBuckets":8,"type":2,"status":3,"waitForSync":false,"id":"1010001","isSmart":false,"name":"_graphs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"doCompact":true,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true},"numberOfShards":1},"1010003":{"shardKeys":["user"],"replicationFactor":1,"path":"","name":"_users","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010004":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010003","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}}}},"Version":25,"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Databases":{"_system":{"id":"1","name":"_system"}}}}}]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 20.
+.
+[["arango/Current"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 4187.
+.
+[{"arango":{"Current":{"NewServers":{},"Databases":{"_system":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"errorMessage":"","error":false,"id":"1","name":"_system","errorNum":0}}},"Collections":{"_system":{"1010008":{"s1010009":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010015":{"s1010016":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}]}},"1010024":{"s1010025":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010013":{"s1010014":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010026":{"s1010027":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010028":{"s1010029":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}]}},"1010006":{"s1010007":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010032":{"s1010033":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}]}},"1010038":{"s1010039":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010021":{"s1010022":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}]}},"1010018":{"s1010019":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}]}},"1010001":{"s1010002":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010003":{"s1010004":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}]}}}},"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Foxxmaster":"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","ServersRegistered":{"Version":1,"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"endpoint":"tcp://[::1]:coordinator"},"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"endpoint":"tcp://[::1]:primary"}},"ShardsCopied":{},"FoxxmasterQueueupdate":false,"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Version":26}}}]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/transient HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 144.
+.
+[[{"arango/Sync/ServerStates/CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"new":{"status":"SERVING","time":"2017-09-27T08:30:30Z"},"op":"set"}}]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 6.
+.
+[true]
+##
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 267.
+.
+[["arango/Current/Version","arango/Current/Foxxmaster","arango/Current/FoxxmasterQueueupdate","arango/Plan/Version","arango/Shutdown","arango/Sync/Commands/CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","arango/Sync/UserVersion","arango/Target/FailedServers","/.agency"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 425.
+.
+[{"arango":{"Target":{"FailedServers":{}},"Sync":{"UserVersion":3,"Commands":{}},"Current":{"Version":26,"Foxxmaster":"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","FoxxmasterQueueupdate":false},"Plan":{"Version":25}},".agency":{"id":"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef","active":["d02a8e1e-0d82-4b6e-9476-adf58dc7fcef"],"pool":{"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef":"tcp://[::1]:28356"},"timeoutMult":1,"term":0,"size":1}}]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 27.
+.
+[["arango/Plan/Databases"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 75.
+.
+[{"arango":{"Plan":{"Databases":{"_system":{"id":"1","name":"_system"}}}}}]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 73.
+.
+[["arango/Current/ServersRegistered","arango/Target/MapUniqueToShortID"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 433.
+.
+[{"arango":{"Target":{"MapUniqueToShortID":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"ShortName":"DBServer0001","TransactionID":1},"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"ShortName":"Coordinator0001","TransactionID":1}}},"Current":{"ServersRegistered":{"Version":1,"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"endpoint":"tcp://[::1]:coordinator"},"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"endpoint":"tcp://[::1]:primary"}}}}}]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 30.
+.
+[["arango/Current/DBServers"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 91.
+.
+[{"arango":{"Current":{"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"}}}}]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 19.
+.
+[["arango/Target"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 743.
+.
+[{"arango":{"Target":{"ToDo":{"6":{"shard":"s1010002","creator":"supervision","type":"addFollower","database":"_system","jobId":"6","collection":"1010001","timeCreated":"2017-09-26T19:56:58Z"}},"CleanedServers":[],"FailedServers":{},"Databases":{"_system":{"id":"1","name":"_system"}},"Coordinators":{},"LatestCoordinatorId":1,"LatestDBServerId":1,"Failed":{},"MapUniqueToShortID":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"ShortName":"DBServer0001","TransactionID":1},"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"ShortName":"Coordinator0001","TransactionID":1}},"Finished":{},"NumberOfCoordinators":null,"DBServers":{},"Lock":"UNLOCKED","NumberOfDBServers":null,"Version":1,"MapLocalToID":{},"Collections":{"_system":{}},"Pending":{}}}}]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 33.
+.
+[["arango/Current/Coordinators"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 94.
+.
+[{"arango":{"Current":{"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"}}}}]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 17.
+.
+[["arango/Plan"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 8314.
+.
+[{"arango":{"Plan":{"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Collections":{"_system":{"1010008":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_routing","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010009":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010008","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010015":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statisticsRaw","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010016":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010015","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010024":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_frontend","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010025":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010024","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010013":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_aqlfunctions","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010014":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010013","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010026":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_queues","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010027":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010026","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010028":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_jobs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}],"statusString":"loaded","shards":{"s1010029":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010028","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":2097152,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010006":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_modules","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010007":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010006","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010032":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_apps","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010033":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010032","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010038":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_appbundles","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"statusString":"loaded","shards":{"s1010039":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010038","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010021":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics15","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010022":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010021","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010018":{"shardKeys":["_key"],"replicationFactor":1,"path":"","name":"_statistics","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}],"statusString":"loaded","shards":{"s1010019":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010018","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":8388608,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}},"1010001":{"shards":{"s1010002":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"shardKeys":["_key"],"replicationFactor":2,"path":"","statusString":"loaded","deleted":false,"indexBuckets":8,"type":2,"status":3,"waitForSync":false,"id":"1010001","isSmart":false,"name":"_graphs","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}],"doCompact":true,"isSystem":true,"isVolatile":false,"journalSize":1048576,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true},"numberOfShards":1},"1010003":{"shardKeys":["user"],"replicationFactor":1,"path":"","name":"_users","indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}],"statusString":"loaded","shards":{"s1010004":["PRMR-21c69445-2f73-4719-8377-ce272488601a"]},"status":3,"waitForSync":false,"indexBuckets":8,"type":2,"id":"1010003","isSmart":false,"doCompact":true,"deleted":false,"distributeShardsLike":"1010001","numberOfShards":1,"isSystem":true,"isVolatile":false,"journalSize":4194304,"keyOptions":{"lastValue":0,"type":"traditional","allowUserKeys":true}}}},"Version":25,"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Databases":{"_system":{"id":"1","name":"_system"}}}}}]
+#
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 20.
+.
+[["arango/Current"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 4187.
+.
+[{"arango":{"Current":{"NewServers":{},"Databases":{"_system":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"errorMessage":"","error":false,"id":"1","name":"_system","errorNum":0}}},"Collections":{"_system":{"1010008":{"s1010009":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010015":{"s1010016":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010017","sparse":false,"type":"skiplist","unique":false}]}},"1010024":{"s1010025":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010013":{"s1010014":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010026":{"s1010027":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010028":{"s1010029":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"1010030","sparse":false,"type":"skiplist","unique":true},{"deduplicate":true,"fields":["status","queue","delayUntil"],"id":"1010031","sparse":false,"type":"skiplist","unique":true}]}},"1010006":{"s1010007":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010032":{"s1010033":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["mount"],"id":"1010034","sparse":false,"type":"hash","unique":true}]}},"1010038":{"s1010039":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010021":{"s1010022":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010023","sparse":false,"type":"skiplist","unique":false}]}},"1010018":{"s1010019":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["time"],"id":"1010020","sparse":false,"type":"skiplist","unique":false}]}},"1010001":{"s1010002":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true}]}},"1010003":{"s1010004":{"errorMessage":"","error":false,"errorNum":0,"servers":["PRMR-21c69445-2f73-4719-8377-ce272488601a"],"indexes":[{"fields":["_key"],"id":"0","sparse":false,"type":"primary","unique":true},{"deduplicate":true,"fields":["user"],"id":"1010005","sparse":true,"type":"hash","unique":true}]}}}},"DBServers":{"PRMR-21c69445-2f73-4719-8377-ce272488601a":"none"},"Foxxmaster":"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","ServersRegistered":{"Version":1,"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"endpoint":"tcp://[::1]:coordinator"},"PRMR-21c69445-2f73-4719-8377-ce272488601a":{"endpoint":"tcp://[::1]:primary"}},"ShardsCopied":{},"FoxxmasterQueueupdate":false,"Coordinators":{"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":"none"},"Lock":"UNLOCKED","Version":26}}}]
+###
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 25.
+.
+[["arango/Plan/Version"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 36.
+.
+[{"arango":{"Plan":{"Version":25}}}]
+##
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/transient HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 144.
+.
+[[{"arango/Sync/ServerStates/PRMR-21c69445-2f73-4719-8377-ce272488601a":{"new":{"status":"SERVING","time":"2017-09-27T08:30:31Z"},"op":"set"}}]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 6.
+.
+[true]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 122.
+.
+[["arango/Shutdown","arango/Current/Version","arango/Sync/Commands/PRMR-21c69445-2f73-4719-8377-ce272488601a","/.agency"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 270.
+.
+[{"arango":{"Sync":{"Commands":{}},"Current":{"Version":26}},".agency":{"id":"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef","active":["d02a8e1e-0d82-4b6e-9476-adf58dc7fcef"],"pool":{"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef":"tcp://[::1]:28356"},"timeoutMult":1,"term":0,"size":1}}]
+##
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/transient HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 144.
+.
+[[{"arango/Sync/ServerStates/CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"new":{"status":"SERVING","time":"2017-09-27T08:30:31Z"},"op":"set"}}]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 6.
+.
+[true]
+##
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 267.
+.
+[["arango/Current/Version","arango/Current/Foxxmaster","arango/Current/FoxxmasterQueueupdate","arango/Plan/Version","arango/Shutdown","arango/Sync/Commands/CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","arango/Sync/UserVersion","arango/Target/FailedServers","/.agency"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 425.
+.
+[{"arango":{"Target":{"FailedServers":{}},"Sync":{"UserVersion":3,"Commands":{}},"Current":{"Version":26,"Foxxmaster":"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","FoxxmasterQueueupdate":false},"Plan":{"Version":25}},".agency":{"id":"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef","active":["d02a8e1e-0d82-4b6e-9476-adf58dc7fcef"],"pool":{"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef":"tcp://[::1]:28356"},"timeoutMult":1,"term":0,"size":1}}]
+##
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 25.
+.
+[["arango/Plan/Version"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 36.
+.
+[{"arango":{"Plan":{"Version":25}}}]
+##
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/transient HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 144.
+.
+[[{"arango/Sync/ServerStates/PRMR-21c69445-2f73-4719-8377-ce272488601a":{"new":{"status":"SERVING","time":"2017-09-27T08:30:32Z"},"op":"set"}}]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 6.
+.
+[true]
+#
+T ::1:42274 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 122.
+.
+[["arango/Shutdown","arango/Current/Version","arango/Sync/Commands/PRMR-21c69445-2f73-4719-8377-ce272488601a","/.agency"]]
+#
+T ::1:28356 -> ::1:42274 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 270.
+.
+[{"arango":{"Sync":{"Commands":{}},"Current":{"Version":26}},".agency":{"id":"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef","active":["d02a8e1e-0d82-4b6e-9476-adf58dc7fcef"],"pool":{"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef":"tcp://[::1]:28356"},"timeoutMult":1,"term":0,"size":1}}]
+##
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/transient HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 144.
+.
+[[{"arango/Sync/ServerStates/CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb":{"new":{"status":"SERVING","time":"2017-09-27T08:30:32Z"},"op":"set"}}]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 6.
+.
+[true]
+##
+T ::1:42760 -> ::1:28356 [AP]
+POST /_api/agency/read HTTP/1.1.
+Host: ::.
+Connection: Keep-Alive.
+User-Agent: ArangoDB.
+Accept-Encoding: deflate.
+content-type: application/json.
+Content-Length: 267.
+.
+[["arango/Current/Version","arango/Current/Foxxmaster","arango/Current/FoxxmasterQueueupdate","arango/Plan/Version","arango/Shutdown","arango/Sync/Commands/CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","arango/Sync/UserVersion","arango/Target/FailedServers","/.agency"]]
+#
+T ::1:28356 -> ::1:42760 [AP]
+HTTP/1.1 200 OK.
+X-Content-Type-Options: nosniff.
+Server: ArangoDB.
+Connection: Keep-Alive.
+Content-Type: application/json; charset=utf-8.
+Content-Length: 425.
+.
+[{"arango":{"Target":{"FailedServers":{}},"Sync":{"UserVersion":3,"Commands":{}},"Current":{"Version":26,"Foxxmaster":"CRDN-6f7c122f-eb46-41ec-bde8-51bfb9b409fb","FoxxmasterQueueupdate":false},"Plan":{"Version":25}},".agency":{"id":"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef","active":["d02a8e1e-0d82-4b6e-9476-adf58dc7fcef"],"pool":{"d02a8e1e-0d82-4b6e-9476-adf58dc7fcef":"tcp://[::1]:28356"},"timeoutMult":1,"term":0,"size":1}}]
+#

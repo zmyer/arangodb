@@ -554,6 +554,7 @@ struct CoordinatorInstanciator : public WalkerWorker<ExecutionNode> {
     plan.root(previous);
     plan.setVarUsageComputed();
     fakeQueryString = arangodb::aql::cache::fakeQueryString(&plan);
+    fakeQueryString.append(shardId);
     return plan.root()->toVelocyPack(builder, verbose);
   }
 
