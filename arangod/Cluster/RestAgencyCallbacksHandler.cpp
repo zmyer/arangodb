@@ -65,18 +65,17 @@ RestStatus RestAgencyCallbacksHandler::execute() {
     return RestStatus::DONE;
   }
 
-  try {
-    std::stringstream ss(suffixes.at(0));
-    uint32_t index;
-    ss >> index;
+  std::stringstream ss(suffixes.at(0));
+  uint32_t index;
+  ss >> index;
 
-    auto callback = _agencyCallbackRegistry->getCallback(index);
+  auto callback = _agencyCallbackRegistry->getCallback(index);
+  if (callback.get() != nullptr) {
     LOG_TOPIC(DEBUG, Logger::CLUSTER)
       << "Agency callback has been triggered. refetching!";
     callback->refetchAndUpdate(true);
     resetResponse(arangodb::rest::ResponseCode::ACCEPTED);
-  } catch (arangodb::basics::Exception const&) {
-    // mop: not found...expected
+  } else {
     resetResponse(arangodb::rest::ResponseCode::NOT_FOUND);
   }
   return RestStatus::DONE;
