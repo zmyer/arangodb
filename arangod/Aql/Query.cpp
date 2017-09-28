@@ -301,6 +301,7 @@ Result Query::cacheStore(uint64_t queryHash, bool checkCache){
     auto* cache = QueryCache::instance();
 
     if(!checkCache || cache->getInvalidationCounters(_vocbase, this->collectionNames()) == _invaidationCounters){
+      LOG_DEVEL << "item to be stored has " << _resultBuilder->slice().length() << "items";
       // finally store the generated result in the query cache
       //LOG_DEVEL << queryHash << " query - store: '" <<  _queryString; // << "' contents: @@@" << _resultBuilder->slice().toJson() << "@@@";
       auto result = cache->store(
@@ -370,16 +371,17 @@ Result Query::cacheGetOrSkipSomePart(VPackBuilder& builder, bool skip, std::size
   auto result = arangodb::aql::cache::vPackToBlock(*_cachedResultIterator, monitor, atLeast, atMost);
   THROW_ARANGO_EXCEPTION_IF_FAIL(std::get<0>(result));
   auto& block = std::get<1>(result);
+  auto skipped = std::get<2>(result);
 
 
   if(block){
     block->toVelocyPack(nullptr /*trx*/, builder);
+    builder.add("cached", VPackValue(true));
   } else {
     builder.add("error", VPackValue(false));
+    builder.add("skipped", VPackValue(skipped));
     builder.add("exhausted", VPackValue(exhausted));
   }
-
-  builder.add("cached", VPackValue(true));
 
   return rv;
 }
@@ -392,7 +394,9 @@ Result Query::cacheCursorReset(std::size_t pos){
   Result rv;
   if (this->cacheEntryAvailable()){
     _cachedResultIterator.reset(new VPackArrayIterator(_cachedResultBuilder->slice()));
+    LOG_DEVEL << "iterator size: " << _cachedResultIterator->size() << " pos: " << pos;
     while (pos--) {
+      LOG_DEVEL << "IN THE LOOP";
       _cachedResultIterator->next();
       if (!_cachedResultIterator->valid()){
         rv.reset(TRI_ERROR_BAD_PARAMETER, "could not advance cursor to requested position");

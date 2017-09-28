@@ -766,7 +766,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
 
         if(query->cacheEntryAvailable()){
           // cache available
-          LOG_DEVEL << query->cacheId() << " handler - getsome (cache)";
+          LOG_DEVEL << query->cacheId() << " handler - getsome (cache) - atLeast: " << atLeast << " atMost: " << atMost;
           Result rv = query->cacheGetOrSkipSomePart(answerBuilder, false /*skip*/, atLeast, atMost);
           if(rv.fail()){
               LOG_DEVEL << query->cacheId() << " handler - getsome (cache) - failed!!!!";
@@ -774,6 +774,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
               return;
           }
           LOG_DEVEL << query->cacheId() << " handler - getsome - QUERY DELIVERED FORM CACHE" ;
+
         } else {
           // no cache available
           std::unique_ptr<AqlItemBlock> items;
@@ -829,6 +830,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         size_t skipped = 0;
         if(query->cacheEntryAvailable()){
           // cache available
+          LOG_DEVEL << operation << "(cache) - atLeast: " << atLeast << " atMost: " << atMost;
           Result rv = query->cacheGetOrSkipSomePart(answerBuilder, true /*skip*/, atLeast, atMost);
           THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
         } else {
@@ -900,6 +902,7 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
         if(query->cacheEntryAvailable()){
           answerBuilder.add("error", VPackValue(false));
           answerBuilder.add("code", VPackValue(0));
+          LOG_DEVEL << "RESET CACHE CURSOR";
           query->cacheCursorReset();
         } else {
           int res;
@@ -924,9 +927,10 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
           if (VelocyPackHelper::getBooleanValue(querySlice, "exhausted", true)) {
             rv = query->cacheCursorReset();
           } else {
+            LOG_DEVEL << "THIS MAY NOT HAPPEN";
             LOG_DEVEL << " #### position pos; " << pos;
             TRI_ASSERT(false);
-            rv = query->cacheCursorReset(pos);
+            rv = query->cacheCursorReset();
           }
           answerBuilder.add("error", VPackValue(rv.fail()));
           answerBuilder.add("code", VPackValue(rv.errorNumber()));
@@ -966,6 +970,26 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
 
           if(query->cacheBuildingResult()){
             TRI_ASSERT(query->cacheId());
+
+            std::unique_ptr<AqlItemBlock> items;
+            try {
+              if(query->engine()->hasMore()){
+                auto n = query->engine()->remaining();
+                LOG_DEVEL << "adding " << n << "items in shutdown";
+                items.reset(query->engine()->getSome(n,n));
+              }
+            } catch (std::exception& e){
+              LOG_DEVEL << " ############ "<< e.what();
+            } catch (...) {
+              LOG_DEVEL << " ############ unknown error";
+            }
+
+            if (items.get()){
+              Result rv = query->resultAddPart(*items);
+              LOG_DEVEL_IF(rv.fail()) << " ############ "<< rv.errorMessage();
+              THROW_ARANGO_EXCEPTION_IF_FAIL(rv);
+            }
+            
             //LOG_DEVEL << query->cacheId() << " handler - shutdown store";
             query->cacheStore(query->cacheId(), /*check cache invalidation*/ true);
           }
@@ -1004,9 +1028,10 @@ void RestAqlHandler::handleUseQuery(std::string const& operation, Query* query,
       }
     } // answerBuilder guard scope
     bool pred = true;
-    LOG_DEVEL_IF( pred ) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
-    LOG_DEVEL_IF( pred ) << operation; // << ": " << answerBuilder.slice().toJson();
-    LOG_DEVEL_IF( pred ) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+    bool borders = true;
+    LOG_DEVEL_IF( borders ) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+    LOG_DEVEL_IF( pred ) << operation  << ": " << answerBuilder.slice().toJson();
+    LOG_DEVEL_IF( borders ) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
     sendResponse(rest::ResponseCode::OK, answerBuilder.slice(),
                  transactionContext.get());
   } catch (arangodb::basics::Exception const& e) {
