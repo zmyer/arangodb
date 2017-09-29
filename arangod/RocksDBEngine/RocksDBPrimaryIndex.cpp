@@ -104,9 +104,12 @@ bool RocksDBPrimaryIndexIterator::next(TokenCallback const& cb, size_t limit) {
   while (limit > 0) {
     // TODO: prevent copying of the value into result, as we don't need it here!
     RocksDBToken token = _index->lookupKey(_trx, StringRef(*_iterator));
-    cb(token);
+    if (token.revisionId()) {
+      cb(token);
 
-    --limit;
+      --limit;
+    }
+
     _iterator.next();
     if (!_iterator.valid()) {
       return false;
@@ -139,7 +142,10 @@ void RocksDBPrimaryIndex::load() {
   if (useCache()) {
     // FIXME: make the factor configurable
     RocksDBCollection* rdb = static_cast<RocksDBCollection*>(_collection->getPhysical());
-    _cache->sizeHint(0.3 * rdb->numberDocuments());
+    uint64_t numDocs = rdb->numberDocuments();
+    if (numDocs > 0) {
+      _cache->sizeHint(static_cast<uint64_t>(0.3 * numDocs));
+    }
   }
 }
 
@@ -220,9 +226,8 @@ Result RocksDBPrimaryIndex::insertInternal(transaction::Methods* trx,
   key->constructPrimaryIndexValue(_objectId, StringRef(keySlice));
   auto value = RocksDBValue::PrimaryIndexValue(revisionId);
 
-  // acquire rocksdb transaction
   if (mthd->Exists(_cf, key.ref())) {
-    return TRI_ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED;
+    return IndexResult(TRI_ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED, this);
   }
 
   blackListKey(key->string().data(), static_cast<uint32_t>(key->string().size()));
@@ -247,7 +252,6 @@ Result RocksDBPrimaryIndex::updateInternal(transaction::Methods* trx,
   blackListKey(key->string().data(),
               static_cast<uint32_t>(key->string().size()));
   Result status = mthd->Put(_cf, key.ref(), value.string(), rocksutils::index);
-
   return IndexResult(status.errorNumber(), this);
 }
 

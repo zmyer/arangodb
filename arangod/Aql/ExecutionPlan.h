@@ -135,6 +135,15 @@ class ExecutionPlan {
   void show();
 #endif
 
+  /// @brief note this node for being excluded from producing scatter/gather nodes
+  void excludeFromScatterGather(ExecutionNode const* node) {
+    _excludeFromScatterGather.emplace(node);
+  }
+  
+  bool shouldExcludeFromScatterGather(ExecutionNode const* node) const {
+    return (_excludeFromScatterGather.find(node) != _excludeFromScatterGather.end());
+  }
+
   /// @brief get the node where variable with id <id> is introduced . . .
   ExecutionNode* getVarSetBy(VariableId id) const {
     auto it = _varSetBy.find(id);
@@ -324,6 +333,9 @@ class ExecutionPlan {
 
   /// @brief a lookup map for all subqueries created
   std::unordered_map<VariableId, ExecutionNode*> _subqueries;
+    
+  /// @brief these nodes will be excluded from building scatter/gather "diamonds" later
+  std::unordered_set<ExecutionNode const*> _excludeFromScatterGather;
 };
 }
 }

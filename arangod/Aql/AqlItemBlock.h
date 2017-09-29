@@ -30,6 +30,8 @@
 #include "Aql/ResourceUsage.h"
 #include "Aql/types.h"
 
+#include <utility>
+
 namespace arangodb {
 namespace aql {
 class BlockCollector;
@@ -105,7 +107,7 @@ class AqlItemBlock {
       << ") + varNr(" << varNr << ")";
     TRI_ASSERT(_data.capacity() > index * _nrRegs + varNr);
     TRI_ASSERT(_data[index * _nrRegs + varNr].isEmpty());
-    
+
 		size_t mem = 0;
     // First update the reference count, if this fails, the value is empty
     if (value.requiresDestruction()) {
@@ -118,9 +120,12 @@ class AqlItemBlock {
 			_data[index * _nrRegs + varNr] = value;
     } catch (...){
 			decreaseMemoryUsage(mem);
+      throw;
 		}
   }
 
+  /// @brief emplaceValue, set the current value of a register, constructing
+  /// it in place
   template<typename... Args>
   void emplaceValue(size_t index, RegisterId varNr, Args&&... args) {
     LOG_DEVEL_IF(!(_data.capacity() > index * _nrRegs + varNr))
@@ -133,11 +138,17 @@ class AqlItemBlock {
 
 
     void* p = &_data[index * _nrRegs + varNr];
-
-    // construct the AqlValue in place
-    AqlValue* value = new (p) AqlValue(std::forward<Args>(args)...);
-
     size_t mem = 0;
+    // construct the AqlValue in place
+    AqlValue* value;
+    try {
+      value = new (p) AqlValue(std::forward<Args>(args)...);
+    } catch (...) {
+      // clean up the cell
+      _data[index * _nrRegs + varNr].erase();
+      throw;
+    }
+
     try {
       // Now update the reference count, if this fails, we'll roll it back
       if (value->requiresDestruction()) {
@@ -147,10 +158,14 @@ class AqlItemBlock {
         }
       }
     } catch (std::exception const& e) {
+      // invoke dtor
+      value->~AqlValue();
       decreaseMemoryUsage(mem);
       _data[index * _nrRegs + varNr].destroy();
       throw e;
     } catch (...) {
+      // invoke dtor
+      value->~AqlValue();
       decreaseMemoryUsage(mem);
       _data[index * _nrRegs + varNr].destroy();
       throw;
@@ -295,10 +310,8 @@ class AqlItemBlock {
   inline size_t capacity() const { return _data.size(); }
 
   /// @brief shrink the block to the specified number of rows
-  /// if sweep is set, then the superfluous rows are cleaned
-  /// if sweep is not set, the caller has to ensure that the
-  /// superfluous rows are empty
-  void shrink(size_t nrItems, bool sweep);
+  /// the superfluous rows are cleaned
+  void shrink(size_t nrItems);
 
   /// @brief rescales the block to the specified dimensions
   /// note that the block should be empty before rescaling to prevent

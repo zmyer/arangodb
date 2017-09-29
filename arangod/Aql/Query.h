@@ -228,8 +228,8 @@ public:
   QueryResult explain();
 
   /// @brief get v8 executor
-  V8Executor* executor();
-
+  V8Executor* v8Executor();
+  
   /// @brief cache for regular expressions constructed by the query
   RegexCache* regexCache() { return &_regexCache; }
 
@@ -237,7 +237,9 @@ public:
   ExecutionEngine* engine() const { return _engine.get(); }
 
   /// @brief inject the engine
-  void engine(ExecutionEngine* engine);
+  void setEngine(ExecutionEngine* engine);
+  
+  void releaseEngine();
 
   /// @brief return the transaction, if prepared
   inline transaction::Methods* trx() { return _trx; }
@@ -332,7 +334,7 @@ public:
   TRI_vocbase_t* _vocbase;
 
   /// @brief V8 code executor
-  std::unique_ptr<V8Executor> _executor;
+  std::unique_ptr<V8Executor> _v8Executor;
 
   /// @brief the currently used V8 context
   V8Context* _context;
