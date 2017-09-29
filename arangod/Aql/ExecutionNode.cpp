@@ -1395,7 +1395,7 @@ CalculationNode::CalculationNode(ExecutionPlan* plan,
 bool CalculationNode::fakeQueryStringThisNode(std::string& outString) const {
   outString.append("CN",2);
   outString.append(_outVariable->name);
-  arangodb::basics::StringBuffer buff{TRI_UNKNOWN_MEM_ZONE};
+  arangodb::basics::StringBuffer buff{false};
   _expression->stringify(&buff,true /*quote strings*/);
   outString.append(buff.c_str(),buff.length());
   return true;
