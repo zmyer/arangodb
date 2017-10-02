@@ -537,7 +537,10 @@ void Agent::sendAppendEntriesRPC() {
       // message if a timeout occurs.
 
       _lastSent[followerId]    = system_clock::now();
-      _constituent.notifyHeartbeatSent(followerId);
+      // _constituent.notifyHeartbeatSent(followerId);
+      // Do not notify constituent, because the AppendEntriesRPC here could
+      // take a very long time, so this must not disturb the empty ones
+      // being sent out.
 
       LOG_TOPIC(DEBUG, Logger::AGENCY)
         << "Appending (" << (uint64_t) (TRI_microtime() * 1000000000.0) << ") "
@@ -591,8 +594,13 @@ void Agent::sendEmptyAppendEntriesRPC(std::string followerId) {
     3 * _config.minPing() * _config.timeoutMult(), true);
   _constituent.notifyHeartbeatSent(followerId);
 
+  double now = TRI_microtime();
   LOG_TOPIC(DEBUG, Logger::AGENCY)
     << "Sending empty appendEntriesRPC to follower " << followerId;
+  double diff = TRI_microtime() - now;
+  if (diff > 0.01) {
+    LOG_TOPIC(DEBUG, Logger::AGENCY) << "Logging of a line took more than 1/100 of a second, this is bad:" << diff;
+  }
 }
 
 void Agent::advanceCommitIndex() {
@@ -796,7 +804,20 @@ bool Agent::challengeLeadership() {
   
   for (auto const& i : _lastAcked) {
     duration<double> m = system_clock::now() - i.second;
-    if (0.9 * _config.minPing() * _config.timeoutMult() > m.count()) {
+    // This is rather arbitrary here: We used to have 0.9 here to absolutely
+    // ensure that a leader resigns before another one even starts an election.
+    // However, the Raft paper does not mention this at all. Rather, in the
+    // paper it is written that the leader should resign immediately if it
+    // sees a higher term from another server. Currently we have not
+    // implemented to return the follower's term with a response to
+    // AppendEntriesRPC, so the leader cannot find out a higher term this
+    // way. The leader can, however, see a higher term in the incoming
+    // AppendEntriesRPC a new leader sends out, and it will immediately
+    // resign if it sees that. For the moment, this value here can stay.
+    // We should soon implement sending the follower's term back with
+    // each response and probably get rid of this method altogether,
+    // but this requires a bit more thought.
+    if (_config.maxPing() * _config.timeoutMult() > m.count()) {
       ++good;
     }
   }
