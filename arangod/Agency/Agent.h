@@ -134,9 +134,12 @@ class Agent : public arangodb::Thread,
 
   /// @brief Received by followers to replicate log entries ($5.3);
   ///        also used as heartbeat ($5.2).
-  bool recvAppendEntriesRPC(term_t term, std::string const& leaderId,
+  priv_rpc_ret_t recvAppendEntriesRPC(term_t term, std::string const& leaderId,
                             index_t prevIndex, term_t prevTerm,
                             index_t leaderCommitIndex, query_t const& queries);
+
+  /// @brief Resign leadership
+  void resign(term_t otherTerm = 0);
 
   /// @brief Invoked by leader to replicate log entries ($5.3);
   ///        also used as heartbeat ($5.2).

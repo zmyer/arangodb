@@ -288,7 +288,7 @@ void Agent::reportFailed(std::string const& slaveId, size_t toLog) {
 }
 
 /// Followers' append entries
-bool Agent::recvAppendEntriesRPC(
+priv_rpc_ret_t Agent::recvAppendEntriesRPC(
   term_t term, std::string const& leaderId, index_t prevIndex, term_t prevTerm,
   index_t leaderCommitIndex, query_t const& queries) {
 
@@ -301,13 +301,13 @@ bool Agent::recvAppendEntriesRPC(
   if (payload.type() != VPackValueType::Array) {
     LOG_TOPIC(DEBUG, Logger::AGENCY)
       << "Received malformed entries for appending. Discarding!";
-    return false;
+    return priv_rpc_ret_t(false, this->term());
   }
 
   if (!_constituent.checkLeader(term, leaderId, prevIndex, prevTerm)) {
     LOG_TOPIC(DEBUG, Logger::AGENCY)
       << "Not accepting appendEntries from " << leaderId;
-    return false;
+    return priv_rpc_ret_t(false, this->term());
   }
 
   size_t nqs = payload.length();
@@ -315,7 +315,7 @@ bool Agent::recvAppendEntriesRPC(
   if (nqs == 0) {
     LOG_TOPIC(DEBUG, Logger::AGENCY) << "Finished empty AppendEntriesRPC from "
       << leaderId << " with term " << term;
-    return true;
+    return priv_rpc_ret_t(true, this->term());
   }
 
   bool ok = true;
@@ -348,7 +348,7 @@ bool Agent::recvAppendEntriesRPC(
   LOG_TOPIC(DEBUG, Logger::AGENCY) << "Finished AppendEntriesRPC from "
     << leaderId << " with term " << term;
 
-  return ok;
+  return priv_rpc_ret_t(ok, this->term());
 }
 
 /// Leader's append entries
@@ -508,11 +508,10 @@ void Agent::sendAppendEntriesRPC() {
       }
       builder.close();
       
-      // Really leading?
+      // Still leading?
       {
         if (challengeLeadership()) {
-          _constituent.candidate();
-          _preparing = false;
+          resign();
           return;
         }
       }
@@ -549,6 +548,12 @@ void Agent::sendAppendEntriesRPC() {
           earliestPackage-system_clock::now()).count() << "ms";
     }
   }
+}
+
+
+void Agent::resign(term_t otherTerm) {
+  _constituent.follow(otherTerm);
+  _preparing = false;
 }
 
 

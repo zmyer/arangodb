@@ -195,8 +195,9 @@ role_t Constituent::role() const {
 }
 
 /// Become follower in term
-void Constituent::follow(term_t t) {
+void Constituent::follow(term_t newTerm) {
   MUTEX_LOCKER(guard, _castLock);
+  term_t t = (newTerm > 0) ? newTerm : _term;
   followNoLock(t);
 }
 
