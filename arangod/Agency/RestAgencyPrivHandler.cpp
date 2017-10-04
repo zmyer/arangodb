@@ -123,10 +123,10 @@ RestStatus RestAgencyPrivHandler::execute() {
             readValue("prevLogIndex", prevLogIndex) &&
             readValue("prevLogTerm", prevLogTerm)) {
           priv_rpc_ret_t ret =
-              _agent->requestVote(term, id, prevLogIndex, prevLogTerm, nullptr,
-                                  timeoutMult);
-          result.add("term", VPackValue(ret.term));
+            _agent->requestVote(
+              term, id, prevLogIndex, prevLogTerm, nullptr, timeoutMult);
           result.add("voteGranted", VPackValue(ret.success));
+          result.add("term", VPackValue(ret.term));
         }
       } else if (suffixes[0] == "notifyAll") {  // notify
         if (_request->requestType() != rest::RequestType::POST) {
