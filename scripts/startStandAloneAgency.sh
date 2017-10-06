@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Nonsensical edit
+
 function help() {
   echo "USAGE: scripts/startStandAloneAgency.sh [options]"
   echo ""
