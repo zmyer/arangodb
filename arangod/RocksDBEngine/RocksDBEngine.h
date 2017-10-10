@@ -272,10 +272,10 @@ class RocksDBEngine final : public StorageEngine {
                            bool waitForCollector = false,
                            bool writeShutdownFile = false);
 
-  arangodb::Result registerRecoveryHelper(
+  static arangodb::Result registerRecoveryHelper(
       std::shared_ptr<RocksDBRecoveryHelper> helper);
-  std::vector<std::shared_ptr<RocksDBRecoveryHelper>> const&
-      recoveryHelpers() const;
+  static std::vector<std::shared_ptr<RocksDBRecoveryHelper>> const&
+      recoveryHelpers();
 
  private:
   /// single rocksdb database used in this storage engine
@@ -303,7 +303,7 @@ class RocksDBEngine final : public StorageEngine {
                                       // for intermediate commit
 
   // hook-ins for recovery process
-  std::vector<std::shared_ptr<RocksDBRecoveryHelper>> _recoveryHelpers;
+  static std::vector<std::shared_ptr<RocksDBRecoveryHelper>> _recoveryHelpers;
 
   mutable basics::ReadWriteLock _collectionMapLock;
   std::unordered_map<uint64_t, std::pair<TRI_voc_tick_t, TRI_voc_cid_t>>

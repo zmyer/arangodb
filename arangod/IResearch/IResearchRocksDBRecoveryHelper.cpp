@@ -22,8 +22,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "IResearch/IResearchRocksDBRecoveryHelper.h"
+#include "IResearch/IResearchFeature.h"
 #include "IResearch/IResearchLink.h"
 #include "Indexes/Index.h"
+#include "Logger/Logger.h"
 #include "RestServer/DatabaseFeature.h"
 #include "RocksDBEngine/RocksDBColumnFamily.h"
 #include "RocksDBEngine/RocksDBEngine.h"
@@ -39,12 +41,15 @@
 using namespace arangodb;
 using namespace arangodb::iresearch;
 
-IResearchRocksDBRecoveryHelper::IResearchRocksDBRecoveryHelper()
-    : _dbFeature(DatabaseFeature::DATABASE),
-      _engine(static_cast<RocksDBEngine*>(EngineSelectorFeature::ENGINE)),
-      _documentCF(RocksDBColumnFamily::documents()->GetID()) {}
+IResearchRocksDBRecoveryHelper::IResearchRocksDBRecoveryHelper() {}
 
 IResearchRocksDBRecoveryHelper::~IResearchRocksDBRecoveryHelper() {}
+
+void IResearchRocksDBRecoveryHelper::prepare() {
+  _dbFeature = DatabaseFeature::DATABASE,
+  _engine = static_cast<RocksDBEngine*>(EngineSelectorFeature::ENGINE),
+  _documentCF = RocksDBColumnFamily::documents()->GetID();
+}
 
 void IResearchRocksDBRecoveryHelper::PutCF(uint32_t column_family_id,
                                            const rocksdb::Slice& key,
@@ -70,10 +75,13 @@ void IResearchRocksDBRecoveryHelper::PutCF(uint32_t column_family_id,
         arangodb::AccessMode::Type::WRITE);
     for (auto link : links) {
       link->insert(&trx, rev, doc, false);
+      LOG_TOPIC(TRACE, IResearchFeature::IRESEARCH) << "recovery helper inserted: " << doc.toJson();
     }
     trx.commit();
 
     return;
+  } else {
+    LOG_TOPIC(TRACE, IResearchFeature::IRESEARCH) << "recovery helper: nothing to do for " << column_family_id << " (expected " << _documentCF << ")";
   }
 }
 
@@ -99,6 +107,7 @@ void IResearchRocksDBRecoveryHelper::DeleteCF(uint32_t column_family_id,
         arangodb::AccessMode::Type::WRITE);
     for (auto link : links) {
       link->remove(&trx, rev, false);
+      LOG_TOPIC(TRACE, IResearchFeature::IRESEARCH) << "recovery helper removed: " << rev;
     }
     trx.commit();
 

@@ -108,6 +108,10 @@ rocksdb::ColumnFamilyHandle* RocksDBColumnFamily::_geo(nullptr);
 rocksdb::ColumnFamilyHandle* RocksDBColumnFamily::_fulltext(nullptr);
 std::vector<rocksdb::ColumnFamilyHandle*> RocksDBColumnFamily::_allHandles;
 
+// handles for recovery helpers
+std::vector<std::shared_ptr<RocksDBRecoveryHelper>>
+    RocksDBEngine::_recoveryHelpers;
+
 // create the storage engine
 RocksDBEngine::RocksDBEngine(application_features::ApplicationServer* server)
     : StorageEngine(server, EngineName, FeatureName, new RocksDBIndexFactory()),
@@ -1266,7 +1270,7 @@ Result RocksDBEngine::registerRecoveryHelper(
   return {TRI_ERROR_NO_ERROR};
 }
 
-std::vector<std::shared_ptr<RocksDBRecoveryHelper>> const& RocksDBEngine::recoveryHelpers() const {
+std::vector<std::shared_ptr<RocksDBRecoveryHelper>> const& RocksDBEngine::recoveryHelpers() {
   return _recoveryHelpers;
 }
 

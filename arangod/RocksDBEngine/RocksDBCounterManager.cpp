@@ -690,7 +690,11 @@ class WBReader final : public rocksdb::WriteBatch::Handler {
 
     RocksDBEngine* engine =
         static_cast<RocksDBEngine*>(EngineSelectorFeature::ENGINE);
+    if (engine->recoveryHelpers().size() == 0) {
+      LOG_TOPIC(ERR, Logger::FIXME) << "no recovery helpers...";
+    }
     for (auto helper : engine->recoveryHelpers()) {
+      LOG_TOPIC(ERR, Logger::FIXME) << "passing to helper...";
       helper->PutCF(column_family_id, key, value);
     }
 
@@ -770,6 +774,14 @@ rocksdb::SequenceNumber RocksDBCounterManager::earliestSeqNeeded() const {
 bool RocksDBCounterManager::parseRocksWAL() {
   WRITE_LOCKER(guard, _rwLock);
   TRI_ASSERT(_counters.size() > 0);
+
+  {
+    RocksDBEngine* engine =
+        static_cast<RocksDBEngine*>(EngineSelectorFeature::ENGINE);
+    for (auto helper : engine->recoveryHelpers()) {
+      helper->prepare();
+    }
+  }
 
   rocksdb::SequenceNumber start = _lastSync;
   // Tell the WriteBatch reader the transaction markers to look for

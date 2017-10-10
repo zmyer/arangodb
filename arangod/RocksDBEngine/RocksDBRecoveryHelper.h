@@ -35,6 +35,8 @@ class RocksDBRecoveryHelper {
  public:
   virtual ~RocksDBRecoveryHelper() {}
 
+  virtual void prepare() {}
+
   virtual void PutCF(uint32_t column_family_id, const rocksdb::Slice& key,
                        const rocksdb::Slice& value) {}
 

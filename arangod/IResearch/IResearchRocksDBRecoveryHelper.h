@@ -44,6 +44,8 @@ class IResearchRocksDBRecoveryHelper : public RocksDBRecoveryHelper {
 
   virtual ~IResearchRocksDBRecoveryHelper() override;
 
+  virtual void prepare() override;
+
   virtual void PutCF(uint32_t column_family_id, const rocksdb::Slice& key,
                      const rocksdb::Slice& value) override;
 
@@ -61,9 +63,9 @@ class IResearchRocksDBRecoveryHelper : public RocksDBRecoveryHelper {
   std::vector<IResearchLink*> lookupLinks(LogicalCollection* coll) const;
 
  private:
-  DatabaseFeature* const _dbFeature;
-  RocksDBEngine* const _engine;
-  uint32_t const _documentCF;
+  DatabaseFeature* _dbFeature;
+  RocksDBEngine* _engine;
+  uint32_t _documentCF;
 };
 
 }  // end namespace iresearch
