@@ -74,6 +74,7 @@ swaggerBaseTypes = [
     'object',
     'array',
     'integer',
+    'number',
     'long',
     'float',
     'double',
@@ -172,7 +173,7 @@ def brTrim(text):
 reqOpt = ["required", "optional"]
 def CheckReqOpt(token):
     if token not in reqOpt:
-        print >> sys.stderr, "This is supposed to be required or optional!"
+        print >> sys.stderr, "This is supposed to be required or optional!, have %s" % token
         raise Exception("invalid value")
 
 ################################################################################
