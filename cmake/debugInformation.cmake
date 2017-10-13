@@ -30,6 +30,8 @@ macro(install_debinfo
       FILE_CHECKSUM
       "${READELF_RESULT}"
       )
+    message("------------------------------DBG: ${FILE_CHECKSUM}")
+    message("------------------------------DBG: ${READELF_RESULT}")
     string(LENGTH ${FILE_CHECKSUM} FILE_CHECKSUM_LEN)
 
     if (FILE_CHECKSUM_LEN EQUAL 40)
@@ -61,6 +63,9 @@ macro(detect_binary_id_type sourceVar)
       FILE_CHECKSUM
       "${READELF_RESULT}"
       )
+    message("------------------------------DBG2: ${READELF_RESULT}")
+    message("------------------------------DBG2: ${FILE_CHECKSUM}")
+
     string(LENGTH "${FILE_CHECKSUM}" FILE_CHECKSUM_LEN)
     if (FILE_CHECKSUM_LEN EQUAL 40)
       set(${sourceVar} true)
