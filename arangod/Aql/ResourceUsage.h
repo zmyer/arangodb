@@ -40,7 +40,7 @@ struct ResourceUsage {
 };
 
 struct ResourceMonitor {
-  ResourceMonitor() : currentResources(), maxResources() {}
+  ResourceMonitor() : currentResources(), maxResources(), peak(0) {}
   explicit ResourceMonitor(ResourceUsage const& maxResources) : currentResources(), maxResources(maxResources) {}
  
   void setMemoryLimit(size_t value) {
@@ -53,6 +53,10 @@ struct ResourceMonitor {
       THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_RESOURCE_LIMIT, "query would use more memory than allowed");
     }
     currentResources.memoryUsage += value;
+
+    if (peak < currentResources.memoryUsage) {
+      peak = currentResources.memoryUsage;
+    }
   }
   
   inline void decreaseMemoryUsage(size_t value) noexcept {
@@ -66,6 +70,8 @@ struct ResourceMonitor {
 
   ResourceUsage currentResources;
   ResourceUsage maxResources;
+
+  size_t peak;
 };
 
 }

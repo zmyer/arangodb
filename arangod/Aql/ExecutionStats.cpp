@@ -39,6 +39,7 @@ void ExecutionStats::toVelocyPack(VPackBuilder& builder) const {
   builder.add("scannedIndex", VPackValue(scannedIndex));
   builder.add("filtered", VPackValue(filtered));
   builder.add("httpRequests", VPackValue(httpRequests));
+  builder.add("peakMemoryUsage", VPackValue(peakMemoryUsage));
 
   if (fullCount > -1) {
     // fullCount is exceptional. it has a default value of -1 and is
@@ -60,6 +61,7 @@ void ExecutionStats::toVelocyPackStatic(VPackBuilder& builder) {
   builder.add("httpRequests", VPackValue(0));
   builder.add("fullCount", VPackValue(-1));
   builder.add("executionTime", VPackValue(0.0));
+  builder.add("peakMemoryUsage", VPackValue(0));
   builder.close();
 }
 
@@ -71,7 +73,8 @@ ExecutionStats::ExecutionStats()
       filtered(0),
       httpRequests(0),
       fullCount(-1),
-      executionTime(0.0) {}
+      executionTime(0.0),
+      peakMemoryUsage(0) {}
 
 ExecutionStats::ExecutionStats(VPackSlice const& slice) 
     : ExecutionStats() {
@@ -85,6 +88,7 @@ ExecutionStats::ExecutionStats(VPackSlice const& slice)
   scannedFull = slice.get("scannedFull").getNumber<int64_t>();
   scannedIndex = slice.get("scannedIndex").getNumber<int64_t>();
   filtered = slice.get("filtered").getNumber<int64_t>();
+  peakMemoryUsage = slice.get("peakMemoryUsage").getNumber<size_t>();
   
   if (slice.hasKey("httpRequests")) {
     httpRequests = slice.get("httpRequests").getNumber<int64_t>();

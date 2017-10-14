@@ -675,6 +675,7 @@ QueryResult Query::execute(QueryRegistry* registry) {
     result.context = _trx->transactionContext();
 
     _engine->_stats.setExecutionTime(runTime());
+    _engine->_stats.setPeakMemoryUsage(_resourceMonitor.peak);
     enterState(QueryExecutionState::ValueType::FINALIZATION);
 
     auto stats = std::make_shared<VPackBuilder>();

@@ -50,6 +50,9 @@ struct ExecutionStats {
   /// @brief sets query execution time from the outside
   void setExecutionTime(double value) { executionTime = value; }
 
+  /// @brief sets query peak memory usage from the outside
+  void setPeakMemoryUsage(size_t value) { peakMemoryUsage = value; }
+
   /// @brief sumarize two sets of ExecutionStats
   void add(ExecutionStats const& summand) {
     writesExecuted += summand.writesExecuted;
@@ -74,6 +77,7 @@ struct ExecutionStats {
     httpRequests = 0;
     fullCount = -1;
     executionTime = 0.0;
+    peakMemoryUsage = 0;
   }
 
   /// @brief number of successfully executed write operations
@@ -100,6 +104,9 @@ struct ExecutionStats {
   /// @brief query execution time (wall-clock time). value will be set from 
   /// the outside
   double executionTime;
+
+  /// @brief query peak memory usage. value will be set from the outside
+  size_t peakMemoryUsage;
 };
 }
 }
