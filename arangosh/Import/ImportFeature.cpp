@@ -118,7 +118,7 @@ void ImportFeature::collectOptions(
                      "translate an attribute name (use as --translate "
                      "\"from=to\", for csv and tsv only)",
                      new VectorParameter<StringParameter>(&_translations));
-  
+
   options->addOption("--remove-attribute",
                      "remove an attribute before inserting an attribute"
                      " into a collection (for csv and tsv only)",
@@ -204,7 +204,7 @@ void ImportFeature::validateOptions(
                                              << 1;
     _threadCount = 1;
   }
-  if (_threadCount > TRI_numberProcessors()) {
+  if (0 && _threadCount > TRI_numberProcessors()) {
     // it's not sensible to use just one thread
     LOG_TOPIC(WARN, arangodb::Logger::FIXME) << "capping --threads value to "
                                              << TRI_numberProcessors();
