@@ -17,13 +17,15 @@
 ///
 /// Copyright holder is ArangoDB GmbH, Cologne, Germany
 ///
-/// @author Simon Grätzer
+/// @author Matthew Von-Maszewski
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef ARANGODB_IMPORT_QUICK_HIST_H
 #define ARANGODB_IMPORT_QUICK_HIST_H 1
 
 #include <chrono>
+#include <ctime>
+#include <iomanip>
 #include <mutex>
 #include <vector>
 
@@ -44,6 +46,7 @@ class QuickHistogram {
     _interval_start=std::chrono::steady_clock::now();
     _measuring_start = _interval_start;
     _sum = std::chrono::microseconds(0);
+    printf(R"("elapsed","window","n","min","mean","median","95th","99th","99.9th","max","unused1","clock")" "\n");
   }
 
 
@@ -87,6 +90,8 @@ class QuickHistogram {
       std::lock_guard<std::mutex> lg(_mutex);
 
       // retest within mutex
+      interval_end=std::chrono::steady_clock::now();
+      interval_diff=std::chrono::duration_cast<std::chrono::milliseconds>(interval_end - _interval_start);
       if (std::chrono::milliseconds(10000) <= interval_diff || force) {
         double fp_measuring, fp_interval;
         size_t num=_latencies.size();
@@ -124,10 +129,18 @@ class QuickHistogram {
         per99 = _latencies[int99];
         per99_9 = _latencies[int99_9];
 
-        printf("%.3f,%.3f,%zd,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n",
+        // timestamp to help match to other logs ...
+        auto t = std::time(nullptr);
+        auto tm = *std::localtime(&t);
+
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%m-%d-%Y %H:%M:%S");
+        auto str = oss.str();
+
+        printf("%.3f,%.3f,%zd,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%d,%s\n",
                fp_measuring, fp_interval, num, _latencies[0].count(),
                mean.count(),median.count(),
-               per95.count(), per99.count(), per99_9.count(), _latencies[num-1].count(), 0, 0);
+               per95.count(), per99.count(), per99_9.count(), _latencies[num-1].count(), 0, str.c_str());
         _latencies.clear();
         _interval_start=interval_end;
         _sum=std::chrono::microseconds(0);
@@ -143,17 +156,17 @@ class QuickHistogramTimer {
 public:
   QuickHistogramTimer(QuickHistogram & histo)
     : _histogram(histo) {
-    _interval_start=std::chrono::high_resolution_clock::now();
+    _interval_start=std::chrono::steady_clock::now();
   }
 
   ~QuickHistogramTimer() {
     std::chrono::microseconds latency;
 
-    latency = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _interval_start);
+    latency = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - _interval_start);
     _histogram.post_latency(latency);
   }
 
-  std::chrono::high_resolution_clock::time_point _interval_start;
+  std::chrono::steady_clock::time_point _interval_start;
   QuickHistogram & _histogram;
 }; // QuickHistogramTimer
 }
