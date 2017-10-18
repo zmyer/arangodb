@@ -1420,7 +1420,14 @@ def createDockerImage(edition, maintainer, stageName) {
                             logStartStage(os, logFile, logFile)
 
                             shellAndPipe("rm -rf build/.arangodb-docker", logFile)
-                            shellAndPipe("./scripts/build-docker.sh", logFile)
+                            def args = ""
+                            if (edition == "enterprise") {
+                                args += " --enterprise"
+                            }
+                            if (maintainer == "maintainer") {
+                                args += " --maintainer"
+                            }
+                            shellAndPipe("./scripts/build-docker.sh${args}", logFile)
                             shellAndPipe("docker tag arangodb:${packageName}-${branchLabel} registry.arangodb.biz:5000/arangodb/${packageName}:${branchLabel}", logFile)
                             shellAndPipe("docker push registry.arangodb.biz:5000/arangodb/${packageName}:${branchLabel}", logFile)
 
