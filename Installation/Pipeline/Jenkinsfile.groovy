@@ -1422,7 +1422,7 @@ def createDockerImage(edition, maintainer, stageName) {
                             shellAndPipe("rm -rf build/.arangodb-docker", logFile)
                             def args = ""
                             if (edition == "enterprise") {
-                                args += " --enterprise"
+                                args += " --enterprise-nogit"
                             }
                             if (maintainer == "maintainer") {
                                 args += " --maintainer"

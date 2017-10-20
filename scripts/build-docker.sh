@@ -22,6 +22,10 @@ for i in $@; do
         DEBIMAGE_NAME="arangodb3e-${DEBVERSION}_amd64"
         BUILDDEB_ARGS+=" --enterprise git@github.com:arangodb/enterprise.git "
     fi
+    if test "$i" == "--enterprise-nogit"; then
+        DEBIMAGE_NAME="arangodb3e-${DEBVERSION}_amd64"
+        BUILDDEB_ARGS+=" --enterprise nogit "
+    fi
     if test "$i" == "--maintainer"; then
         BUILDDEB_ARGS+=" --maintainer"
     fi

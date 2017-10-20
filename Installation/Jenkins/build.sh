@@ -590,7 +590,7 @@ fi
 
 SRC=$(pwd)
 
-if test -n "${ENTERPRISE_GIT_URL}" ; then
+if test -n "${ENTERPRISE_GIT_URL}" && test "${ENTERPRISE_GIT_URL}" -ne "nogit"; then
     GITSHA=$(git log -n1 --pretty='%h')
     if git describe --exact-match --tags "${GITSHA}"; then
         GITARGS=$(git describe --exact-match --tags "${GITSHA}")
