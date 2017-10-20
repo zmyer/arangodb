@@ -131,27 +131,29 @@ class QuickHistogram {
         fp_measuring = measuring_diff.count() / 1000.0;
         fp_interval = interval_diff.count() / 1000.0;
 
-        if (0==num) {
-          _readingLatencies->push_back(std::chrono::microseconds(0));
-          num=1;
-        }
-
         std::chrono::microseconds mean, median, per95, per99, per99_9;
 
-        sum = std::accumulate(_readingLatencies->begin(), _readingLatencies->end(), zero_micros);
-        mean = sum / num;
+        if (0 != num) {
+          bool odd(num & 1);
+          size_t half(num/2);
+
+          sum = std::accumulate(_readingLatencies->begin(), _readingLatencies->end(), zero_micros);
+          mean = sum / num;
+
+          if (1==num) {
+            median = _readingLatencies->at(0);
+          } else if (odd) {
+            median = (_readingLatencies->at(half) + _readingLatencies->at(half +1)) / 2;
+          } else {
+            median = _readingLatencies->at(half);
+          }
+        } else {
+          sum = zero_micros;
+          mean = zero_micros;
+          median = zero_micros;
+        } // else
 
         sort(_readingLatencies->begin(), _readingLatencies->end());
-        bool odd(num & 1);
-        size_t half(num/2);
-
-        if (1==num) {
-          median = _readingLatencies->at(0);
-        } else if (odd) {
-          median = (_readingLatencies->at(half) + _readingLatencies->at(half +1)) / 2;
-        } else {
-          median = _readingLatencies->at(half);
-        }
 
         // close but not exact math for percentiles
         per95 = CalcPercentile(*_readingLatencies, 950);
@@ -167,9 +169,12 @@ class QuickHistogram {
         auto str = oss.str();
 
         printf("%.3f,%.3f,%zd,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%d,%s\n",
-               fp_measuring, fp_interval, num, _readingLatencies->at(0).count(),
+               fp_measuring, fp_interval, num,
+               (0!=num) ? _readingLatencies->at(0).count() : 0,
                mean.count(),median.count(),
-               per95.count(), per99.count(), per99_9.count(), _readingLatencies->at(num-1).count(), 0, str.c_str());
+               per95.count(), per99.count(), per99_9.count(),
+               (0!=num) ? _readingLatencies->at(num-1).count() : 0,
+               0, str.c_str());
         _readingLatencies->clear();
         _interval_start=interval_end;
       }
@@ -185,7 +190,7 @@ class QuickHistogram {
 
     ret_val=std::chrono::microseconds(0);
 
-    if (1 < SortedLatencies.size()) {
+    if (0 < SortedLatencies.size()) {
       // useful vector size
 
       // percentiles are x10 ... so 95% is 950 and 99.9% is 999
