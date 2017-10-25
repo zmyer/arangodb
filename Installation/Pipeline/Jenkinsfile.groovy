@@ -132,7 +132,7 @@ if (! env.BRANCH_NAME) {
     env.BRANCH_NAME = mainBranch
 }
 
-sourceBranchLabel = env.BRANCH_NAME
+sourceBranchLabel = "temp/windows-test"
 
 if (env.BRANCH_NAME =~ /^PR-/) {
   def prUrl = new URL("https://api.github.com/repos/arangodb/arangodb/pulls/${env.CHANGE_ID}")
@@ -147,13 +147,13 @@ branchLabel = sourceBranchLabel.replaceAll(/[^0-9a-z]/, '-')
 buildJenkins = [
     "linux": "linux && build",
     "mac" : "mac",
-    "windows": "windows"
+    "windows": "windows-new"
 ]
 
 testJenkins = [
     "linux": "linux && tests",
     "mac" : "mac",
-    "windows": "windows"
+    "windows": "windows-new"
 ]
 
 def copyFile(os, src, dst) {
