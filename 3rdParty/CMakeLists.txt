@@ -13,7 +13,7 @@ include(ExternalProject)
 option(USE_PRECOMPILED_V8 "use a precompiled V8" OFF)
 
 
-set(V8_SUB_DIR "v5.7.0.0")
+set(V8_SUB_DIR "v5.7.492.77")
 set(V8_VERSION
   "5.7.0.0"
   CACHE INTERNAL

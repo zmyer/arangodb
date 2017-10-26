@@ -29,7 +29,7 @@ CMake flags
  * *-DUSE_MAINTAINER_MODE=1* - generate lex/yacc and errors files
  * *-DUSE_BACKTRACE=1* - add backtraces to native code asserts & exceptions
  * *-DUSE_FAILURE_TESTS=1* - adds javascript hook to crash the server for data integrity tests
- * *-DUSE_CATCH_TESTS=On (default is On so this is set unless you explicitly disable it)
+ * *-DUSE_CATCH_TESTS=On* (default is On so this is set unless you explicitly disable it)
 
 If you have made changes to errors.dat, remember to use the -DUSE_MAINTAINER_MODE flag.
 
@@ -167,7 +167,7 @@ These tests produce a certain thread on infrastructure or the test system, and t
 
 Test frameworks used
 ====================
-There are several major places where unittests live: 
+There are several major places where unittests live:
  - *UnitTests/HttpInterface*        - rspec tests
  - tests/*                          - catch unittests
  - *js/server/tests*                - runneable on the server
@@ -383,7 +383,7 @@ Analyzing Coredumps on Linux
 ============================
 We offer debug packages containing the debug symbols for your binaries. Please install them if you didn't compile yourselves.
 
-Given you saw in the log of the arangod with the PID `25216` that it died, you should then find 
+Given you saw in the log of the arangod with the PID `25216` that it died, you should then find
 `/var/tmp/core-V8 WorkerThread-25216-1490887259` with this information. We may now start GDB and inspect whats going on:
 
     gdb /usr/sbin/arangod /var/tmp/*25216*
@@ -420,7 +420,7 @@ via the environment variable or in the menu. Given we want to store the symbols 
 
 You then will be able to see stack traces in the debugger.
 
-You may also try to download the symbols manually using: 
+You may also try to download the symbols manually using:
 
     symchk.exe arangod.exe /s SRV*e:/symbol_cache/cache*https://www.arangodb.com/repositories/symsrv/
 
@@ -429,7 +429,7 @@ The symbolserver over at https://www.arangodb.com/repositories/symsrv/ is browse
 
   - arango - the basic arangodb library needed by all components
   - arango_v8 - the basic V8 wrappers needed by all components
-  - arangod - the server process 
+  - arangod - the server process
   - the client utilities:
     - arangob
     - arangobench
@@ -439,9 +439,9 @@ The symbolserver over at https://www.arangodb.com/repositories/symsrv/ is browse
     - arangosh
     - arangovpack
 
-In these directories you will find subdirectories with the hash corosponding to the id of the binaries. Their date should corrospond to the release date of their respective arango release. 
+In these directories you will find subdirectories with the hash corosponding to the id of the binaries. Their date should corrospond to the release date of their respective arango release.
 
-This means i.e. for ArangoDB 3.1.11: 
+This means i.e. for ArangoDB 3.1.11:
 
  https://www.arangodb.com/repositories/symsrv/arangod.pdb/A8B899D2EDFC40E994C30C32FCE5FB346/arangod.pd_
 
@@ -505,7 +505,7 @@ Dependencies to build documentation:
 
         npm install gitbook-cli -g
 
-- [ditaa (DIagrams Through Ascii Art)](http://ditaa.sourceforge.net/) to build the 
+- [ditaa (DIagrams Through Ascii Art)](http://ditaa.sourceforge.net/) to build the
   ascii art diagrams (optional)
 
 - Calibre2 (optional, only required if you want to build the e-book version)
@@ -560,7 +560,7 @@ version of the manual.
 
 If you want to generate all media ala PDF, ePUB, run `arangodb/Documentation/books/build.sh  build-dist-books` (takes some time to complete).
 
-If you want to generate only one of them, run below 
+If you want to generate only one of them, run below
 build commands in `arangodb/Documentation/Books/books/[Manual|HTTP|AQL]/`. Calibre's
 `ebook-convert` will be used for the conversion.
 
@@ -776,12 +776,12 @@ cluster on your local machine. `scripts/startLocalCluster` takes 0, 2 or
 three arguments. In the 0 argument version, it simply starts 2 DBservers
 and one coordinator in the background, running on ports 8629, 8630 and
 8530 respectively. The agency runs on port 4001. With 2 arguments the
-first is the number of DBServers and the second is the number of 
+first is the number of DBServers and the second is the number of
 coordinators.
 
 If there is a third argument and it is "C", then the first coordinator
 will be started with `--console`` in a separate window (using an
-`xterm`). 
+`xterm`).
 
 If there is a third argument and it is "D", then all servers are started
 up in the GNU debugger in separate windows (using `xterm`s). In that
@@ -941,4 +941,3 @@ When updating dependencies make sure that any mocked dependencies (like `glob`
 for `mocha`) match the versions required by the updated module and delete any
 duplicated nested dependencies if necessary (e.g. `mocha/node_modules/glob`)
 to make sure the global (mocked) version is used instead.
-

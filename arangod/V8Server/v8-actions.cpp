@@ -24,6 +24,7 @@
 #include "v8-actions.h"
 #include "Actions/ActionFeature.h"
 #include "Actions/actions.h"
+#include "Basics/FileUtils.h"
 #include "Basics/MutexLocker.h"
 #include "Basics/ReadLocker.h"
 #include "Basics/StringUtils.h"
@@ -54,6 +55,8 @@
 #include <velocypack/Validator.h>
 #include <velocypack/velocypack-aliases.h>
 
+#include <v8-profiler.h>
+
 using namespace arangodb;
 using namespace arangodb::basics;
 using namespace arangodb::rest;
@@ -72,7 +75,7 @@ class v8_action_t final : public TRI_action_t {
 
   void visit(void* data) override {
     v8::Isolate* isolate = static_cast<v8::Isolate*>(data);
-    
+
     WRITE_LOCKER(writeLocker, _callbacksLock);
 
     auto it = _callbacks.find(isolate);
@@ -494,7 +497,7 @@ static v8::Handle<v8::Object> RequestCppToV8(v8::Isolate* isolate,
         break;
     }
   }
-  
+
   for (auto const& it : headers) {
     headerFields->ForceSet(TRI_V8_STD_STRING(isolate, it.first),
                            TRI_V8_STD_STRING(isolate, it.second));
@@ -659,11 +662,11 @@ static void ResponseV8ToCpp(v8::Isolate* isolate, TRI_v8_global_t const* v8g,
             auto obj = b.As<v8::Object>();
             httpResponse->body().appendText(V8Buffer::data(obj),
                                             V8Buffer::length(obj));
-          } else if (autoContent && 
+          } else if (autoContent &&
                      request->contentTypeResponse() == rest::ContentType::VPACK) {
             // use velocypack
             try {
-              std::shared_ptr<VPackBuilder> builder = VPackParser::fromJson(TRI_ObjectToString(res->Get(BodyKey))); 
+              std::shared_ptr<VPackBuilder> builder = VPackParser::fromJson(TRI_ObjectToString(res->Get(BodyKey)));
               httpResponse->setContentType(rest::ContentType::VPACK);
               httpResponse->setPayload(builder->slice(), true);
             } catch (...) {
@@ -822,7 +825,7 @@ static void ResponseV8ToCpp(v8::Isolate* isolate, TRI_v8_global_t const* v8g,
   // .........................................................................
   // cookies
   // .........................................................................
-  
+
   TRI_GET_GLOBAL_STRING(CookiesKey);
   if (res->Has(CookiesKey)) {
     v8::Handle<v8::Value> val = res->Get(CookiesKey);
@@ -1383,7 +1386,7 @@ void TRI_InitV8Actions(v8::Isolate* isolate, v8::Handle<v8::Context> context) {
   TRI_AddGlobalFunctionVocbase(isolate,
                                TRI_V8_ASCII_STRING(isolate, "SYS_GET_CURRENT_REQUEST"),
                                JS_GetCurrentRequest);
-  TRI_AddGlobalFunctionVocbase(isolate, 
+  TRI_AddGlobalFunctionVocbase(isolate,
                                TRI_V8_ASCII_STRING(isolate, "SYS_GET_CURRENT_RESPONSE"),
                                JS_GetCurrentResponse);
   TRI_AddGlobalFunctionVocbase(isolate,
@@ -1602,6 +1605,52 @@ static void JS_DebugClearFailAt(
   TRI_V8_TRY_CATCH_END
 }
 
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+////////////////////////////////////////////////////////////////////////////////
+/// @brief takes a snapshot of the V8 heap
+////////////////////////////////////////////////////////////////////////////////
+class HeapStream : public v8::OutputStream {
+ private:
+  FILE* _file;
+ public:
+  HeapStream(std::string const& filename) : _file(fopen(filename.data(), "w")) {}
+  virtual ~HeapStream() {}
+  virtual void EndOfStream() {
+    fclose(_file);
+    _file = nullptr;
+  };
+  virtual int GetChunkSize() { return 2 * 1024 * 1024; }
+  virtual WriteResult WriteAsciiChunk(char* data, int size) {
+    int written = 0;
+    while (written < size && !feof(_file) && !ferror(_file)) {
+      written += fwrite(data, sizeof(char), size, _file);
+    }
+    return (written == size) ? kContinue : kAbort;
+  }
+};
+
+static void JS_TakeV8HeapSnapshot(
+    v8::FunctionCallbackInfo<v8::Value> const& args) {
+  TRI_V8_TRY_CATCH_BEGIN(isolate);
+  v8::HandleScope scope(isolate);
+
+  auto hp = isolate->GetHeapProfiler();
+  auto snapshot = hp->TakeHeapSnapshot();
+
+  // write snapshot out to file...
+  {
+    std::string filename(FileUtils::buildFilename(FileUtils::currentDirectory().result(), "arangodb_v8.heapsnapshot"));
+    HeapStream hs(filename);
+    snapshot->Serialize(&hs);
+  }
+
+  hp->DeleteAllHeapSnapshots();
+
+  TRI_V8_RETURN_UNDEFINED();
+  TRI_V8_TRY_CATCH_END
+}
+#endif
+
 void TRI_InitV8DebugUtils(v8::Isolate* isolate, v8::Handle<v8::Context> context,
                           std::string const& startupPath,
                           std::string const& modules) {
@@ -1610,7 +1659,7 @@ void TRI_InitV8DebugUtils(v8::Isolate* isolate, v8::Handle<v8::Context> context,
                                TRI_V8_ASCII_STRING(isolate, "SYS_DEBUG_CLEAR_FAILAT"),
                                JS_DebugClearFailAt);
 #ifdef ARANGODB_ENABLE_FAILURE_TESTS
-  TRI_AddGlobalFunctionVocbase(isolate, 
+  TRI_AddGlobalFunctionVocbase(isolate,
                                TRI_V8_ASCII_STRING(isolate, "SYS_DEBUG_SEGFAULT"),
                                JS_DebugSegfault);
   TRI_AddGlobalFunctionVocbase(isolate,
@@ -1619,5 +1668,11 @@ void TRI_InitV8DebugUtils(v8::Isolate* isolate, v8::Handle<v8::Context> context,
   TRI_AddGlobalFunctionVocbase(isolate,
                                TRI_V8_ASCII_STRING(isolate, "SYS_DEBUG_REMOVE_FAILAT"),
                                JS_DebugRemoveFailAt);
+#endif
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+TRI_AddGlobalFunctionVocbase(isolate,
+                             TRI_V8_ASCII_STRING(isolate, "TRI_TAKE_V8_HEAP_SNAPSHOT"),
+                             JS_TakeV8HeapSnapshot,
+                             true);
 #endif
 }
