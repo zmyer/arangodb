@@ -144,9 +144,12 @@
                   return 0;
                 }
               }
-              var callbackChange = function (error) {
+              var self = this;
+
+              var callbackChange = function (error, data) {
                 if (error) {
-                  arangoHelper.arangoError('Collection error: ' + error.responseText);
+                  self.render();
+                  arangoHelper.arangoError('Collection error: ' + data.responseJSON.errorMessage);
                 } else {
                   arangoHelper.arangoNotification('Collection: ' + 'Successfully changed.');
                   window.App.navigate('#cSettings/' + newname, {trigger: true});
@@ -279,12 +282,14 @@
                 this.truncateCollection.bind(this)
               )
             );
-            buttons.push(
-              window.modalView.createNotificationButton(
-                'Load Indexes in Memory',
-                this.warmupCollection.bind(this)
-              )
-            );
+            if (frontendConfig.engine === 'rocksdb') {
+              buttons.push(
+                window.modalView.createNotificationButton(
+                  'Load Indexes into Memory',
+                  this.warmupCollection.bind(this)
+                )
+              );
+            }
             if (collectionIsLoaded) {
               buttons.push(
                 window.modalView.createNotificationButton(
